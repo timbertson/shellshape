@@ -1,0 +1,7 @@
+# vim: set et ts=4:
+tricks:
+- watchdog.tricks.ShellCommandTrick:
+    patterns: ["*.coffee"]
+    shell_command: "0launch http://gfxmonk.net/dist/0install/coffee-script.xml -c '${watch_src_path}'; echo \"compiled...\""
+# - watchdog.tricks.LoggerTrick:
+#     patterns: ["*"]
