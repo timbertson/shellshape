@@ -47,13 +47,12 @@ class Split
 	
 	layout_one: (rect, windows) ->
 		first_window = windows.shift()
+		if windows.length == 0
+			first_window.set_rect(rect)
+			return [{}, []]
 		[window_rect, remaining] = Tile.splitRect(rect, @axis, @ratio)
 		first_window.set_rect(window_rect)
-		window.bottomSplit = this
-		if windows.length > 0
-			log("windows is #{windows.length} -- #{windows}")
-			windows[0].topSplit = this
-			windows[0].bottomSplit = undefined
+		log("windows is #{windows.length} -- #{windows}")
 		return [remaining, windows]
 
 class MultiSplit
@@ -83,7 +82,7 @@ class HorizontalTiledLayout
 		@splits = { left: [], right: []}
 
 	each: (func) ->
-		func(tile) for tile in this.tiles
+		func(@tiles[i], i) for i in [0 ... @tiles.length]
 
 	contains: (win) ->
 		return this.indexOf(win) != -1
@@ -91,7 +90,10 @@ class HorizontalTiledLayout
 	indexOf: (win) ->
 		idx = -1
 		@each (tile, i) ->
+			log("#{tile.window} == #{win}, #{i}")
 			idx = i if(tile.window == win)
+		log("found window #{win} at idx #{idx}")
+		throw("undefined isx!") unless idx?
 		return idx
 	
 	layout: ->
@@ -108,14 +110,18 @@ class HorizontalTiledLayout
 			while array.length < size
 				array.push(generator())
 
-		log("laying out side with rect #{_ rect}, windows #{windows} and splits #{_ splits}")
 		zip = (a,b) ->
 			return ([a[i], b[i]] for i in [0 ... Math.min(a.length, b.length)])
 
 		extend_to(windows.length, splits, -> new Split(axis))
+		log("laying out side with rect #{_ rect}, windows #{windows} and splits #{_ splits}")
 
 		for [window, split] in zip(windows, splits)
 			[rect, windows] = split.layout_one(rect, windows)
+
+	add_main_window_count: (i) ->
+		@mainSplit.primaryWindows += i
+		@layout()
 
 	add: (win) ->
 		return if @contains(win)
@@ -131,8 +137,7 @@ class HorizontalTiledLayout
 		@layout()
 
 	removeWindowAt: (idx) ->
-		if(this.tiles.length <= idx)
-			return null
+		log("removing window #{idx} from #{this.tiles}")
 		removed = this.tiles[idx]
 		this.tiles.splice(idx, 1)
 		removed.release()
