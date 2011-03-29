@@ -53,9 +53,9 @@ function Window() { this._init(); }
 			var self = this;
 			console.log("init window!");
 			self.title = "Window " + winCount;
-			self.elem = $("<div><h3>" + self.title + "</h3><p>...</p></div>");
+			self.elem = $("<div class=\"window\"><h3>" + self.title + "</h3></div>");
 			winCount += 1;
-			$("body").append(self.elem);
+			$("#screen").append(self.elem);
 			var size = 200;
 			var left = random(0, Screen.width - size);
 			var top = random(0, Screen.height - size);
@@ -102,7 +102,7 @@ function Window() { this._init(); }
 			this.elem.css({"border-color": inactive_border, opacity: dim});
 		}
 		,move: function(user_action, x, y) {
-			this.elem.css({left:x+5, top:y+5});
+			this.elem.css({left:x, top:y});
 		}
 		,resize: function(user_action, w, h) {
 			this.elem.css({width:w-4, height:h-4});
@@ -124,7 +124,7 @@ $(function() {
 	// Screen.height = $(document).height();
 	Screen.width = 500;
 	Screen.height = 500;
-	$("body").append($("<div style=\"background: #dddddd; border: 5px solid #5595ee; width:500px; height:500px;\"/>"));
+	$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:"500px", height:"500px", position:"absolute"});
 	tiling = new HorizontalTiledLayout(Screen.width, Screen.height);
 	$(document).keydown(function(evt) {
 		console.log("key " + evt.keyCode);

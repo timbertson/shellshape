@@ -1,6 +1,6 @@
 #require("sys").puts("??")
 eq = require("assert").eq
-split = require('../split')
+split = require('../js/tiling')
 eq = (a,b) ->
 	if a != b
 		throw("expected #{b}, got #{a}")
