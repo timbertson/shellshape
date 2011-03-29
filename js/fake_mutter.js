@@ -79,9 +79,7 @@ function Window() { this._init(); }
 			restack()
 		}
 		,_removeFromStack: function() {
-			logstack();
 			stack.splice(this.index(), 1);
-			logstack();
 		}
 		,toggleFrontmost: function() {
 			if(this.index() == stack.length - 1) {
@@ -94,8 +92,8 @@ function Window() { this._init(); }
 			this._removeFromStack();
 			stack.unshift(this);
 			restack();
-			Window.active.deactivate()
-			this.activate()
+			// Window.active.deactivate()
+			// this.activate()
 		}
 		,bringToFront: function() {
 			this._removeFromStack();
@@ -115,7 +113,7 @@ function Window() { this._init(); }
 		,resize: function(user_action, w, h) {
 			this.elem.css({width:w-4, height:h-4});
 		}
-		,toggleMaximize: function() {
+		,toggle_maximize: function() {
 			if(this.maximized) {
 				this.unmaximize();
 			} else {
@@ -138,13 +136,12 @@ function Window() { this._init(); }
 		,height: function() { return this.elem.outerHeight(); }
 		,xpos: function() { return this.elem.position().left; }
 		,ypos: function() { return this.elem.position().top; }
+		,is_active: function() { return Window.active === this; }
 	};
 })();
 
 var tiling;
 $(function() {
-	// Screen.width = $(document).width();
-	// Screen.height = $(document).height();
 	Screen.width = 800;
 	Screen.height = 500;
 	$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
@@ -154,12 +151,14 @@ $(function() {
 		if(evt.shiftKey) {
 			switch(evt.keyCode) {
 				case 84: tiling.remove(Window.active); break; // t
+				case 74: tiling.cycle(1); break; // j
+				case 75: tiling.cycle(-1); break; // k
 			}
 		} else {
 			switch(evt.keyCode) {
 				case 13: new Window(); break; // enter
 				case 65: Window.active.toggleFrontmost(); break; // a
-				case 90: Window.active.toggleMaximize(); break; // z
+				case 90: Window.active.toggle_maximize(); break; // z
 				case 84: tiling.add(Window.active); break; // t
 				case 188: tiling.add_main_window_count(1); break; // , (<)
 				case 190: tiling.add_main_window_count(-1); break; // . (>)

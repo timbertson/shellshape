@@ -14,7 +14,7 @@ Tile = {
 		return {pos:{x:rect.pos.x, y:rect.pos.y}, size:{x:rect.size.x, y:rect.size.y}}
 
 	splitRect: (rect, axis, ratio) ->
-		log("#splitRect: splitting rect of " + _(rect) + " along the " + axis + " axis with ratio " + ratio)
+		# log("#splitRect: splitting rect of " + _(rect) + " along the " + axis + " axis with ratio " + ratio)
 		if(ratio > 1 || ratio < 0)
 			throw("invalid ratio: " + ratio + " (must be between 0 and 1)")
 		newSizeA = rect.size[axis] * ratio
@@ -25,8 +25,8 @@ Tile = {
 		rect.size[axis] = newSizeA
 		newRect.size[axis] = newSizeB
 		newRect.pos[axis] += newSizeA
-		log("rect copy: " + _(rect))
-		log("newRect: " + _(newRect))
+		# log("rect copy: " + _(rect))
+		# log("newRect: " + _(newRect))
 		return [rect, newRect]
 
 	joinRects: (a, b) ->
@@ -52,7 +52,6 @@ class Split
 			return [{}, []]
 		[window_rect, remaining] = Tile.splitRect(rect, @axis, @ratio)
 		first_window.set_rect(window_rect)
-		log("windows is #{windows.length} -- #{windows}")
 		return [remaining, windows]
 
 class MultiSplit
@@ -82,6 +81,7 @@ class HorizontalTiledLayout
 		@splits = { left: [], right: []}
 
 	each: (func) ->
+		log(@tiles.length)
 		func(@tiles[i], i) for i in [0 ... @tiles.length]
 
 	contains: (win) ->
@@ -93,13 +93,17 @@ class HorizontalTiledLayout
 			log("#{tile.window} == #{win}, #{i}")
 			idx = i if(tile.window == win)
 		log("found window #{win} at idx #{idx}")
-		throw("undefined isx!") unless idx?
 		return idx
+	
+	find_tile: (win) ->
+		idx = @indexOf(win)
+		throw("couldn't find window: " + window) if idx < 0
+		@tiles[idx]
 	
 	layout: ->
 		[left, right] = @mainSplit.split(@bounds, @tiles)
-		log("laying out #{left[1].length} windows on the left with rect #{_ left[0]}")
-		log("laying out #{right[1].length} windows on the right with rect #{_ right[0]}")
+		# log("laying out #{left[1].length} windows on the left with rect #{_ left[0]}")
+		# log("laying out #{right[1].length} windows on the right with rect #{_ right[0]}")
 		@layout_side(left..., @splits.left)
 		@layout_side(right..., @splits.right)
 	
@@ -114,7 +118,7 @@ class HorizontalTiledLayout
 			return ([a[i], b[i]] for i in [0 ... Math.min(a.length, b.length)])
 
 		extend_to(windows.length, splits, -> new Split(axis))
-		log("laying out side with rect #{_ rect}, windows #{windows} and splits #{_ splits}")
+		# log("laying out side with rect #{_ rect}, windows #{windows} and splits #{_ splits}")
 
 		for [window, split] in zip(windows, splits)
 			[rect, windows] = split.layout_one(rect, windows)
@@ -122,22 +126,44 @@ class HorizontalTiledLayout
 	add_main_window_count: (i) ->
 		@mainSplit.primaryWindows += i
 		@layout()
-
+	
 	add: (win) ->
 		return if @contains(win)
 		console.log("adding window " + win)
 		tile = new TiledWindow(win)
 		@tiles.push(tile)
 		@layout()
+	
+	active_tile: (fn) ->
+		@each (tile, i) ->
+			fn(tile, i) if tile.window.is_active()
+
+	cycle: (int) ->
+		@active_tile (tile, idx) =>
+			@_cycle(idx, int)
+
+	_cycle: (idx, direction) ->
+		new_pos = idx + direction
+		if new_pos < 0 or new_pos >= @tiles.length
+			log("pass...")
+			return
+		log("moving tile at #{idx} to #{new_pos}")
+		removed = @removeTileAt(idx)
+		@insertTileAt(new_pos, removed)
+		@layout()
 
 	remove: (win) ->
 		return unless @contains(win)
-		log("removing window: " + win)
-		@removeWindowAt(@indexOf(win))
+		@removeTileAt(@indexOf(win))
 		@layout()
 
-	removeWindowAt: (idx) ->
-		log("removing window #{idx} from #{this.tiles}")
+	insertTileAt: (idx, tile) ->
+		@tiles.splice(idx,0, tile)
+		log("put tile " + tile + " in at " + idx)
+		log(@tiles)
+
+	removeTileAt: (idx) ->
+		log("removing tile #{idx} from #{this.tiles}")
 		removed = this.tiles[idx]
 		this.tiles.splice(idx, 1)
 		removed.release()
@@ -149,14 +175,13 @@ class HorizontalTiledLayout
 
 		log(" -------------- layout ------------- ")
 		log(" // " + lbl)
-		log(" - layout: " + _(this.layout))
 		log(" - total windows: " + this.tiles.length)
 		log("")
-		log(" - main windows: " + this.main_windows().length)
+		log(" - main windows: " + this.mainsplit.primaryWindows)
 		# log(_(this.tiles))
 		this.main_windows().map(dump_win)
 		log("")
-		log(" - minor windows: " + this.minor_windows().length)
+		log(" - minor windows: " + @tiles.length - this.mainsplit.primaryWindows)
 		this.minor_windows().map(dump_win)
 		log(" ----------------------------------- ")
 
@@ -170,19 +195,34 @@ class TiledWindow
 		this.window = win
 		this.original_rect = {pos: {x:win.xpos(), y:win.ypos()}, size: {x:win.width(), y:win.height()}}
 		this.rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
+		this.maximized_rect = null
 
 	move: (pos) ->
 		this.window.move(false, pos.x, pos.y)
+	
+	toggle_maximize: (rect) ->
+		if @maximized_rect
+			@unmaximize()
+		else
+			@maximize(rect)
+
+	maximize: (rect) ->
+		this.maximized_rect = rect
+		this.layout()
+	
+	unmaximize: ->
+		this.maximized_rect = null
+		this.layout()
 
 	resize : (size) ->
 		this.window.resize(false, size.x, size.y)
 
 	set_rect : (r) ->
-		log("Setting rect to " + r)
+		# log("Setting rect to " + r)
 		this.window.move_resize(false, r.pos.x, r.pos.y, r.size.x, r.size.y)
 
 	layout: ->
-		this.set_rect(this.rect)
+		this.set_rect(this.maximized_rect or this.rect)
 
 	release: ->
 		this.set_rect(this.original_rect)
