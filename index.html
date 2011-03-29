@@ -1,6 +1,8 @@
 <html>
 	<head>
 		<title>Let's tile!</title>
+		<link type="text/css" href="css/ui-lightness/jquery-ui-1.8.11.custom.css" rel="stylesheet" />   
+
 		<script type="text/javascript" src="js/lib/jquery-1.5.1.min.js"></script>
 		<script type="text/javascript" src="js/lib/jquery-ui-1.8.11.custom.min.js"></script>
 		<script type="text/javascript" src="js/tiling.js"></script>
@@ -14,10 +16,51 @@
 				text-align:center;
 				size:100%;
 			}
+
+			ul, ul li, h3 { margin:0; padding:0; }
+
+			ul li {
+				color:#888;
+				list-style-type: none;
+			}
+			ul li b {
+				font-size:1.7em;
+				line-height: 1em;
+				color:#444;
+				position:relative;
+				top:0.2em;
+				min-width: 2em;
+				text-align:center;
+				display:inline-block;
+			}
+			ul li.pending {
+				-moz-opacity: 0.4;
+				-webkit-opacity: 0.4;
+			}
 		</style>
 	</head>
 	<body>
 		<div id="screen"></div>
-		<h3>Hotkeys:</h3>
+		<div style="height:520px;"></div>
+		<ul style="position:absolute; left:400px">
+			<li><b>,</b> more windows in main area</li>
+			<li><b>.</b> less windows in main area</li>
+			<li class="pending"><b>h</b> bigger main area</li>
+			<li class="pending"><b>l</b> smaller main area</li>
+			<li class="pending"><b>i</b> bigger tile area</li>
+			<li class="pending"><b>u</b> smaller tile area</li>
+			<li class="pending"><b>J</b> swap with next</li>
+			<li class="pending"><b>K</b> swap with prev</li>
+		</ul>
+		<ul>
+			<li><b>j</b> next</li>
+			<li><b>k</b> prev</li>
+			<li><b><abbr title="return">&#x21b5;</abbr></b> new window</li>
+			<li><b>q</b> close window</li>
+			<li><b>a</b> send to front/back</li>
+			<li><b>z</b> toggle maximize</li>
+			<li><b>t</b> tile</li>
+			<li><b>T</b> un-tile</li>
+		</ul>
 	</body>
 </head>

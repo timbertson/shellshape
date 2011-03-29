@@ -7,7 +7,7 @@ function Window() { this._init(); }
 (function() {
 	var dim = 0.8;
 	var bright = 1;
-	var active_border = "#bb2222";
+	var active_border = "#FFFFFF";
 	var inactive_border = "#000000";
 	function random(min, max) {
 		return Math.round(Math.random() * (max - min) + min);
@@ -56,7 +56,7 @@ function Window() { this._init(); }
 			self.elem = $("<div class=\"window\"><h3>" + self.title + "</h3></div>");
 			winCount += 1;
 			$("#screen").append(self.elem);
-			var size = 200;
+			var size = 300;
 			var left = random(0, Screen.width - size);
 			var top = random(0, Screen.height - size);
 			self.elem.resizable().draggable();
@@ -64,6 +64,7 @@ function Window() { this._init(); }
 			self.elem.mouseout(function() { self.deactivate(); });
 			self.elem.css({background: randomColor(), position:"absolute", width:size, height:size, left:left, top:top, border: "2px solid black", opacity:dim});
 			self.elem.mousedown(function() { self.bringToFront(); });
+			self.maximized = false;
 			stack.push(self);
 			restack();
 		}
@@ -71,6 +72,11 @@ function Window() { this._init(); }
 			var idx = stack.indexOf(this);
 			if (idx < 0) throw("window not in stack! I am " + this.title + ", windows are " + logstack());
 			return idx;
+		}
+		,close: function() {
+			this._removeFromStack();
+			this.elem.detach();
+			restack()
 		}
 		,_removeFromStack: function() {
 			logstack();
@@ -88,6 +94,8 @@ function Window() { this._init(); }
 			this._removeFromStack();
 			stack.unshift(this);
 			restack();
+			Window.active.deactivate()
+			this.activate()
 		}
 		,bringToFront: function() {
 			this._removeFromStack();
@@ -107,14 +115,29 @@ function Window() { this._init(); }
 		,resize: function(user_action, w, h) {
 			this.elem.css({width:w-4, height:h-4});
 		}
+		,toggleMaximize: function() {
+			if(this.maximized) {
+				this.unmaximize();
+			} else {
+				this.maximize();
+			}
+			this.maximized = !this.maximized;
+		}
+		,maximize: function() {
+			this.unmaximize_args = [true, this.xpos(), this.ypos(), this.width(), this.height()];
+			this.move_resize(true, 10, 10, Screen.width - 20, Screen.height - 20);
+		}
+		,unmaximize: function() {
+			this.move_resize.apply(this, this.unmaximize_args);
+		}
 		,move_resize: function(user_action, x, y, w, h) {
 			this.move(user_action, x, y);
 			this.resize(user_action, w, h);
 		}
 		,width: function() { return this.elem.outerWidth(); }
 		,height: function() { return this.elem.outerHeight(); }
-		,xpos: function() { return this.elem.offset().left; }
-		,ypos: function() { return this.elem.offset().top; }
+		,xpos: function() { return this.elem.position().left; }
+		,ypos: function() { return this.elem.position().top; }
 	};
 })();
 
@@ -122,9 +145,9 @@ var tiling;
 $(function() {
 	// Screen.width = $(document).width();
 	// Screen.height = $(document).height();
-	Screen.width = 500;
+	Screen.width = 800;
 	Screen.height = 500;
-	$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:"500px", height:"500px", position:"absolute"});
+	$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
 	tiling = new HorizontalTiledLayout(Screen.width, Screen.height);
 	$(document).keydown(function(evt) {
 		console.log("key " + evt.keyCode);
@@ -135,12 +158,14 @@ $(function() {
 		} else {
 			switch(evt.keyCode) {
 				case 13: new Window(); break; // enter
-				case 90: Window.active.toggleFrontmost(); break; // z
+				case 65: Window.active.toggleFrontmost(); break; // a
+				case 90: Window.active.toggleMaximize(); break; // z
 				case 84: tiling.add(Window.active); break; // t
 				case 188: tiling.add_main_window_count(1); break; // , (<)
 				case 190: tiling.add_main_window_count(-1); break; // . (>)
 				case 74: Window.cycle(-1); break; // j
 				case 75: Window.cycle(1); break; // k
+				case 81: tiling.remove(Window.active); Window.active.close(); break; // q
 			}
 		}
 	});
