@@ -4,7 +4,7 @@ divideAfter = (num, items) ->
 Axis = {
 	other: (axis) -> return if axis == 'y' then 'x' else 'y'
 }
-_ = (s) -> JSON.stringify(s)
+j = (s) -> JSON.stringify(s)
 
 HALF = 0.5
 
@@ -14,7 +14,7 @@ Tile = {
 		return {pos:{x:rect.pos.x, y:rect.pos.y}, size:{x:rect.size.x, y:rect.size.y}}
 
 	splitRect: (rect, axis, ratio) ->
-		# log("#splitRect: splitting rect of " + _(rect) + " along the " + axis + " axis with ratio " + ratio)
+		# log("#splitRect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio)
 		if(ratio > 1 || ratio < 0)
 			throw("invalid ratio: " + ratio + " (must be between 0 and 1)")
 		newSizeA = rect.size[axis] * ratio
@@ -25,8 +25,8 @@ Tile = {
 		rect.size[axis] = newSizeA
 		newRect.size[axis] = newSizeB
 		newRect.pos[axis] += newSizeA
-		# log("rect copy: " + _(rect))
-		# log("newRect: " + _(newRect))
+		# log("rect copy: " + j(rect))
+		# log("newRect: " + j(newRect))
 		return [rect, newRect]
 
 	joinRects: (a, b) ->
@@ -73,6 +73,9 @@ class MultiSplit
 		return [[left_rect, left_windows], [right_rect, right_windows]]
 
 class HorizontalTiledLayout
+	STOP = '_stop_iter'
+	is_managed = (tile) -> tile.managed
+
 	constructor: (screen_width, screen_height) ->
 		@bounds = {pos:{x:0, y:0}, size:{x:screen_width, y:screen_height}}
 		@tiles = []
@@ -80,8 +83,11 @@ class HorizontalTiledLayout
 		@mainSplit = new MultiSplit(@mainAxis, 1)
 		@splits = { left: [], right: []}
 
+	each_tiled: (func) ->
+		for i in [0 ... @tiles.length]
+			func(@tiles[i], i) if is_managed(@tiles[i]) 
+
 	each: (func) ->
-		log(@tiles.length)
 		func(@tiles[i], i) for i in [0 ... @tiles.length]
 
 	contains: (win) ->
@@ -90,20 +96,23 @@ class HorizontalTiledLayout
 	indexOf: (win) ->
 		idx = -1
 		@each (tile, i) ->
-			log("#{tile.window} == #{win}, #{i}")
 			idx = i if(tile.window == win)
-		log("found window #{win} at idx #{idx}")
+		# log("found window #{win} at idx #{idx}")
 		return idx
 	
-	find_tile: (win) ->
+	tile_for: (win) ->
 		idx = @indexOf(win)
 		throw("couldn't find window: " + window) if idx < 0
 		@tiles[idx]
 	
+	managed_tiles: ->
+		_.select(@tiles, is_managed)
+	
 	layout: ->
-		[left, right] = @mainSplit.split(@bounds, @tiles)
-		# log("laying out #{left[1].length} windows on the left with rect #{_ left[0]}")
-		# log("laying out #{right[1].length} windows on the right with rect #{_ right[0]}")
+		log(@managed_tiles())
+		[left, right] = @mainSplit.split(@bounds, @managed_tiles())
+		# log("laying out #{left[1].length} windows on the left with rect #{j left[0]}")
+		# log("laying out #{right[1].length} windows on the right with rect #{j right[0]}")
 		@layout_side(left..., @splits.left)
 		@layout_side(right..., @splits.right)
 	
@@ -118,7 +127,7 @@ class HorizontalTiledLayout
 			return ([a[i], b[i]] for i in [0 ... Math.min(a.length, b.length)])
 
 		extend_to(windows.length, splits, -> new Split(axis))
-		# log("laying out side with rect #{_ rect}, windows #{windows} and splits #{_ splits}")
+		# log("laying out side with rect #{j rect}, windows #{windows} and splits #{j splits}")
 
 		for [window, split] in zip(windows, splits)
 			[rect, windows] = split.layout_one(rect, windows)
@@ -127,16 +136,41 @@ class HorizontalTiledLayout
 		@mainSplit.primaryWindows += i
 		@layout()
 	
+	tile: (win) ->
+		@tile_for(win).tile()
+		@layout()
+
+	select_cycle: (offset) ->
+		@active_tile (tile, idx) =>
+			log("Active tile == #{idx}, #{tile.window.title}")
+			@tiles[@wrap_index(idx + offset)].activate()
+	
+	wrap_index: (idx) ->
+		log("wrapped #{idx} to #{idx % @tiles.length}")
+		while idx < 0
+			idx += @tiles.length
+		while idx >= @tiles.length
+			idx -= @tiles.length
+		# 	return @tiles.length
+		idx % @tiles.length - 1
+		log(".. but #{idx}")
+		idx
+
 	add: (win) ->
 		return if @contains(win)
-		console.log("adding window " + win)
+		log("adding window " + win)
 		tile = new TiledWindow(win)
 		@tiles.push(tile)
 		@layout()
 	
 	active_tile: (fn) ->
+		first = true
 		@each (tile, i) ->
-			fn(tile, i) if tile.window.is_active()
+			if tile.window.is_active()
+				log(first)
+				return unless first
+				first = false
+				fn(tile, i)
 
 	cycle: (int) ->
 		@active_tile (tile, idx) =>
@@ -152,33 +186,37 @@ class HorizontalTiledLayout
 		@insertTileAt(new_pos, removed)
 		@layout()
 
-	remove: (win) ->
-		return unless @contains(win)
-		@removeTileAt(@indexOf(win))
+	untile: (win) ->
+		@tile_for(win).release()
 		@layout()
 
 	insertTileAt: (idx, tile) ->
 		@tiles.splice(idx,0, tile)
-		log("put tile " + tile + " in at " + idx)
+		# log("put tile " + tile + " in at " + idx)
 		log(@tiles)
 
 	removeTileAt: (idx) ->
-		log("removing tile #{idx} from #{this.tiles}")
+		# log("removing tile #{idx} from #{this.tiles}")
 		removed = this.tiles[idx]
 		this.tiles.splice(idx, 1)
 		removed.release()
 		return removed
-
+	
+	on_window_created: (win) ->
+		@add(win)
+	on_window_killed: (win) ->
+		@removeTileAt(@indexOf(win))
+	
 	log_state: (lbl) ->
 		dump_win = (w) ->
-			log("   - " + _(w.rect))
+			log("   - " + j(w.rect))
 
 		log(" -------------- layout ------------- ")
 		log(" // " + lbl)
 		log(" - total windows: " + this.tiles.length)
 		log("")
 		log(" - main windows: " + this.mainsplit.primaryWindows)
-		# log(_(this.tiles))
+		# log(j(this.tiles))
 		this.main_windows().map(dump_win)
 		log("")
 		log(" - minor windows: " + @tiles.length - this.mainsplit.primaryWindows)
@@ -192,10 +230,14 @@ class TiledWindow
 		#   sm_client_id?
 		#   startup_id?
 		#   net_wm_pid?
-		this.window = win
-		this.original_rect = {pos: {x:win.xpos(), y:win.ypos()}, size: {x:win.width(), y:win.height()}}
-		this.rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
-		this.maximized_rect = null
+		@window = win
+		@original_rect = {pos: {x:win.xpos(), y:win.ypos()}, size: {x:win.width(), y:win.height()}}
+		@rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
+		@maximized_rect = null
+		@managed = false
+
+	tile: ->
+		this.managed = true
 
 	move: (pos) ->
 		this.window.move(false, pos.x, pos.y)
@@ -226,6 +268,11 @@ class TiledWindow
 
 	release: ->
 		this.set_rect(this.original_rect)
+		this.managed = false
+	
+	activate: ->
+		@window.activate()
+		@window.bringToFront()
 
 
 window.HorizontalTiledLayout = HorizontalTiledLayout

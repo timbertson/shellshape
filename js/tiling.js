@@ -1,5 +1,5 @@
 (function() {
-  var Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, divideAfter, _;
+  var Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, divideAfter, j;
   var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   divideAfter = function(num, items) {
     return [items.slice(0, num), items.slice(num)];
@@ -13,7 +13,7 @@
       }
     }
   };
-  _ = function(s) {
+  j = function(s) {
     return JSON.stringify(s);
   };
   HALF = 0.5;
@@ -100,6 +100,11 @@
     return MultiSplit;
   })();
   HorizontalTiledLayout = (function() {
+    var STOP, is_managed;
+    STOP = '_stop_iter';
+    is_managed = function(tile) {
+      return tile.managed;
+    };
     function HorizontalTiledLayout(screen_width, screen_height) {
       this.bounds = {
         pos: {
@@ -119,9 +124,16 @@
         right: []
       };
     }
+    HorizontalTiledLayout.prototype.each_tiled = function(func) {
+      var i, _ref, _results;
+      _results = [];
+      for (i = 0, _ref = this.tiles.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
+        _results.push(is_managed(this.tiles[i]) ? func(this.tiles[i], i) : void 0);
+      }
+      return _results;
+    };
     HorizontalTiledLayout.prototype.each = function(func) {
       var i, _ref, _results;
-      log(this.tiles.length);
       _results = [];
       for (i = 0, _ref = this.tiles.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
         _results.push(func(this.tiles[i], i));
@@ -135,15 +147,13 @@
       var idx;
       idx = -1;
       this.each(function(tile, i) {
-        log("" + tile.window + " == " + win + ", " + i);
         if (tile.window === win) {
           return idx = i;
         }
       });
-      log("found window " + win + " at idx " + idx);
       return idx;
     };
-    HorizontalTiledLayout.prototype.find_tile = function(win) {
+    HorizontalTiledLayout.prototype.tile_for = function(win) {
       var idx;
       idx = this.indexOf(win);
       if (idx < 0) {
@@ -151,9 +161,13 @@
       }
       return this.tiles[idx];
     };
+    HorizontalTiledLayout.prototype.managed_tiles = function() {
+      return _.select(this.tiles, is_managed);
+    };
     HorizontalTiledLayout.prototype.layout = function() {
       var left, right, _ref;
-      _ref = this.mainSplit.split(this.bounds, this.tiles), left = _ref[0], right = _ref[1];
+      log(this.managed_tiles());
+      _ref = this.mainSplit.split(this.bounds, this.managed_tiles()), left = _ref[0], right = _ref[1];
       this.layout_side.apply(this, __slice.call(left).concat([this.splits.left]));
       return this.layout_side.apply(this, __slice.call(right).concat([this.splits.right]));
     };
@@ -191,19 +205,48 @@
       this.mainSplit.primaryWindows += i;
       return this.layout();
     };
+    HorizontalTiledLayout.prototype.tile = function(win) {
+      this.tile_for(win).tile();
+      return this.layout();
+    };
+    HorizontalTiledLayout.prototype.select_cycle = function(offset) {
+      return this.active_tile(__bind(function(tile, idx) {
+        log("Active tile == " + idx + ", " + tile.window.title);
+        return this.tiles[this.wrap_index(idx + offset)].activate();
+      }, this));
+    };
+    HorizontalTiledLayout.prototype.wrap_index = function(idx) {
+      log("wrapped " + idx + " to " + (idx % this.tiles.length));
+      while (idx < 0) {
+        idx += this.tiles.length;
+      }
+      while (idx >= this.tiles.length) {
+        idx -= this.tiles.length;
+      }
+      idx % this.tiles.length - 1;
+      log(".. but " + idx);
+      return idx;
+    };
     HorizontalTiledLayout.prototype.add = function(win) {
       var tile;
       if (this.contains(win)) {
         return;
       }
-      console.log("adding window " + win);
+      log("adding window " + win);
       tile = new TiledWindow(win);
       this.tiles.push(tile);
       return this.layout();
     };
     HorizontalTiledLayout.prototype.active_tile = function(fn) {
+      var first;
+      first = true;
       return this.each(function(tile, i) {
         if (tile.window.is_active()) {
+          log(first);
+          if (!first) {
+            return;
+          }
+          first = false;
           return fn(tile, i);
         }
       });
@@ -225,30 +268,31 @@
       this.insertTileAt(new_pos, removed);
       return this.layout();
     };
-    HorizontalTiledLayout.prototype.remove = function(win) {
-      if (!this.contains(win)) {
-        return;
-      }
-      this.removeTileAt(this.indexOf(win));
+    HorizontalTiledLayout.prototype.untile = function(win) {
+      this.tile_for(win).release();
       return this.layout();
     };
     HorizontalTiledLayout.prototype.insertTileAt = function(idx, tile) {
       this.tiles.splice(idx, 0, tile);
-      log("put tile " + tile + " in at " + idx);
       return log(this.tiles);
     };
     HorizontalTiledLayout.prototype.removeTileAt = function(idx) {
       var removed;
-      log("removing tile " + idx + " from " + this.tiles);
       removed = this.tiles[idx];
       this.tiles.splice(idx, 1);
       removed.release();
       return removed;
     };
+    HorizontalTiledLayout.prototype.on_window_created = function(win) {
+      return this.add(win);
+    };
+    HorizontalTiledLayout.prototype.on_window_killed = function(win) {
+      return this.removeTileAt(this.indexOf(win));
+    };
     HorizontalTiledLayout.prototype.log_state = function(lbl) {
       var dump_win;
       dump_win = function(w) {
-        return log("   - " + _(w.rect));
+        return log("   - " + j(w.rect));
       };
       log(" -------------- layout ------------- ");
       log(" // " + lbl);
@@ -287,7 +331,11 @@
         }
       };
       this.maximized_rect = null;
+      this.managed = false;
     }
+    TiledWindow.prototype.tile = function() {
+      return this.managed = true;
+    };
     TiledWindow.prototype.move = function(pos) {
       return this.window.move(false, pos.x, pos.y);
     };
@@ -316,7 +364,12 @@
       return this.set_rect(this.maximized_rect || this.rect);
     };
     TiledWindow.prototype.release = function() {
-      return this.set_rect(this.original_rect);
+      this.set_rect(this.original_rect);
+      return this.managed = false;
+    };
+    TiledWindow.prototype.activate = function() {
+      this.window.activate();
+      return this.window.bringToFront();
     };
     return TiledWindow;
   })();

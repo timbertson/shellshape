@@ -29,8 +29,6 @@ function Window() { this._init(); }
 			item.elem.css({"z-index":i});
 			if(i == stack.length - 1) {
 				item.activate();
-			} else {
-				item.deactivate();
 			}
 		});
 		logstack("restacked");
@@ -61,7 +59,7 @@ function Window() { this._init(); }
 			var top = random(0, Screen.height - size);
 			self.elem.resizable().draggable();
 			self.elem.mouseover(function() { self.activate(); });
-			self.elem.mouseout(function() { self.deactivate(); });
+			// self.elem.mouseout(function() { self.deactivate(); });
 			self.elem.css({background: randomColor(), position:"absolute", width:size, height:size, left:left, top:top, border: "2px solid black", opacity:dim});
 			self.elem.mousedown(function() { self.bringToFront(); });
 			self.maximized = false;
@@ -101,11 +99,13 @@ function Window() { this._init(); }
 			restack();
 		}
 		,activate: function() {
+			if(Window.active) { Window.active.deactivate() }
 			this.elem.css({"border-color": active_border, opacity: bright});
 			Window.active = this;
 		}
 		,deactivate: function() {
 			this.elem.css({"border-color": inactive_border, opacity: dim});
+			Window.active = null;
 		}
 		,move: function(user_action, x, y) {
 			this.elem.css({left:x, top:y});
@@ -136,7 +136,7 @@ function Window() { this._init(); }
 		,height: function() { return this.elem.outerHeight(); }
 		,xpos: function() { return this.elem.position().left; }
 		,ypos: function() { return this.elem.position().top; }
-		,is_active: function() { return Window.active === this; }
+		,is_active: function() { console.log(Window.active.title); return Window.active === this; }
 	};
 })();
 
@@ -146,31 +146,34 @@ $(function() {
 	Screen.height = 500;
 	$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
 	tiling = new HorizontalTiledLayout(Screen.width, Screen.height);
+	function new_window() {
+		tiling.on_window_created(new Window());
+	}
 	$(document).keydown(function(evt) {
 		console.log("key " + evt.keyCode);
 		if(evt.shiftKey) {
 			switch(evt.keyCode) {
-				case 84: tiling.remove(Window.active); break; // t
+				case 84: tiling.untile(Window.active); break; // t
 				case 74: tiling.cycle(1); break; // j
 				case 75: tiling.cycle(-1); break; // k
 			}
 		} else {
 			switch(evt.keyCode) {
-				case 13: new Window(); break; // enter
+				case 13: new_window(); break; // enter
 				case 65: Window.active.toggleFrontmost(); break; // a
 				case 90: Window.active.toggle_maximize(); break; // z
-				case 84: tiling.add(Window.active); break; // t
+				case 84: tiling.tile(Window.active); break; // t
 				case 188: tiling.add_main_window_count(1); break; // , (<)
 				case 190: tiling.add_main_window_count(-1); break; // . (>)
-				case 74: Window.cycle(-1); break; // j
-				case 75: Window.cycle(1); break; // k
-				case 81: tiling.remove(Window.active); Window.active.close(); break; // q
+				case 74: tiling.select_cycle(1); break; // j
+				case 75: tiling.select_cycle(-1); break; // k
+				case 81: tiling.on_window_kill(Window.active); Window.active.close(); break; // q
 			}
 		}
 	});
-	new Window();
-	new Window();
-	new Window();
+	new_window();
+	new_window();
+	new_window();
 });
 
 
