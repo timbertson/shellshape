@@ -1,5 +1,4 @@
-divideAfter = (num, items) ->
-	return [items[0 ... num], items[num ... ]]
+log = require('util').log
 
 Axis = {
 	other: (axis) -> return if axis == 'y' then 'x' else 'y'
@@ -8,6 +7,14 @@ j = (s) -> JSON.stringify(s)
 
 HALF = 0.5
 
+ArrayUtil = {
+	divideAfter: (num, items) ->
+		return [items[0 ... num], items[num ... ]]
+	moveItem: (array, start, end) ->
+		removed = array.splice(start, 1)[0]
+		array.splice(end, 0, removed)
+		return array
+}
 
 Tile = {
 	copyRect: (rect) ->
@@ -63,7 +70,7 @@ class MultiSplit
 
 	split: (bounds, windows) ->
 		log("mainsplit: dividing #{windows.length} after #{@primaryWindows}")
-		[left_windows, right_windows] = divideAfter(@primaryWindows, windows)
+		[left_windows, right_windows] = ArrayUtil.divideAfter(@primaryWindows, windows)
 		if left_windows.length > 0 and right_windows.length > 0
 			[left_rect, right_rect] = Tile.splitRect(bounds, @axis, @ratio)
 		else
@@ -177,25 +184,22 @@ class HorizontalTiledLayout
 			@_cycle(idx, int)
 
 	_cycle: (idx, direction) ->
-		new_pos = idx + direction
-		if new_pos < 0 or new_pos >= @tiles.length
-			log("pass...")
-			return
+		new_pos = @wrap_index(idx + direction)
 		log("moving tile at #{idx} to #{new_pos}")
-		removed = @removeTileAt(idx)
-		@insertTileAt(new_pos, removed)
+		ArrayUtil.moveItem(@tiles, idx, new_pos)
+		@_move_tile_to(idx, new_pos)
 		@layout()
-
+	
 	untile: (win) ->
 		@tile_for(win).release()
 		@layout()
 
-	insertTileAt: (idx, tile) ->
-		@tiles.splice(idx,0, tile)
-		# log("put tile " + tile + " in at " + idx)
-		log(@tiles)
+	# insertTileAt: (idx, tile) ->
+	# 	@tiles.splice(idx,0, tile)
+	# 	# log("put tile " + tile + " in at " + idx)
+	# 	log(@tiles)
 
-	removeTileAt: (idx) ->
+	_remove_tile_at: (idx) ->
 		# log("removing tile #{idx} from #{this.tiles}")
 		removed = this.tiles[idx]
 		this.tiles.splice(idx, 1)
@@ -205,7 +209,7 @@ class HorizontalTiledLayout
 	on_window_created: (win) ->
 		@add(win)
 	on_window_killed: (win) ->
-		@removeTileAt(@indexOf(win))
+		@_remove_tile_at(@indexOf(win))
 	
 	log_state: (lbl) ->
 		dump_win = (w) ->
@@ -275,9 +279,10 @@ class TiledWindow
 		@window.bringToFront()
 
 
-window.HorizontalTiledLayout = HorizontalTiledLayout
-window.Axis = Axis
-window.Tile = Tile
-window.Split = Split
-window.MultiSplit = MultiSplit
-window.TiledWindow = TiledWindow
+exports.HorizontalTiledLayout = HorizontalTiledLayout
+exports.Axis = Axis
+exports.Tile = Tile
+exports.Split = Split
+exports.MultiSplit = MultiSplit
+exports.TiledWindow = TiledWindow
+exports.ArrayUtil = ArrayUtil

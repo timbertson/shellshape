@@ -1,9 +1,7 @@
 (function() {
-  var Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, divideAfter, j;
+  var ArrayUtil, Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, j, log;
   var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-  divideAfter = function(num, items) {
-    return [items.slice(0, num), items.slice(num)];
-  };
+  log = require('util').log;
   Axis = {
     other: function(axis) {
       if (axis === 'y') {
@@ -17,6 +15,17 @@
     return JSON.stringify(s);
   };
   HALF = 0.5;
+  ArrayUtil = {
+    divideAfter: function(num, items) {
+      return [items.slice(0, num), items.slice(num)];
+    },
+    moveItem: function(array, start, end) {
+      var removed;
+      removed = array.splice(start, 1)[0];
+      array.splice(end, 0, removed);
+      return array;
+    }
+  };
   Tile = {
     copyRect: function(rect) {
       return {
@@ -89,7 +98,7 @@
     MultiSplit.prototype.split = function(bounds, windows) {
       var left_rect, left_windows, right_rect, right_windows, _ref, _ref2, _ref3;
       log("mainsplit: dividing " + windows.length + " after " + this.primaryWindows);
-      _ref = divideAfter(this.primaryWindows, windows), left_windows = _ref[0], right_windows = _ref[1];
+      _ref = ArrayUtil.divideAfter(this.primaryWindows, windows), left_windows = _ref[0], right_windows = _ref[1];
       if (left_windows.length > 0 && right_windows.length > 0) {
         _ref2 = Tile.splitRect(bounds, this.axis, this.ratio), left_rect = _ref2[0], right_rect = _ref2[1];
       } else {
@@ -257,26 +266,18 @@
       }, this));
     };
     HorizontalTiledLayout.prototype._cycle = function(idx, direction) {
-      var new_pos, removed;
-      new_pos = idx + direction;
-      if (new_pos < 0 || new_pos >= this.tiles.length) {
-        log("pass...");
-        return;
-      }
+      var new_pos;
+      new_pos = this.wrap_index(idx + direction);
       log("moving tile at " + idx + " to " + new_pos);
-      removed = this.removeTileAt(idx);
-      this.insertTileAt(new_pos, removed);
+      ArrayUtil.moveItem(this.tiles, idx, new_pos);
+      this._move_tile_to(idx, new_pos);
       return this.layout();
     };
     HorizontalTiledLayout.prototype.untile = function(win) {
       this.tile_for(win).release();
       return this.layout();
     };
-    HorizontalTiledLayout.prototype.insertTileAt = function(idx, tile) {
-      this.tiles.splice(idx, 0, tile);
-      return log(this.tiles);
-    };
-    HorizontalTiledLayout.prototype.removeTileAt = function(idx) {
+    HorizontalTiledLayout.prototype._remove_tile_at = function(idx) {
       var removed;
       removed = this.tiles[idx];
       this.tiles.splice(idx, 1);
@@ -287,7 +288,7 @@
       return this.add(win);
     };
     HorizontalTiledLayout.prototype.on_window_killed = function(win) {
-      return this.removeTileAt(this.indexOf(win));
+      return this._remove_tile_at(this.indexOf(win));
     };
     HorizontalTiledLayout.prototype.log_state = function(lbl) {
       var dump_win;
@@ -373,10 +374,11 @@
     };
     return TiledWindow;
   })();
-  window.HorizontalTiledLayout = HorizontalTiledLayout;
-  window.Axis = Axis;
-  window.Tile = Tile;
-  window.Split = Split;
-  window.MultiSplit = MultiSplit;
-  window.TiledWindow = TiledWindow;
+  exports.HorizontalTiledLayout = HorizontalTiledLayout;
+  exports.Axis = Axis;
+  exports.Tile = Tile;
+  exports.Split = Split;
+  exports.MultiSplit = MultiSplit;
+  exports.TiledWindow = TiledWindow;
+  exports.ArrayUtil = ArrayUtil;
 }).call(this);

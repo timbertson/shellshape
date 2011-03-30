@@ -5,8 +5,8 @@ spec=0launch http://gfxmonk.net/dist/0install/coffee-spec.xml
 js: phony
 	${coffee} -c js/tiling.coffee
 
-test: phony
-	${spec} tests
+test: js
+	${spec} -v tests
 
 auto: phony
 	${watchdog} tricks .tricks.yaml
