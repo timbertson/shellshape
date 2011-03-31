@@ -1,7 +1,6 @@
 (function() {
-  var ArrayUtil, Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, j, log;
+  var ArrayUtil, Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, exports, j, log;
   var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
-  log = require('util').log;
   Axis = {
     other: function(axis) {
       if (axis === 'y') {
@@ -374,6 +373,18 @@
     };
     return TiledWindow;
   })();
+  if (typeof reqire != "undefined" && reqire !== null) {
+    log = require('util').log;
+  } else {
+    log = function(s) {
+      if (typeof console != "undefined" && console !== null) {
+        return console.log(s);
+      }
+    };
+  }
+  if ((typeof window != "undefined" && window !== null) && !(typeof exports != "undefined" && exports !== null)) {
+    exports = window;
+  }
   exports.HorizontalTiledLayout = HorizontalTiledLayout;
   exports.Axis = Axis;
   exports.Tile = Tile;

@@ -8,7 +8,7 @@ js: phony
 test: js
 	${spec} -v tests
 
-auto: phony
+auto: phony js
 	${watchdog} tricks .tricks.yaml
 
 .PHONY: phony

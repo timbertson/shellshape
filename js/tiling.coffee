@@ -1,5 +1,3 @@
-log = require('util').log
-
 Axis = {
 	other: (axis) -> return if axis == 'y' then 'x' else 'y'
 }
@@ -279,6 +277,15 @@ class TiledWindow
 		@window.bringToFront()
 
 
+# hacky stuff for running in both the browser & gjs
+if reqire?
+	log = require('util').log
+else
+	log = (s) ->
+		console.log(s) if console?
+
+if window? and not exports?
+	exports = window
 exports.HorizontalTiledLayout = HorizontalTiledLayout
 exports.Axis = Axis
 exports.Tile = Tile
