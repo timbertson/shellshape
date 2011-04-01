@@ -35,7 +35,7 @@ function Window() { this._init(); }
 	}
 	function logstack(msg) {
 		msg = msg ? msg + ": " : "";
-		console.log(msg + "Stack contains: " + $.map(stack, function(w) { return w.title; }).join(","));
+		// console.log(msg + "Stack contains: " + $.map(stack, function(w) { return w.title; }).join(","));
 		return "";
 	}
 
@@ -49,7 +49,6 @@ function Window() { this._init(); }
 	Window.prototype = {
 		_init: function() {
 			var self = this;
-			console.log("init window!");
 			self.title = "Window " + winCount;
 			self.elem = $("<div class=\"window\"><h3>" + self.title + "</h3></div>");
 			winCount += 1;
@@ -136,7 +135,7 @@ function Window() { this._init(); }
 		,height: function() { return this.elem.outerHeight(); }
 		,xpos: function() { return this.elem.position().left; }
 		,ypos: function() { return this.elem.position().top; }
-		,is_active: function() { console.log(Window.active.title); return Window.active === this; }
+		,is_active: function() { return Window.active === this; }
 	};
 })();
 
@@ -147,7 +146,9 @@ $(function() {
 	$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
 	tiling = new HorizontalTiledLayout(Screen.width, Screen.height);
 	function new_window() {
-		tiling.on_window_created(new Window());
+		var win = new Window();
+		tiling.on_window_created(win);
+		tiling.tile(win);
 	}
 	$(document).keydown(function(evt) {
 		console.log("key " + evt.keyCode);
@@ -156,6 +157,7 @@ $(function() {
 				case 84: tiling.untile(Window.active); break; // t
 				case 74: tiling.cycle(1); break; // j
 				case 75: tiling.cycle(-1); break; // k
+				case 32: tiling.swap_active_with_main(); break; // space
 			}
 		} else {
 			switch(evt.keyCode) {
@@ -167,6 +169,10 @@ $(function() {
 				case 190: tiling.add_main_window_count(-1); break; // . (>)
 				case 74: tiling.select_cycle(1); break; // j
 				case 75: tiling.select_cycle(-1); break; // k
+				case 72: tiling.adjust_main_window_area(-0.1); break; // h
+				case 76: tiling.adjust_main_window_area(0.1); break; // l
+				case 85: tiling.adjust_current_window_size(0.1); break; //u
+				case 73: tiling.adjust_current_window_size(-0.1); break; //i
 				case 81: tiling.on_window_kill(Window.active); Window.active.close(); break; // q
 			}
 		}

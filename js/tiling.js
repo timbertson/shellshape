@@ -86,6 +86,13 @@
       first_window.set_rect(window_rect);
       return [remaining, windows];
     };
+    Split.prototype.adjust_ratio = function(diff) {
+      this.ratio = Math.min(1, Math.max(0, this.ratio + diff));
+      return log("ratio is now " + this.ratio);
+    };
+    Split.prototype.toString = function() {
+      return "Split with ratio " + this.ratio;
+    };
     return Split;
   })();
   MultiSplit = (function() {
@@ -94,9 +101,11 @@
       this.primaryWindows = primaryWindows;
       this.ratio = HALF;
     }
+    MultiSplit.prototype.adjust_ratio = function(diff) {
+      return this.ratio = Math.min(1, Math.max(0, this.ratio + diff));
+    };
     MultiSplit.prototype.split = function(bounds, windows) {
       var left_rect, left_windows, right_rect, right_windows, _ref, _ref2, _ref3;
-      log("mainsplit: dividing " + windows.length + " after " + this.primaryWindows);
       _ref = ArrayUtil.divideAfter(this.primaryWindows, windows), left_windows = _ref[0], right_windows = _ref[1];
       if (left_windows.length > 0 && right_windows.length > 0) {
         _ref2 = Tile.splitRect(bounds, this.axis, this.ratio), left_rect = _ref2[0], right_rect = _ref2[1];
@@ -174,13 +183,12 @@
     };
     HorizontalTiledLayout.prototype.layout = function() {
       var left, right, _ref;
-      log(this.managed_tiles());
       _ref = this.mainSplit.split(this.bounds, this.managed_tiles()), left = _ref[0], right = _ref[1];
       this.layout_side.apply(this, __slice.call(left).concat([this.splits.left]));
       return this.layout_side.apply(this, __slice.call(right).concat([this.splits.right]));
     };
     HorizontalTiledLayout.prototype.layout_side = function(rect, windows, splits) {
-      var axis, extend_to, split, window, zip, _i, _len, _ref, _ref2, _ref3, _results;
+      var axis, extend_to, previous_split, split, window, zip, _i, _len, _ref, _ref2, _ref3, _results;
       axis = Axis.other(this.mainAxis);
       extend_to = function(size, array, generator) {
         var _results;
@@ -201,11 +209,15 @@
       extend_to(windows.length, splits, function() {
         return new Split(axis);
       });
+      previous_split = null;
       _ref = zip(windows, splits);
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         _ref2 = _ref[_i], window = _ref2[0], split = _ref2[1];
-        _results.push((_ref3 = split.layout_one(rect, windows), rect = _ref3[0], windows = _ref3[1], _ref3));
+        window.top_split = previous_split;
+        _ref3 = split.layout_one(rect, windows), rect = _ref3[0], windows = _ref3[1];
+        window.bottom_split = windows.length > 0 ? split : null;
+        _results.push(previous_split = split);
       }
       return _results;
     };
@@ -224,15 +236,12 @@
       }, this));
     };
     HorizontalTiledLayout.prototype.wrap_index = function(idx) {
-      log("wrapped " + idx + " to " + (idx % this.tiles.length));
       while (idx < 0) {
         idx += this.tiles.length;
       }
       while (idx >= this.tiles.length) {
         idx -= this.tiles.length;
       }
-      idx % this.tiles.length - 1;
-      log(".. but " + idx);
       return idx;
     };
     HorizontalTiledLayout.prototype.add = function(win) {
@@ -269,8 +278,35 @@
       new_pos = this.wrap_index(idx + direction);
       log("moving tile at " + idx + " to " + new_pos);
       ArrayUtil.moveItem(this.tiles, idx, new_pos);
-      this._move_tile_to(idx, new_pos);
       return this.layout();
+    };
+    HorizontalTiledLayout.prototype.adjust_main_window_area = function(diff) {
+      this.mainSplit.adjust_ratio(diff);
+      return this.layout();
+    };
+    HorizontalTiledLayout.prototype.adjust_current_window_size = function(diff) {
+      return this.active_tile(__bind(function(tile) {
+        log("btm split: " + tile.bottom_split);
+        log("top split: " + tile.top_split);
+        if (tile.bottom_split) {
+          tile.bottom_split.adjust_ratio(diff);
+        } else if (tile.top_split) {
+          tile.top_split.adjust_ratio(-diff);
+        }
+        return this.layout();
+      }, this));
+    };
+    HorizontalTiledLayout.prototype.swap_active_with_main = function() {
+      return this.active_tile(__bind(function(tile, idx) {
+        var current_main;
+        if (idx === 0) {
+          return;
+        }
+        current_main = this.tiles[0];
+        this.tiles[0] = this.tiles[idx];
+        this.tiles[idx] = current_main;
+        return this.layout();
+      }, this));
     };
     HorizontalTiledLayout.prototype.untile = function(win) {
       this.tile_for(win).release();

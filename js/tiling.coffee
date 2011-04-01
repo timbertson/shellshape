@@ -58,6 +58,12 @@ class Split
 		[window_rect, remaining] = Tile.splitRect(rect, @axis, @ratio)
 		first_window.set_rect(window_rect)
 		return [remaining, windows]
+	
+	adjust_ratio: (diff) ->
+		@ratio = Math.min(1, Math.max(0, @ratio + diff))
+		log("ratio is now " + @ratio)
+	
+	toString: -> "Split with ratio #{@ratio}"
 
 class MultiSplit
 	# a slpitter that contains multiple windows on either side,
@@ -65,16 +71,18 @@ class MultiSplit
 	# that contains windows to the left and right)
 	constructor: (@axis, @primaryWindows) ->
 		@ratio = HALF
+	
+	adjust_ratio: (diff) ->
+		@ratio = Math.min(1, Math.max(0, @ratio + diff))
 
 	split: (bounds, windows) ->
-		log("mainsplit: dividing #{windows.length} after #{@primaryWindows}")
+		# log("mainsplit: dividing #{windows.length} after #{@primaryWindows}")
 		[left_windows, right_windows] = ArrayUtil.divideAfter(@primaryWindows, windows)
 		if left_windows.length > 0 and right_windows.length > 0
 			[left_rect, right_rect] = Tile.splitRect(bounds, @axis, @ratio)
 		else
-			# only one side wil actual be layed out...
+			# only one side wil actually be laid out...
 			[left_rect, right_rect] = [bounds, bounds]
-		#TODO: don't slit rect if a side is empty
 		return [[left_rect, left_windows], [right_rect, right_windows]]
 
 class HorizontalTiledLayout
@@ -114,7 +122,6 @@ class HorizontalTiledLayout
 		_.select(@tiles, is_managed)
 	
 	layout: ->
-		log(@managed_tiles())
 		[left, right] = @mainSplit.split(@bounds, @managed_tiles())
 		# log("laying out #{left[1].length} windows on the left with rect #{j left[0]}")
 		# log("laying out #{right[1].length} windows on the right with rect #{j right[0]}")
@@ -132,10 +139,14 @@ class HorizontalTiledLayout
 			return ([a[i], b[i]] for i in [0 ... Math.min(a.length, b.length)])
 
 		extend_to(windows.length, splits, -> new Split(axis))
-		# log("laying out side with rect #{j rect}, windows #{windows} and splits #{j splits}")
+		# log("laying out side with rect #{j rect}, windows #{windows} and splits #{ splits}")
 
+		previous_split = null
 		for [window, split] in zip(windows, splits)
+			window.top_split = previous_split
 			[rect, windows] = split.layout_one(rect, windows)
+			window.bottom_split = if (windows.length > 0) then split else null
+			previous_split = split
 
 	add_main_window_count: (i) ->
 		@mainSplit.primaryWindows += i
@@ -151,14 +162,10 @@ class HorizontalTiledLayout
 			@tiles[@wrap_index(idx + offset)].activate()
 	
 	wrap_index: (idx) ->
-		log("wrapped #{idx} to #{idx % @tiles.length}")
 		while idx < 0
 			idx += @tiles.length
 		while idx >= @tiles.length
 			idx -= @tiles.length
-		# 	return @tiles.length
-		idx % @tiles.length - 1
-		log(".. but #{idx}")
 		idx
 
 	add: (win) ->
@@ -185,9 +192,30 @@ class HorizontalTiledLayout
 		new_pos = @wrap_index(idx + direction)
 		log("moving tile at #{idx} to #{new_pos}")
 		ArrayUtil.moveItem(@tiles, idx, new_pos)
-		@_move_tile_to(idx, new_pos)
 		@layout()
 	
+	adjust_main_window_area: (diff) ->
+		@mainSplit.adjust_ratio(diff)
+		@layout()
+	
+	adjust_current_window_size: (diff) ->
+		@active_tile (tile) =>
+			log("btm split: " + tile.bottom_split)
+			log("top split: " + tile.top_split)
+			if tile.bottom_split
+				tile.bottom_split.adjust_ratio(diff)
+			else if tile.top_split
+				tile.top_split.adjust_ratio(-diff)
+			@layout()
+	
+	swap_active_with_main: () ->
+		@active_tile (tile, idx) =>
+			return if idx == 0
+			current_main = @tiles[0]
+			@tiles[0] = @tiles[idx]
+			@tiles[idx] = current_main
+			@layout()
+
 	untile: (win) ->
 		@tile_for(win).release()
 		@layout()
