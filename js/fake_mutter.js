@@ -61,6 +61,11 @@ function Window() { this._init(); }
 			// self.elem.mouseout(function() { self.deactivate(); });
 			self.elem.css({background: randomColor(), position:"absolute", width:size, height:size, left:left, top:top, border: "2px solid black", opacity:dim});
 			self.elem.mousedown(function() { self.bringToFront(); });
+			// self.elem.bind('resize', function(){self.delegate.on_window_resize(self)});
+			// self.elem.bind('move', function(){self.delegate.on_window_move(self)});
+			self.elem.bind('resizestop', function(){self.delegate.on_window_resized(self)});
+			self.elem.bind('dragstop', function(){self.delegate.on_window_moved(self)});
+			self.delegate = {on_window_resize: function(){}, on_window_move: function(){}};
 			self.maximized = false;
 			stack.push(self);
 			restack();
@@ -128,6 +133,7 @@ function Window() { this._init(); }
 			this.move_resize.apply(this, this.unmaximize_args);
 		}
 		,move_resize: function(user_action, x, y, w, h) {
+			$("h3", this.elem).text(this.title + " @ " + x + "," + y + " (" + w + "x" + h +")");
 			this.move(user_action, x, y);
 			this.resize(user_action, w, h);
 		}
@@ -148,6 +154,7 @@ $(function() {
 	function new_window() {
 		var win = new Window();
 		tiling.on_window_created(win);
+		win.delegate = tiling;
 		tiling.tile(win);
 	}
 	$(document).keydown(function(evt) {

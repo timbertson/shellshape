@@ -52,6 +52,41 @@
       newRect.pos[axis] += newSizeA;
       return [rect, newRect];
     },
+    minmax: function(a, b) {
+      return [Math.min(a, b), Math.max(a, b)];
+    },
+    midpoint: function(a, b) {
+      var max, min, _ref;
+      _ref = this.minmax(a, b), min = _ref[0], max = _ref[1];
+      return Math.round(min + ((max - min) / 2));
+    },
+    within: function(val, a, b) {
+      var max, min, _ref;
+      _ref = this.minmax(a, b), min = _ref[0], max = _ref[1];
+      log("val " + val + " within " + min + "," + max + "? " + (val > min && val < max));
+      return val > min && val < max;
+    },
+    pointDiff: function(a, b) {
+      return {
+        x: b.x - a.x,
+        y: b.y - a.y
+      };
+    },
+    pointAdd: function(a, b) {
+      return {
+        x: a.x + b.x,
+        y: a.y + b.y
+      };
+    },
+    rectCenter: function(rect) {
+      return {
+        x: this.midpoint(rect.pos.x, rect.pos.x + rect.size.x),
+        y: this.midpoint(rect.pos.y, rect.pos.y + rect.size.y)
+      };
+    },
+    pointIsWithin: function(point, rect) {
+      return this.within(point.x, rect.pos.x, rect.pos.x + rect.size.x) && this.within(point.y, rect.pos.y, rect.pos.y + rect.size.y);
+    },
     joinRects: function(a, b) {
       var pos, size, sx, sy;
       pos = {
@@ -142,20 +177,20 @@
       };
     }
     HorizontalTiledLayout.prototype.each_tiled = function(func) {
-      var i, _ref, _results;
-      _results = [];
-      for (i = 0, _ref = this.tiles.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
-        _results.push(is_managed(this.tiles[i]) ? func(this.tiles[i], i) : void 0);
-      }
-      return _results;
+      return this.each(function(tile, idx) {
+        if (is_managed(tile)) {
+          return func(tile, idx);
+        }
+      });
     };
     HorizontalTiledLayout.prototype.each = function(func) {
-      var i, _ref, _results;
-      _results = [];
+      var i, ret, _ref;
       for (i = 0, _ref = this.tiles.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
-        _results.push(func(this.tiles[i], i));
+        ret = func(this.tiles[i], i);
+        if (ret === STOP) {
+          return;
+        }
       }
-      return _results;
     };
     HorizontalTiledLayout.prototype.contains = function(win) {
       return this.indexOf(win) !== -1;
@@ -303,8 +338,7 @@
           return;
         }
         current_main = this.tiles[0];
-        this.tiles[0] = this.tiles[idx];
-        this.tiles[idx] = current_main;
+        this.swap_windows_at(0, idx);
         return this.layout();
       }, this));
     };
@@ -324,6 +358,48 @@
     };
     HorizontalTiledLayout.prototype.on_window_killed = function(win) {
       return this._remove_tile_at(this.indexOf(win));
+    };
+    HorizontalTiledLayout.prototype.on_window_moved = function(win) {
+      var idx, tile;
+      idx = this.indexOf(win);
+      tile = this.tiles[idx];
+      this.swap_moved_tile_if_necessary(tile, idx);
+      this.apply_move_constraints(tile);
+      return this.layout();
+    };
+    HorizontalTiledLayout.prototype.on_window_resized = function(win) {
+      var tile;
+      tile = this.tiles[this.indexOf(win)];
+      this.apply_resize_constraints(tile);
+      this.layout();
+      return true;
+    };
+    HorizontalTiledLayout.prototype.apply_move_constraints = function(tile) {
+      log("applying move constraints to " + tile);
+      return tile.update_offset();
+    };
+    HorizontalTiledLayout.prototype.apply_resize_constraints = function(tile) {
+      log("applying resize constraints to " + tile);
+      return tile.update_offset();
+    };
+    HorizontalTiledLayout.prototype.swap_moved_tile_if_necessary = function(tile, idx) {
+      var center;
+      center = Tile.rectCenter(tile.window_rect());
+      return this.each_tiled(__bind(function(swap_candidate, swap_idx) {
+        log("(midpoint " + (j(center)) + ") within " + (j(swap_candidate.rect)) + "?");
+        if (Tile.pointIsWithin(center, swap_candidate.rect)) {
+          log("YES - swapping idx " + idx + " and " + swap_idx);
+          this._swap_windows_at(idx, swap_idx);
+          this.layout();
+          return STOP;
+        }
+      }, this));
+    };
+    HorizontalTiledLayout.prototype._swap_windows_at = function(idx1, idx2) {
+      var _orig;
+      _orig = this.tiles[idx2];
+      this.tiles[idx2] = this.tiles[idx1];
+      return this.tiles[idx1] = _orig;
     };
     HorizontalTiledLayout.prototype.log_state = function(lbl) {
       var dump_win;
@@ -346,16 +422,7 @@
   TiledWindow = (function() {
     function TiledWindow(win) {
       this.window = win;
-      this.original_rect = {
-        pos: {
-          x: win.xpos(),
-          y: win.ypos()
-        },
-        size: {
-          x: win.width(),
-          y: win.height()
-        }
-      };
+      this.original_rect = this.window_rect();
       this.rect = {
         pos: {
           x: 0,
@@ -366,14 +433,46 @@
           y: 0
         }
       };
+      this.reset_offset();
       this.maximized_rect = null;
       this.managed = false;
     }
     TiledWindow.prototype.tile = function() {
       return this.managed = true;
     };
-    TiledWindow.prototype.move = function(pos) {
-      return this.window.move(false, pos.x, pos.y);
+    TiledWindow.prototype.reset_offset = function() {
+      return this.offset = {
+        pos: {
+          x: 0,
+          y: 0
+        },
+        size: {
+          x: 0,
+          y: 0
+        }
+      };
+    };
+    TiledWindow.prototype.update_offset = function() {
+      var rect, win;
+      rect = this.rect;
+      win = this.window_rect();
+      this.offset = {
+        pos: Tile.pointDiff(rect.pos, win.pos),
+        size: Tile.pointDiff(rect.size, win.size)
+      };
+      return log("updated tile offset to " + (j(this.offset)));
+    };
+    TiledWindow.prototype.window_rect = function() {
+      return {
+        pos: {
+          x: this.window.xpos(),
+          y: this.window.ypos()
+        },
+        size: {
+          x: this.window.width(),
+          y: this.window.height()
+        }
+      };
     };
     TiledWindow.prototype.toggle_maximize = function(rect) {
       if (this.maximized_rect) {
@@ -390,11 +489,27 @@
       this.maximized_rect = null;
       return this.layout();
     };
-    TiledWindow.prototype.resize = function(size) {
-      return this.window.resize(false, size.x, size.y);
+    TiledWindow.prototype._resize = function(size) {
+      return this.rect.size = {
+        x: size.x,
+        y: size.y
+      };
+    };
+    TiledWindow.prototype._move = function(pos) {
+      return this.rect.pos = {
+        x: pos.x,
+        y: pos.y
+      };
     };
     TiledWindow.prototype.set_rect = function(r) {
-      return this.window.move_resize(false, r.pos.x, r.pos.y, r.size.x, r.size.y);
+      var pos, size;
+      log("Setting rect to " + j(r));
+      log("offset rect to " + j(this.offset));
+      this._resize(r.size);
+      this._move(r.pos);
+      pos = Tile.pointAdd(r.pos, this.offset.pos);
+      size = Tile.pointAdd(r.size, this.offset.size);
+      return this.window.move_resize(false, pos.x, pos.y, size.x, size.y);
     };
     TiledWindow.prototype.layout = function() {
       return this.set_rect(this.maximized_rect || this.rect);
