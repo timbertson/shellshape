@@ -1,6 +1,13 @@
 (function() {
-  var ArrayUtil, Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, export_to, j, log;
-  var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  var ArrayUtil, Axis, BaseSplit, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, export_to, j, log;
+  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+    for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
+    function ctor() { this.constructor = child; }
+    ctor.prototype = parent.prototype;
+    child.prototype = new ctor;
+    child.__super__ = parent.prototype;
+    return child;
+  }, __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   Axis = {
     other: function(axis) {
       if (axis === 'y') {
@@ -147,13 +154,41 @@
       };
     }
   };
-  Split = (function() {
-    function Split(axis) {
+  BaseSplit = (function() {
+    function BaseSplit(axis) {
       this.axis = axis;
       this.ratio = HALF;
     }
+    BaseSplit.prototype.adjust_ratio = function(diff) {
+      return this.ratio = Math.min(1, Math.max(0, this.ratio + diff));
+    };
+    BaseSplit.prototype.save_last_rect = function(rect) {
+      return this.last_size = rect.size[this.axis];
+    };
+    BaseSplit.prototype.adjust_ratio_px = function(diff) {
+      var current_px, new_px, new_ratio;
+      log("adjusting ratio " + this.ratio + " by " + diff + " px");
+      current_px = this.ratio * this.last_size;
+      log("current ratio makes for " + current_px + " px (assiming last size of " + this.last_size);
+      new_px = current_px + diff;
+      log("but we want " + new_px);
+      new_ratio = new_px / this.last_size;
+      if (!Tile.within(new_ratio, 0, 1)) {
+        throw new ("failed ratio: " + new_ratio);
+      }
+      log("which makes a new ratio of " + new_ratio);
+      return this.ratio = new_ratio;
+    };
+    return BaseSplit;
+  })();
+  Split = (function() {
+    function Split() {
+      Split.__super__.constructor.apply(this, arguments);
+    }
+    __extends(Split, BaseSplit);
     Split.prototype.layout_one = function(rect, windows) {
       var first_window, remaining, window_rect, _ref;
+      this.save_last_rect(rect);
       first_window = windows.shift();
       if (windows.length === 0) {
         first_window.set_rect(rect);
@@ -163,26 +198,20 @@
       first_window.set_rect(window_rect);
       return [remaining, windows];
     };
-    Split.prototype.adjust_ratio = function(diff) {
-      this.ratio = Math.min(1, Math.max(0, this.ratio + diff));
-      return log("ratio is now " + this.ratio);
-    };
     Split.prototype.toString = function() {
       return "Split with ratio " + this.ratio;
     };
     return Split;
   })();
   MultiSplit = (function() {
+    __extends(MultiSplit, BaseSplit);
     function MultiSplit(axis, primaryWindows) {
-      this.axis = axis;
       this.primaryWindows = primaryWindows;
-      this.ratio = HALF;
+      MultiSplit.__super__.constructor.call(this, axis);
     }
-    MultiSplit.prototype.adjust_ratio = function(diff) {
-      return this.ratio = Math.min(1, Math.max(0, this.ratio + diff));
-    };
     MultiSplit.prototype.split = function(bounds, windows) {
       var left_rect, left_windows, right_rect, right_windows, _ref, _ref2, _ref3;
+      this.save_last_rect(bounds);
       _ref = ArrayUtil.divideAfter(this.primaryWindows, windows), left_windows = _ref[0], right_windows = _ref[1];
       if (left_windows.length > 0 && right_windows.length > 0) {
         _ref2 = Tile.splitRect(bounds, this.axis, this.ratio), left_rect = _ref2[0], right_rect = _ref2[1];
@@ -190,6 +219,9 @@
         _ref3 = [bounds, bounds], left_rect = _ref3[0], right_rect = _ref3[1];
       }
       return [[left_rect, left_windows], [right_rect, right_windows]];
+    };
+    MultiSplit.prototype.in_primary_partition = function(idx) {
+      return idx < this.primaryWindows;
     };
     return MultiSplit;
   })();
@@ -318,7 +350,6 @@
     HorizontalTiledLayout.prototype._modify_tiles = function(fn) {
       var i, new_tiles, orig_tiles, _ref;
       orig_tiles = this.managed_tiles().slice();
-      log(orig_tiles);
       fn.apply(this);
       new_tiles = this.managed_tiles();
       for (i = 0, _ref = Math.max(orig_tiles.length, new_tiles.length); (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
@@ -327,7 +358,6 @@
           break;
         }
       }
-      log(new_tiles);
       return this.layout();
     };
     HorizontalTiledLayout.prototype.tile = function(win) {
@@ -355,7 +385,6 @@
       if (this.contains(win)) {
         return;
       }
-      log("adding window " + win);
       this._modify_tiles(function() {
         var tile;
         tile = new TiledWindow(win);
@@ -364,16 +393,10 @@
       return this.layout();
     };
     HorizontalTiledLayout.prototype.active_tile = function(fn) {
-      var first;
-      first = true;
       return this.each(function(tile, i) {
         if (tile.window.is_active()) {
-          log(first);
-          if (!first) {
-            return;
-          }
-          first = false;
-          return fn(tile, i);
+          fn(tile, i);
+          return STOP;
         }
       });
     };
@@ -393,15 +416,33 @@
     };
     HorizontalTiledLayout.prototype.adjust_current_window_size = function(diff) {
       return this.active_tile(__bind(function(tile) {
-        log("btm split: " + tile.bottom_split);
-        log("top split: " + tile.top_split);
-        if (tile.bottom_split) {
-          tile.bottom_split.adjust_ratio(diff);
-        } else if (tile.top_split) {
-          tile.top_split.adjust_ratio(-diff);
-        }
+        this.adjust_split_for_tile({
+          tile: tile,
+          diff_ratio: diff,
+          axis: Axis.other(this.mainAxis)
+        });
         return this.layout();
       }, this));
+    };
+    HorizontalTiledLayout.prototype.adjust_split_for_tile = function(opts) {
+      var adjust, axis, diff_px, diff_ratio, tile;
+      axis = opts.axis, diff_px = opts.diff_px, diff_ratio = opts.diff_ratio, tile = opts.tile;
+      adjust = function(split, inverted) {
+        if (diff_px != null) {
+          return split.adjust_ratio_px(inverted ? -diff_px : diff_px);
+        } else {
+          return split.adjust_ratio(inverted ? -diff_ratio : diff_ratio);
+        }
+      };
+      if (axis === this.mainAxis) {
+        return adjust(this.mainSplit, !this.mainSplit.in_primary_partition(this.tiles.indexOf(tile)));
+      } else {
+        if (tile.bottom_split != null) {
+          return adjust(tile.bottom_split, false);
+        } else if (tile.top_split != null) {
+          return adjust(tile.top_split, true);
+        }
+      }
     };
     HorizontalTiledLayout.prototype.swap_active_with_main = function() {
       return this.active_tile(__bind(function(tile, idx) {
@@ -439,23 +480,39 @@
       idx = this.indexOf(win);
       tile = this.tiles[idx];
       this.swap_moved_tile_if_necessary(tile, idx);
-      this.apply_move_constraints(tile);
+      tile.update_offset();
       return this.layout();
     };
+    HorizontalTiledLayout.prototype.on_split_resize_start = function(win) {
+      this.split_resize_start_rect = Tile.copyRect(this.tiles[this.indexOf(win)].window_rect());
+      return log("starting resize of split.. " + (j(this.split_resize_start_rect)));
+    };
     HorizontalTiledLayout.prototype.on_window_resized = function(win) {
-      var tile;
+      var diff, tile;
       tile = this.tiles[this.indexOf(win)];
-      this.apply_resize_constraints(tile);
+      if (this.split_resize_start_rect != null) {
+        diff = Tile.pointDiff(this.split_resize_start_rect.size, tile.window_rect().size);
+        log("split resized! diff = " + (j(diff)));
+        if (diff.x !== 0) {
+          this.adjust_split_for_tile({
+            tile: tile,
+            diff_px: diff.x,
+            axis: 'x'
+          });
+        }
+        if (diff.y !== 0) {
+          this.adjust_split_for_tile({
+            tile: tile,
+            diff_px: diff.y,
+            axis: 'y'
+          });
+        }
+        this.split_resize_start_rect = null;
+      } else {
+        tile.update_offset();
+      }
       this.layout();
       return true;
-    };
-    HorizontalTiledLayout.prototype.apply_move_constraints = function(tile) {
-      log("applying move constraints to " + tile);
-      return tile.update_offset();
-    };
-    HorizontalTiledLayout.prototype.apply_resize_constraints = function(tile) {
-      log("applying resize constraints to " + tile);
-      return tile.update_offset();
     };
     HorizontalTiledLayout.prototype.swap_moved_tile_if_necessary = function(tile, idx) {
       var center;

@@ -56,7 +56,7 @@ function Window() { this._init(); }
 			var size = 300;
 			var left = random(0, Screen.width - size);
 			var top = random(0, Screen.height - size);
-			self.elem.resizable().draggable();
+			self.elem.resizable({handles: 'all'}).draggable();
 			self.elem.mouseover(function() { self.activate(); });
 			// self.elem.mouseout(function() { self.deactivate(); });
 			self.elem.css({background: randomColor(), position:"absolute", width:size, height:size, left:left, top:top, border: "2px solid black", opacity:dim});
@@ -64,6 +64,11 @@ function Window() { this._init(); }
 			// self.elem.bind('resize', function(){self.delegate.on_window_resize(self)});
 			// self.elem.bind('move', function(){self.delegate.on_window_move(self)});
 			self.elem.bind('resizestop', function(){self.delegate.on_window_resized(self)});
+			self.elem.bind('resizestart', function(evt) {
+				if(evt.ctrlKey) {
+					self.delegate.on_split_resize_start(self);
+				}
+			});
 			self.elem.bind('dragstop', function(){self.delegate.on_window_moved(self)});
 			self.delegate = {on_window_resize: function(){}, on_window_move: function(){}};
 			self.maximized = false;
@@ -133,14 +138,14 @@ function Window() { this._init(); }
 			this.move_resize.apply(this, this.unmaximize_args);
 		}
 		,move_resize: function(user_action, x, y, w, h) {
-			$("h3", this.elem).text(this.title + " @ " + x + "," + y + " (" + w + "x" + h +")");
+			$("h3", this.elem).text(this.title + " @ " + Math.round(x) + "," + Math.round(y) + " (" + Math.round(w) + "x" + Math.round(h) +")");
 			this.move(user_action, x, y);
 			this.resize(user_action, w, h);
 		}
 		,width: function() { return this.elem.outerWidth() + 2; }
 		,height: function() { return this.elem.outerHeight() + 2; }
-		,xpos: function() { return this.elem.position().left - 1; }
-		,ypos: function() { return this.elem.position().top - 1; }
+		,xpos: function() { return this.elem.position().left + 1; }
+		,ypos: function() { return this.elem.position().top + 1; }
 		,is_active: function() { return Window.active === this; }
 	};
 })();
