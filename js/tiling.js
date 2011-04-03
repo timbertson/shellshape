@@ -1,5 +1,5 @@
 (function() {
-  var ArrayUtil, Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, exports, j, log;
+  var ArrayUtil, Axis, HALF, HorizontalTiledLayout, MultiSplit, Split, Tile, TiledWindow, export_to, j, log;
   var __slice = Array.prototype.slice, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   Axis = {
     other: function(axis) {
@@ -52,6 +52,20 @@
       newRect.pos[axis] += newSizeA;
       return [rect, newRect];
     },
+    addDiffToRect: function(rect, diff) {
+      return {
+        pos: Tile.pointAdd(rect.pos, diff.pos),
+        size: Tile.pointAdd(rect.size, diff.size)
+      };
+    },
+    ensureRectExists: function(rect) {
+      rect.size.x = Math.max(1, rect.size.x);
+      rect.size.y = Math.max(1, rect.size.y);
+      return rect;
+    },
+    zeroRect: function(rect) {
+      return rect.pos.x === 0 && rect.pos.y === 0 && rect.size.x === 0 && rect.size.y === 0;
+    },
     minmax: function(a, b) {
       return [Math.min(a, b), Math.max(a, b)];
     },
@@ -65,6 +79,34 @@
       _ref = this.minmax(a, b), min = _ref[0], max = _ref[1];
       log("val " + val + " within " + min + "," + max + "? " + (val > min && val < max));
       return val > min && val < max;
+    },
+    moveRectWithin: function(original_rect, bounds) {
+      var extent, max, min, movement_required, rect, resize_required;
+      log("moving " + (j(original_rect)) + " to be within " + (j(bounds)));
+      min = Math.min;
+      max = Math.max;
+      movement_required = {
+        x: 0,
+        y: 0
+      };
+      resize_required = {
+        x: 0,
+        y: 0
+      };
+      rect = Tile.copyRect(original_rect);
+      rect.size.x = min(rect.size.x, bounds.size.x);
+      rect.size.y = min(rect.size.y, bounds.size.y);
+      rect.pos.x = max(rect.pos.x, bounds.pos.x);
+      rect.pos.y = max(rect.pos.y, bounds.pos.y);
+      extent = function(rect, axis) {
+        return rect.pos[axis] + rect.size[axis];
+      };
+      rect.pos.x -= max(0, extent(rect, 'x') - extent(bounds, 'x'));
+      rect.pos.y -= max(0, extent(rect, 'y') - extent(bounds, 'y'));
+      return {
+        pos: this.pointDiff(original_rect.pos, rect.pos),
+        size: this.pointDiff(original_rect.size, rect.size)
+      };
     },
     pointDiff: function(a, b) {
       return {
@@ -214,7 +256,16 @@
       return this.tiles[idx];
     };
     HorizontalTiledLayout.prototype.managed_tiles = function() {
-      return _.select(this.tiles, is_managed);
+      var tile, _i, _len, _ref, _results;
+      _ref = this.tiles;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        tile = _ref[_i];
+        if (is_managed(tile)) {
+          _results.push(tile);
+        }
+      }
+      return _results;
     };
     HorizontalTiledLayout.prototype.layout = function() {
       var left, right, _ref;
@@ -251,6 +302,10 @@
         _ref2 = _ref[_i], window = _ref2[0], split = _ref2[1];
         window.top_split = previous_split;
         _ref3 = split.layout_one(rect, windows), rect = _ref3[0], windows = _ref3[1];
+        if (window.just_moved) {
+          window.ensure_within(this.bounds);
+          window.just_moved = false;
+        }
         window.bottom_split = windows.length > 0 ? split : null;
         _results.push(previous_split = split);
       }
@@ -260,8 +315,25 @@
       this.mainSplit.primaryWindows += i;
       return this.layout();
     };
+    HorizontalTiledLayout.prototype._modify_tiles = function(fn) {
+      var i, new_tiles, orig_tiles, _ref;
+      orig_tiles = this.managed_tiles().slice();
+      log(orig_tiles);
+      fn.apply(this);
+      new_tiles = this.managed_tiles();
+      for (i = 0, _ref = Math.max(orig_tiles.length, new_tiles.length); (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
+        if (orig_tiles[i] !== new_tiles[i]) {
+          this._mark_tiles_as_moved(new_tiles.slice(i));
+          break;
+        }
+      }
+      log(new_tiles);
+      return this.layout();
+    };
     HorizontalTiledLayout.prototype.tile = function(win) {
-      this.tile_for(win).tile();
+      this._modify_tiles(function() {
+        return this.tile_for(win).tile();
+      });
       return this.layout();
     };
     HorizontalTiledLayout.prototype.select_cycle = function(offset) {
@@ -280,13 +352,15 @@
       return idx;
     };
     HorizontalTiledLayout.prototype.add = function(win) {
-      var tile;
       if (this.contains(win)) {
         return;
       }
       log("adding window " + win);
-      tile = new TiledWindow(win);
-      this.tiles.push(tile);
+      this._modify_tiles(function() {
+        var tile;
+        tile = new TiledWindow(win);
+        return this.tiles.push(tile);
+      });
       return this.layout();
     };
     HorizontalTiledLayout.prototype.active_tile = function(fn) {
@@ -311,9 +385,7 @@
     HorizontalTiledLayout.prototype._cycle = function(idx, direction) {
       var new_pos;
       new_pos = this.wrap_index(idx + direction);
-      log("moving tile at " + idx + " to " + new_pos);
-      ArrayUtil.moveItem(this.tiles, idx, new_pos);
-      return this.layout();
+      return this._swap_windows_at(idx, new_pos);
     };
     HorizontalTiledLayout.prototype.adjust_main_window_area = function(diff) {
       this.mainSplit.adjust_ratio(diff);
@@ -338,19 +410,22 @@
           return;
         }
         current_main = this.tiles[0];
-        this.swap_windows_at(0, idx);
-        return this.layout();
+        return this._swap_windows_at(0, idx);
       }, this));
     };
     HorizontalTiledLayout.prototype.untile = function(win) {
-      this.tile_for(win).release();
-      return this.layout();
+      return this._modify_tiles(function() {
+        return this.tile_for(win).release();
+      });
     };
     HorizontalTiledLayout.prototype._remove_tile_at = function(idx) {
       var removed;
       removed = this.tiles[idx];
-      this.tiles.splice(idx, 1);
-      removed.release();
+      this._modify_tiles(function() {
+        this.tiles.splice(idx, 1);
+        return removed.release();
+      });
+      this.layout();
       return removed;
     };
     HorizontalTiledLayout.prototype.on_window_created = function(win) {
@@ -387,19 +462,32 @@
       center = Tile.rectCenter(tile.window_rect());
       return this.each_tiled(__bind(function(swap_candidate, swap_idx) {
         log("(midpoint " + (j(center)) + ") within " + (j(swap_candidate.rect)) + "?");
+        if (swap_idx === idx) {
+          return;
+        }
         if (Tile.pointIsWithin(center, swap_candidate.rect)) {
           log("YES - swapping idx " + idx + " and " + swap_idx);
           this._swap_windows_at(idx, swap_idx);
-          this.layout();
           return STOP;
         }
       }, this));
     };
     HorizontalTiledLayout.prototype._swap_windows_at = function(idx1, idx2) {
-      var _orig;
-      _orig = this.tiles[idx2];
-      this.tiles[idx2] = this.tiles[idx1];
-      return this.tiles[idx1] = _orig;
+      return this._modify_tiles(function() {
+        var _orig;
+        _orig = this.tiles[idx2];
+        this.tiles[idx2] = this.tiles[idx1];
+        return this.tiles[idx1] = _orig;
+      });
+    };
+    HorizontalTiledLayout.prototype._mark_tiles_as_moved = function(tiles) {
+      var tile, _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = tiles.length; _i < _len; _i++) {
+        tile = tiles[_i];
+        _results.push(tile.just_moved = true);
+      }
+      return _results;
     };
     HorizontalTiledLayout.prototype.log_state = function(lbl) {
       var dump_win;
@@ -435,10 +523,12 @@
       };
       this.reset_offset();
       this.maximized_rect = null;
+      this.volatile = false;
       this.managed = false;
     }
     TiledWindow.prototype.tile = function() {
-      return this.managed = true;
+      this.managed = true;
+      return this.reset_offset();
     };
     TiledWindow.prototype.reset_offset = function() {
       return this.offset = {
@@ -451,6 +541,9 @@
           y: 0
         }
       };
+    };
+    TiledWindow.prototype.snap_to_screen = function() {
+      return true;
     };
     TiledWindow.prototype.update_offset = function() {
       var rect, win;
@@ -502,17 +595,30 @@
       };
     };
     TiledWindow.prototype.set_rect = function(r) {
-      var pos, size;
-      log("Setting rect to " + j(r));
-      log("offset rect to " + j(this.offset));
       this._resize(r.size);
       this._move(r.pos);
-      pos = Tile.pointAdd(r.pos, this.offset.pos);
-      size = Tile.pointAdd(r.size, this.offset.size);
-      return this.window.move_resize(false, pos.x, pos.y, size.x, size.y);
+      return this.layout();
+    };
+    TiledWindow.prototype.ensure_within = function(screen_rect) {
+      var change_required, combined_rect;
+      combined_rect = Tile.addDiffToRect(this.rect, this.offset);
+      change_required = Tile.moveRectWithin(combined_rect, screen_rect);
+      if (!Tile.zeroRect(change_required)) {
+        log("old offset = " + (j(this.offset)));
+        log("moving tile " + (j(change_required)) + " to keep it onscreen");
+        this.offset = Tile.addDiffToRect(this.offset, change_required);
+        log("now offset = " + (j(this.offset)));
+        return this.layout();
+      }
     };
     TiledWindow.prototype.layout = function() {
-      return this.set_rect(this.maximized_rect || this.rect);
+      var pos, rect, size, _ref;
+      rect = this.maximized_rect || Tile.addDiffToRect(this.rect, this.offset);
+      _ref = Tile.ensureRectExists(rect), pos = _ref.pos, size = _ref.size;
+      return this.window.move_resize(false, pos.x, pos.y, size.x, size.y);
+    };
+    TiledWindow.prototype.set_volatile = function() {
+      return this.volatile = true;
     };
     TiledWindow.prototype.release = function() {
       this.set_rect(this.original_rect);
@@ -533,14 +639,18 @@
       }
     };
   }
-  if ((typeof window != "undefined" && window !== null) && !(typeof exports != "undefined" && exports !== null)) {
-    exports = window;
+  export_to = function(dest) {
+    dest.HorizontalTiledLayout = HorizontalTiledLayout;
+    dest.Axis = Axis;
+    dest.Tile = Tile;
+    dest.Split = Split;
+    dest.MultiSplit = MultiSplit;
+    dest.TiledWindow = TiledWindow;
+    return dest.ArrayUtil = ArrayUtil;
+  };
+  if (typeof exports != "undefined" && exports !== null) {
+    export_to(exports);
+  } else {
+    export_to(window);
   }
-  exports.HorizontalTiledLayout = HorizontalTiledLayout;
-  exports.Axis = Axis;
-  exports.Tile = Tile;
-  exports.Split = Split;
-  exports.MultiSplit = MultiSplit;
-  exports.TiledWindow = TiledWindow;
-  exports.ArrayUtil = ArrayUtil;
 }).call(this);

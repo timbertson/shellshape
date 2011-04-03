@@ -33,6 +33,23 @@ Tile = {
 		# log("rect copy: " + j(rect))
 		# log("newRect: " + j(newRect))
 		return [rect, newRect]
+
+	addDiffToRect: (rect, diff) ->
+		return {
+			pos: Tile.pointAdd(rect.pos, diff.pos),
+			size: Tile.pointAdd(rect.size, diff.size)
+		}
+	
+	ensureRectExists: (rect) ->
+		rect.size.x = Math.max(1, rect.size.x)
+		rect.size.y = Math.max(1, rect.size.y)
+		return rect
+
+	zeroRect: (rect) ->
+		return (
+			rect.pos.x == 0 and rect.pos.y == 0 and
+			rect.size.x == 0 and rect.size.y == 0
+		)
 	
 	minmax: (a,b) -> [Math.min(a,b), Math.max(a,b)]
 	midpoint: (a,b) ->
@@ -43,6 +60,30 @@ Tile = {
 		[min, max] = @minmax(a,b)
 		log("val #{val} within #{min},#{max}? #{val > min && val < max}")
 		return (val > min && val < max)
+	
+	moveRectWithin: (original_rect, bounds) ->
+		log("moving #{j original_rect} to be within #{j bounds}")
+		min = Math.min
+		max = Math.max
+
+		movement_required = {x: 0, y:0}
+		resize_required = {x:0, y:0}
+		rect = Tile.copyRect(original_rect)
+
+		rect.size.x = min(rect.size.x, bounds.size.x)
+		rect.size.y = min(rect.size.y, bounds.size.y)
+
+		rect.pos.x = max(rect.pos.x, bounds.pos.x)
+		rect.pos.y = max(rect.pos.y, bounds.pos.y)
+
+		extent = (rect, axis) -> rect.pos[axis] + rect.size[axis]
+		rect.pos.x -= max(0, extent(rect, 'x') - extent(bounds, 'x'))
+		rect.pos.y -= max(0, extent(rect, 'y') - extent(bounds, 'y'))
+
+		return {
+			pos: @pointDiff(original_rect.pos, rect.pos),
+			size: @pointDiff(original_rect.size, rect.size)
+		}
 
 	pointDiff: (a, b) ->
 		{x: b.x - a.x, y: b.y - a.y}
@@ -73,13 +114,6 @@ Tile = {
 		size = {x: sx, y: sy}
 		return {pos: pos, size: size}
 }
-
-# Constraints = [
-# 	new KeepWindowWithinTile(),
-# 	new KeepWindowSizeLessThanScreenSize(),
-# 	new PositionWindow(),
-# ]
-
 
 class Split
 	constructor: (@axis) ->
@@ -156,7 +190,7 @@ class HorizontalTiledLayout
 		@tiles[idx]
 	
 	managed_tiles: ->
-		_.select(@tiles, is_managed)
+		return (tile for tile in @tiles when is_managed(tile))
 	
 	layout: ->
 		[left, right] = @mainSplit.split(@bounds, @managed_tiles())
@@ -182,6 +216,10 @@ class HorizontalTiledLayout
 		for [window, split] in zip(windows, splits)
 			window.top_split = previous_split
 			[rect, windows] = split.layout_one(rect, windows)
+			if window.just_moved
+				# after laying out a recently moved window, make sure it's entirely onscreen
+				window.ensure_within(@bounds)
+				window.just_moved = false
 			window.bottom_split = if (windows.length > 0) then split else null
 			previous_split = split
 
@@ -189,8 +227,22 @@ class HorizontalTiledLayout
 		@mainSplit.primaryWindows += i
 		@layout()
 	
+	_modify_tiles: (fn) ->
+		orig_tiles = @managed_tiles().slice()
+		log(orig_tiles)
+		fn.apply(this)
+		new_tiles = @managed_tiles()
+		for i in [0 ... Math.max(orig_tiles.length, new_tiles.length)]
+			if orig_tiles[i] != new_tiles[i]
+				# as soon as we reach a differing tile, mark it and all following tiles as moved
+				@_mark_tiles_as_moved(new_tiles.slice(i))
+				break
+		log(new_tiles)
+		@layout()
+
 	tile: (win) ->
-		@tile_for(win).tile()
+		@_modify_tiles ->
+			@tile_for(win).tile()
 		@layout()
 
 	select_cycle: (offset) ->
@@ -208,8 +260,9 @@ class HorizontalTiledLayout
 	add: (win) ->
 		return if @contains(win)
 		log("adding window " + win)
-		tile = new TiledWindow(win)
-		@tiles.push(tile)
+		@_modify_tiles ->
+			tile = new TiledWindow(win)
+			@tiles.push(tile)
 		@layout()
 	
 	active_tile: (fn) ->
@@ -227,9 +280,7 @@ class HorizontalTiledLayout
 
 	_cycle: (idx, direction) ->
 		new_pos = @wrap_index(idx + direction)
-		log("moving tile at #{idx} to #{new_pos}")
-		ArrayUtil.moveItem(@tiles, idx, new_pos)
-		@layout()
+		@_swap_windows_at(idx, new_pos)
 	
 	adjust_main_window_area: (diff) ->
 		@mainSplit.adjust_ratio(diff)
@@ -249,12 +300,11 @@ class HorizontalTiledLayout
 		@active_tile (tile, idx) =>
 			return if idx == 0
 			current_main = @tiles[0]
-			@swap_windows_at(0, idx)
-			@layout()
+			@_swap_windows_at(0, idx)
 
 	untile: (win) ->
-		@tile_for(win).release()
-		@layout()
+		@_modify_tiles ->
+			@tile_for(win).release()
 
 	# insertTileAt: (idx, tile) ->
 	# 	@tiles.splice(idx,0, tile)
@@ -264,8 +314,10 @@ class HorizontalTiledLayout
 	_remove_tile_at: (idx) ->
 		# log("removing tile #{idx} from #{this.tiles}")
 		removed = this.tiles[idx]
-		this.tiles.splice(idx, 1)
-		removed.release()
+		@_modify_tiles ->
+			this.tiles.splice(idx, 1)
+			removed.release()
+		@layout()
 		return removed
 	
 	on_window_created: (win) ->
@@ -303,16 +355,21 @@ class HorizontalTiledLayout
 		center = Tile.rectCenter(tile.window_rect())
 		@each_tiled (swap_candidate, swap_idx) =>
 			log("(midpoint #{j center}) within #{j swap_candidate.rect}?")
+			return if swap_idx == idx
 			if Tile.pointIsWithin(center, swap_candidate.rect)
 				log("YES - swapping idx #{idx} and #{swap_idx}")
 				@_swap_windows_at(idx, swap_idx)
-				@layout()
 				return STOP
 	
 	_swap_windows_at: (idx1, idx2) ->
-		_orig = @tiles[idx2]
-		@tiles[idx2] = @tiles[idx1]
-		@tiles[idx1] = _orig
+		@_modify_tiles ->
+			_orig = @tiles[idx2]
+			@tiles[idx2] = @tiles[idx1]
+			@tiles[idx1] = _orig
+	
+	_mark_tiles_as_moved: (tiles) ->
+		for tile in tiles
+			tile.just_moved = true
 
 	log_state: (lbl) ->
 		dump_win = (w) ->
@@ -342,14 +399,19 @@ class TiledWindow
 		@rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
 		@reset_offset()
 		@maximized_rect = null
+		@volatile = false
 		@managed = false
 
 	tile: ->
 		this.managed = true
+		@reset_offset()
 	
 	reset_offset: ->
 		@offset = {pos: {x:0, y:0}, size: {x:0, y:0}}
 	
+	snap_to_screen: ->
+		# after a swap, adjust the offset to ensure the window appears on-screen
+		true
 	update_offset: ->
 		rect = @rect
 		win = @window_rect()
@@ -390,16 +452,29 @@ class TiledWindow
 		@rect.pos = {x:pos.x, y:pos.y}
 
 	set_rect : (r) ->
-		log("Setting rect to " + j(r))
-		log("offset rect to " + j(@offset))
+		# log("Setting rect to " + j(r))
+		# log("offset rect to " + j(@offset))
 		@_resize(r.size)
 		@_move(r.pos)
-		pos = Tile.pointAdd(r.pos, @offset.pos)
-		size = Tile.pointAdd(r.size, @offset.size)
-		this.window.move_resize(false, pos.x, pos.y, size.x, size.y)
-
+		@layout()
+	
+	ensure_within: (screen_rect) ->
+		combined_rect = Tile.addDiffToRect(@rect, @offset)
+		change_required = Tile.moveRectWithin(combined_rect, screen_rect)
+		unless Tile.zeroRect(change_required)
+			log("old offset = #{j @offset}")
+			log("moving tile #{j change_required} to keep it onscreen")
+			@offset = Tile.addDiffToRect(@offset, change_required)
+			log("now offset = #{j @offset}")
+			@layout()
+	
 	layout: ->
-		this.set_rect(this.maximized_rect or this.rect)
+		rect = @maximized_rect or Tile.addDiffToRect(@rect, @offset)
+		{pos:pos, size:size} = Tile.ensureRectExists(rect)
+		this.window.move_resize(false, pos.x, pos.y, size.x, size.y)
+	
+	set_volatile: ->
+		@volatile = true
 
 	release: ->
 		this.set_rect(this.original_rect)
@@ -417,12 +492,18 @@ else
 	log = (s) ->
 		console.log(s) if console?
 
-if window? and not exports?
-	exports = window
-exports.HorizontalTiledLayout = HorizontalTiledLayout
-exports.Axis = Axis
-exports.Tile = Tile
-exports.Split = Split
-exports.MultiSplit = MultiSplit
-exports.TiledWindow = TiledWindow
-exports.ArrayUtil = ArrayUtil
+export_to = (dest) ->
+	dest.HorizontalTiledLayout = HorizontalTiledLayout
+	dest.Axis = Axis
+	dest.Tile = Tile
+	dest.Split = Split
+	dest.MultiSplit = MultiSplit
+	dest.TiledWindow = TiledWindow
+	dest.ArrayUtil = ArrayUtil
+
+if exports?
+	export_to(exports)
+else
+	export_to(window)
+# if window? and not exports?
+# 	exports = window

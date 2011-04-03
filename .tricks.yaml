@@ -1,7 +1,11 @@
 # vim: set et ts=4:
 tricks:
 - watchdog.tricks.ShellCommandTrick:
-    patterns: ["*.coffee"]
+    patterns: ["*/js/*.coffee"]
     shell_command: "reset;0launch http://gfxmonk.net/dist/0install/coffee-script.xml -c '${watch_src_path}'; echo \"compiled...\""
+- watchdog.tricks.ShellCommandTrick:
+    #TODO: shouldn't need leading "*" below...
+    patterns: ["*/tests/*.coffee"]
+    shell_command: "make test"
 # - watchdog.tricks.LoggerTrick:
-#     patterns: ["*"]
+#     patterns: ["*/tests/*.coffee"]

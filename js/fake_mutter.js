@@ -137,56 +137,59 @@ function Window() { this._init(); }
 			this.move(user_action, x, y);
 			this.resize(user_action, w, h);
 		}
-		,width: function() { return this.elem.outerWidth(); }
-		,height: function() { return this.elem.outerHeight(); }
-		,xpos: function() { return this.elem.position().left; }
-		,ypos: function() { return this.elem.position().top; }
+		,width: function() { return this.elem.outerWidth() + 2; }
+		,height: function() { return this.elem.outerHeight() + 2; }
+		,xpos: function() { return this.elem.position().left - 1; }
+		,ypos: function() { return this.elem.position().top - 1; }
 		,is_active: function() { return Window.active === this; }
 	};
 })();
 
 var tiling;
 $(function() {
-	Screen.width = 800;
-	Screen.height = 500;
-	$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
-	tiling = new HorizontalTiledLayout(Screen.width, Screen.height);
-	function new_window() {
-		var win = new Window();
-		tiling.on_window_created(win);
-		win.delegate = tiling;
-		tiling.tile(win);
-	}
-	$(document).keydown(function(evt) {
-		console.log("key " + evt.keyCode);
-		if(evt.shiftKey) {
-			switch(evt.keyCode) {
-				case 84: tiling.untile(Window.active); break; // t
-				case 74: tiling.cycle(1); break; // j
-				case 75: tiling.cycle(-1); break; // k
-				case 32: tiling.swap_active_with_main(); break; // space
-			}
-		} else {
-			switch(evt.keyCode) {
-				case 13: new_window(); break; // enter
-				case 65: Window.active.toggleFrontmost(); break; // a
-				case 90: Window.active.toggle_maximize(); break; // z
-				case 84: tiling.tile(Window.active); break; // t
-				case 188: tiling.add_main_window_count(1); break; // , (<)
-				case 190: tiling.add_main_window_count(-1); break; // . (>)
-				case 74: tiling.select_cycle(1); break; // j
-				case 75: tiling.select_cycle(-1); break; // k
-				case 72: tiling.adjust_main_window_area(-0.1); break; // h
-				case 76: tiling.adjust_main_window_area(0.1); break; // l
-				case 85: tiling.adjust_current_window_size(0.1); break; //u
-				case 73: tiling.adjust_current_window_size(-0.1); break; //i
-				case 81: tiling.on_window_kill(Window.active); Window.active.close(); break; // q
-			}
+	// prevent jquery from catching our exceptions
+	window.setTimeout(function() {
+		Screen.width = 800;
+		Screen.height = 500;
+		$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
+		tiling = new HorizontalTiledLayout(Screen.width, Screen.height);
+		function new_window() {
+			var win = new Window();
+			tiling.on_window_created(win);
+			win.delegate = tiling;
+			tiling.tile(win);
 		}
-	});
-	new_window();
-	new_window();
-	new_window();
+		$(document).keydown(function(evt) {
+			console.log("key " + evt.keyCode);
+			if(evt.shiftKey) {
+				switch(evt.keyCode) {
+					case 84: tiling.untile(Window.active); break; // t
+					case 74: tiling.cycle(1); break; // j
+					case 75: tiling.cycle(-1); break; // k
+					case 32: tiling.swap_active_with_main(); break; // space
+				}
+			} else {
+				switch(evt.keyCode) {
+					case 13: new_window(); break; // enter
+					case 65: Window.active.toggleFrontmost(); break; // a
+					case 90: Window.active.toggle_maximize(); break; // z
+					case 84: tiling.tile(Window.active); break; // t
+					case 188: tiling.add_main_window_count(1); break; // , (<)
+					case 190: tiling.add_main_window_count(-1); break; // . (>)
+					case 74: tiling.select_cycle(1); break; // j
+					case 75: tiling.select_cycle(-1); break; // k
+					case 72: tiling.adjust_main_window_area(-0.1); break; // h
+					case 76: tiling.adjust_main_window_area(0.1); break; // l
+					case 85: tiling.adjust_current_window_size(0.1); break; //u
+					case 73: tiling.adjust_current_window_size(-0.1); break; //i
+					case 81: tiling.on_window_kill(Window.active); Window.active.close(); break; // q
+				}
+			}
+		});
+		new_window();
+		new_window();
+		new_window();
+	}, 0);
 });
 
 
