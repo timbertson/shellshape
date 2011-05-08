@@ -1,0 +1,7 @@
+{
+  "shell-version": ["3.0.1"],
+  "uuid": "shellshape@gfxmonk.net",
+  "name": "shellshape",
+  "description": "A tiling window extension for gnome-shell",
+  "url" : "http://github.com/gfxmonk/shellshape"
+}

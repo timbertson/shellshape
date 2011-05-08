@@ -517,7 +517,10 @@ if reqire?
 	log = require('util').log
 else
 	log = (s) ->
-		console.log(s) if console?
+		if console?
+			console.log(s)
+		else
+			null
 
 export_to = (dest) ->
 	dest.HorizontalTiledLayout = HorizontalTiledLayout
