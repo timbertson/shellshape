@@ -3,7 +3,7 @@ coffee=0launch http://gfxmonk.net/dist/0install/coffee-script.xml
 spec=0launch http://gfxmonk.net/dist/0install/coffee-spec.xml
 
 js: phony
-	${coffee} -c interactive/js/tiling.coffee
+	${coffee} --bare -c interactive/js/tiling.coffee
 
 test: js
 	${spec} -v tests

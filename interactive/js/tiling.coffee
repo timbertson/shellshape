@@ -198,7 +198,7 @@ class HorizontalTiledLayout
 		idx = -1
 		@each (tile, i) ->
 			idx = i if(tile.window == win)
-		# log("found window #{win} at idx #{idx}")
+		log("found window #{win} at idx #{idx}")
 		return idx
 	
 	tile_for: (win) ->
@@ -211,8 +211,8 @@ class HorizontalTiledLayout
 	
 	layout: ->
 		[left, right] = @mainSplit.split(@bounds, @managed_tiles())
-		# log("laying out #{left[1].length} windows on the left with rect #{j left[0]}")
-		# log("laying out #{right[1].length} windows on the right with rect #{j right[0]}")
+		log("laying out #{left[1].length} windows on the left with rect #{j left[0]}")
+		log("laying out #{right[1].length} windows on the right with rect #{j right[0]}")
 		@layout_side(left..., @splits.left)
 		@layout_side(right..., @splits.right)
 	
@@ -274,6 +274,7 @@ class HorizontalTiledLayout
 
 	add: (win) ->
 		return if @contains(win)
+		log("adding window to layout: " + win)
 		@_modify_tiles ->
 			tile = new TiledWindow(win)
 			@tiles.push(tile)
@@ -498,6 +499,7 @@ class TiledWindow
 	layout: ->
 		rect = @maximized_rect or Tile.addDiffToRect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensureRectExists(rect)
+		log("laying out window @ " + _(pos) + " :: " + _(size))
 		this.window.move_resize(false, pos.x, pos.y, size.x, size.y)
 	
 	set_volatile: ->
@@ -513,27 +515,27 @@ class TiledWindow
 
 
 # hacky stuff for running in both the browser & gjs
-if reqire?
-	log = require('util').log
-else
-	log = (s) ->
+unless log?
+	if reqire?
+		`log = require('util').log`
+	else
 		if console?
-			console.log(s)
+			`log = function(s) { console.log(s); }`
 		else
-			null
+			`log = function(s) { }`
 
-export_to = (dest) ->
-	dest.HorizontalTiledLayout = HorizontalTiledLayout
-	dest.Axis = Axis
-	dest.Tile = Tile
-	dest.Split = Split
-	dest.MultiSplit = MultiSplit
-	dest.TiledWindow = TiledWindow
-	dest.ArrayUtil = ArrayUtil
-
-if exports?
-	export_to(exports)
-else
-	export_to(window)
-# if window? and not exports?
-# 	exports = window
+# export_to = (dest) ->
+# 	dest.HorizontalTiledLayout = HorizontalTiledLayout
+# 	dest.Axis = Axis
+# 	dest.Tile = Tile
+# 	dest.Split = Split
+# 	dest.MultiSplit = MultiSplit
+# 	dest.TiledWindow = TiledWindow
+# 	dest.ArrayUtil = ArrayUtil
+# 
+# if exports?
+# 	log("EXPORTS")
+# 	export_to(exports)
+# else
+# 	log("WINDOW")
+# 	export_to(window)

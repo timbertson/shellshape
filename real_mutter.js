@@ -1,57 +1,72 @@
-function Window() { this._init(); }
-(function() {
-	var winCount = 1;
-	var stack = [];
+function Workspace(metaWorkspace, monitorIndex) {
+	this._init(metaWorkspace, monitorIndex)
+}
+Workspace.prototype = {
+	_init : function(metaWorkspace, monitorIndex) {
+		this.metaWorkspace = metaWorkspace;
+		this.monitorIndex = monitorIndex;
+	},
 
-	Window.cycle = function(direction) {
-		if(direction == 1) {
-			stack[stack.length-1].sendToBack();
-		} else {
-			stack[0].bringToFront();
-		}
-	};
-	Window.prototype = {
-		_init: function() {
-		}
-		,index:function() {
-			var idx = stack.indexOf(this);
-			if (idx < 0) throw("window not in stack! I am " + this.title + ", windows are " + logstack());
-			return idx;
-		}
-		,close: function() {
-		}
-		,_removeFromStack: function() {
-			stack.splice(this.index(), 1);
-		}
-		,toggleFrontmost: function() {
-		}
-		,sendToBack: function() {
-		}
-		,bringToFront: function() {
-		}
-		,activate: function() {
-		}
-		,deactivate: function() {
-		}
-		,move: function(user_action, x, y) {
-		}
-		,resize: function(user_action, w, h) {
-		}
-		,toggle_maximize: function() {
-		}
-		,maximize: function() {
-		}
-		,unmaximize: function() {
-		}
-		,move_resize: function(user_action, x, y, w, h) {
-		}
-		,width: function() { return this.elem.outerWidth() + 2; }
-		,height: function() { return this.elem.outerHeight() + 2; }
-		,xpos: function() { return this.elem.position().left + 1; }
-		,ypos: function() { return this.elem.position().top + 1; }
-		,is_active: function() { return Window.active === this; }
-	};
-})();
+	_isMyWindow : function (win) {
+		return (this.metaWorkspace == null || Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index())) &&
+			(!win.get_meta_window() || win.get_meta_window().get_monitor() == this.monitorIndex);
+	},
+	_ignore_me: null
+}
+
+function Window(metaWindow) { this._init(metaWindow); }
+var winCount = 1;
+var stack = [];
+
+Window.cycle = function(direction) {
+	if(direction == 1) {
+		stack[stack.length-1].sendToBack();
+	} else {
+		stack[0].bringToFront();
+	}
+};
+Window.prototype = {
+	_init: function(metaWindow) {
+		this.metaWindow = metaWindow;
+	}
+	,get_meta_window: function() { return this.metaWindow;}
+	,index:function() {
+	}
+	,close: function() {
+	}
+	,_removeFromStack: function() {
+		stack.splice(this.index(), 1);
+	}
+	,toggleFrontmost: function() {
+	}
+	,sendToBack: function() {
+	}
+	,bringToFront: function() {
+	}
+	,activate: function() {
+	}
+	,deactivate: function() {
+	}
+	,move: function(user_action, x, y) {
+		this.metaWindow.move.apply(this.metaWindow, arguments);
+	}
+	,resize: function(user_action, w, h) {
+	}
+	,toggle_maximize: function() {
+	}
+	,maximize: function() {
+	}
+	,unmaximize: function() {
+	}
+	,move_resize: function(user_action, x, y, w, h) {
+		this.metaWindow.move_resize.apply(this.metaWindow, arguments);
+	}
+	,width: function() { return this._outer_rect().width; }
+	,height: function() { return this._outer_rect().height; }
+	,xpos: function() { return this._outer_rect().x; }
+	,ypos: function() { return this._outer_rect().y; }
+	,_outer_rect: function() { return this.metaWindow.get_outer_rect(); }
+};
 
 /*
 $(function() {
