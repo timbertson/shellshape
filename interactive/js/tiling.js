@@ -675,7 +675,7 @@ TiledWindow = (function() {
     var pos, rect, size, _ref;
     rect = this.maximized_rect || Tile.addDiffToRect(this.rect, this.offset);
     _ref = Tile.ensureRectExists(rect), pos = _ref.pos, size = _ref.size;
-    log("laying out window @ " + _(pos) + " :: " + _(size));
+    log("laying out window @ " + j(pos) + " :: " + j(size));
     return this.window.move_resize(false, pos.x, pos.y, size.x, size.y);
   };
   TiledWindow.prototype.set_volatile = function() {

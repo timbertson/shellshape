@@ -48,7 +48,8 @@ Window.prototype = {
 	,deactivate: function() {
 	}
 	,move: function(user_action, x, y) {
-		this.metaWindow.move.apply(this.metaWindow, arguments);
+		this.metaWindow.move(user_action, x, y);
+		//TODO: this.metaWindow.save_user_window_placement();
 	}
 	,resize: function(user_action, w, h) {
 	}
@@ -59,7 +60,7 @@ Window.prototype = {
 	,unmaximize: function() {
 	}
 	,move_resize: function(user_action, x, y, w, h) {
-		this.metaWindow.move_resize.apply(this.metaWindow, arguments);
+		this.metaWindow.move_resize(user_action, x, y, w, h);
 	}
 	,width: function() { return this._outer_rect().width; }
 	,height: function() { return this._outer_rect().height; }

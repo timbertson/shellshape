@@ -21,7 +21,8 @@ function main() {
 	const Workspace = real_mutter.Workspace;
 
 	Main.panel.actor.reactive = true;
-	var Screen = {width: 1024, height:768};
+	var monitor = global.get_primary_monitor();
+	var Screen = {width: monitor.width, height:monitor.height - 40};
 	log("got layout!");
 	log("connecting buttons and such");
 	let workspaces = {};
@@ -63,6 +64,7 @@ function main() {
 			let currentWindow = getWindow(display['focus-window']);
 			log("currently focussed window == " + currentWindow);
 			layout.add(currentWindow);
+			layout.tile(currentWindow);
 		} catch (e) {
 			log("ERROR in tiling: " + e);
 			log("err = " + JSON.stringify(e));

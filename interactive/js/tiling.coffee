@@ -499,7 +499,7 @@ class TiledWindow
 	layout: ->
 		rect = @maximized_rect or Tile.addDiffToRect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensureRectExists(rect)
-		log("laying out window @ " + _(pos) + " :: " + _(size))
+		log("laying out window @ " + j(pos) + " :: " + j(size))
 		this.window.move_resize(false, pos.x, pos.y, size.x, size.y)
 	
 	set_volatile: ->
