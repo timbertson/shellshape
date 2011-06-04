@@ -58,11 +58,11 @@ Tile = {
 	
 	within: (val, a, b) ->
 		[min, max] = @minmax(a,b)
-		log("val #{val} within #{min},#{max}? #{val > min && val < max}")
+		# log("val #{val} within #{min},#{max}? #{val > min && val < max}")
 		return (val > min && val < max)
 	
 	moveRectWithin: (original_rect, bounds) ->
-		log("moving #{j original_rect} to be within #{j bounds}")
+		# log("moving #{j original_rect} to be within #{j bounds}")
 		min = Math.min
 		max = Math.max
 
@@ -189,7 +189,8 @@ class HorizontalTiledLayout
 	each: (func) ->
 		for i in [0 ... @tiles.length]
 			ret = func(@tiles[i], i)
-			return if ret == STOP
+			return true if ret == STOP
+		return false
 
 	contains: (win) ->
 		return this.indexOf(win) != -1
@@ -198,7 +199,7 @@ class HorizontalTiledLayout
 		idx = -1
 		@each (tile, i) ->
 			idx = i if(tile.window == win)
-		log("found window #{win} at idx #{idx}")
+		# log("found window #{win} at idx #{idx}")
 		return idx
 	
 	tile_for: (win) ->
@@ -211,8 +212,8 @@ class HorizontalTiledLayout
 	
 	layout: ->
 		[left, right] = @mainSplit.split(@bounds, @managed_tiles())
-		log("laying out #{left[1].length} windows on the left with rect #{j left[0]}")
-		log("laying out #{right[1].length} windows on the right with rect #{j right[0]}")
+		# log("laying out #{left[1].length} windows on the left with rect #{j left[0]}")
+		# log("laying out #{right[1].length} windows on the right with rect #{j right[0]}")
 		@layout_side(left..., @splits.left)
 		@layout_side(right..., @splits.right)
 	
@@ -274,17 +275,18 @@ class HorizontalTiledLayout
 
 	add: (win) ->
 		return if @contains(win)
-		log("adding window to layout: " + win)
 		@_modify_tiles ->
 			tile = new TiledWindow(win)
 			@tiles.push(tile)
 		@layout()
 	
 	active_tile: (fn) ->
-		@each (tile, i) ->
+		found = @each (tile, i) ->
 			if tile.window.is_active()
 				fn(tile, i)
 				return STOP
+		if not found
+			log("could not find active window!")
 
 	cycle: (int) ->
 		@active_tile (tile, idx) =>
@@ -452,9 +454,6 @@ class TiledWindow
 	window_rect: () ->
 		{pos: {x:@window.xpos(), y:@window.ypos()}, size: {x:@window.width(), y:@window.height()}}
 
-	# move: (pos) ->
-	# 	this.window.move(false, pos.x, pos.y)
-	
 	toggle_maximize: (rect) ->
 		if @maximized_rect
 			@unmaximize()
@@ -469,10 +468,6 @@ class TiledWindow
 		this.maximized_rect = null
 		this.layout()
 
-	# resize : (size) ->
-	# 	_resize(size)
-	# 	this.window.resize(false, size.x, size.y)
-	
 	_resize: (size) ->
 		@rect.size = {x:size.x, y:size.y}
 

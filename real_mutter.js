@@ -1,20 +1,43 @@
-function Workspace(metaWorkspace, monitorIndex) {
-	this._init(metaWorkspace, monitorIndex)
+const Main = imports.ui.main;
+const Lang = imports.lang;
+function Workspace() {
+	this._init.apply(this, arguments)
 }
 Workspace.prototype = {
-	_init : function(metaWorkspace, monitorIndex) {
+	_init : function(metaWorkspace, layout, ext) {
+		var self = this;
 		this.metaWorkspace = metaWorkspace;
-		this.monitorIndex = monitorIndex;
+		this.layout = layout;
+		this.extension = ext;
+		this.metaWorkspace.connect('window-added', Lang.bind(this, this.onWindowCreate));
+		this.metaWorkspace.connect('window-removed', Lang.bind(this, this.onWindowRemove));
+		this.metaWindows().map(Lang.bind(this, this.onWindowCreate));
 	},
 
-	_isMyWindow : function (win) {
-		return (this.metaWorkspace == null || Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index())) &&
-			(!win.get_meta_window() || win.get_meta_window().get_monitor() == this.monitorIndex);
+	onWindowCreate: function(workspace, metaWindow) {
+		log("window created: " + metaWindow);
+		this.layout.on_window_created(this.extension.getWindow(metaWindow));
 	},
+
+	onWindowRemove: function(workspace, metaWindow) {
+		log("window removed: " + metaWindow);
+		//TODO: segfaults mutter...
+		//this.layout.on_window_killed(this.extension.getWindow(metaWindow));
+		this.extension.removeWindow(metaWindow);
+	},
+
+	metaWindows: function() {
+		return this.metaWorkspace.list_windows();
+	},
+
+	// _isMyWindow : function (win) {
+	// 	return (this.metaWorkspace == null || Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index())) &&
+	// 		(!win.get_meta_window() || win.get_meta_window().get_monitor() == this.monitorIndex);
+	// },
 	_ignore_me: null
 }
 
-function Window(metaWindow) { this._init(metaWindow); }
+function Window(metaWindow, ext) { this._init(metaWindow, ext); }
 var winCount = 1;
 var stack = [];
 
@@ -25,42 +48,41 @@ Window.cycle = function(direction) {
 		stack[0].bringToFront();
 	}
 };
+
 Window.prototype = {
-	_init: function(metaWindow) {
+	_init: function(metaWindow, ext) {
 		this.metaWindow = metaWindow;
-	}
-	,get_meta_window: function() { return this.metaWindow;}
-	,index:function() {
-	}
-	,close: function() {
-	}
-	,_removeFromStack: function() {
-		stack.splice(this.index(), 1);
-	}
-	,toggleFrontmost: function() {
-	}
-	,sendToBack: function() {
+		this.ext = ext;
+		this.maximized = false; // TODO...
 	}
 	,bringToFront: function() {
+		// NOOP
+	}
+	// ,get_meta_window: function() { return this.metaWindow;}
+	,is_active: function() {
+		return this.ext.currentWindow() === this;
 	}
 	,activate: function() {
-	}
-	,deactivate: function() {
-	}
-	,move: function(user_action, x, y) {
-		this.metaWindow.move(user_action, x, y);
-		//TODO: this.metaWindow.save_user_window_placement();
-	}
-	,resize: function(user_action, w, h) {
+		Main.activateWindow(this.metaWindow);
 	}
 	,toggle_maximize: function() {
+		if(this.maximized) {
+			this.unmaximize();
+		} else {
+			this.maximize();
+		}
+		this.maximized = !this.maximized;
 	}
 	,maximize: function() {
+		this.unmaximize_args = [true, this.xpos(), this.ypos(), this.width(), this.height()];
+		this.move_resize(true, 10, 10, this.ext.Screen.width - 20, this.ext.Screen.height - 20);
 	}
 	,unmaximize: function() {
+		this.move_resize.apply(this, this.unmaximize_args);
 	}
 	,move_resize: function(user_action, x, y, w, h) {
-		this.metaWindow.move_resize(user_action, x, y, w, h);
+		this.metaWindow.resize(user_action, w, h);
+		this.metaWindow.move_frame(user_action, x, y);
 	}
 	,width: function() { return this._outer_rect().width; }
 	,height: function() { return this._outer_rect().height; }
@@ -69,49 +91,3 @@ Window.prototype = {
 	,_outer_rect: function() { return this.metaWindow.get_outer_rect(); }
 };
 
-/*
-$(function() {
-	// prevent jquery from catching our exceptions
-	window.setTimeout(function() {
-		function new_window() {
-			var win = new Window();
-			tiling.on_window_created(win);
-			win.delegate = tiling;
-			tiling.tile(win);
-		}
-		$(document).keydown(function(evt) {
-			console.log("key " + evt.keyCode);
-			if(evt.shiftKey) {
-				switch(evt.keyCode) {
-					case 84: tiling.untile(Window.active); break; // t
-					case 74: tiling.cycle(1); break; // j
-					case 75: tiling.cycle(-1); break; // k
-					case 32: tiling.swap_active_with_main(); break; // space
-				}
-			} else {
-				switch(evt.keyCode) {
-					case 13: new_window(); break; // enter
-					case 65: Window.active.toggleFrontmost(); break; // a
-					case 90: Window.active.toggle_maximize(); break; // z
-					case 84: tiling.tile(Window.active); break; // t
-					case 188: tiling.add_main_window_count(1); break; // , (<)
-					case 190: tiling.add_main_window_count(-1); break; // . (>)
-					case 74: tiling.select_cycle(1); break; // j
-					case 75: tiling.select_cycle(-1); break; // k
-					case 72: tiling.adjust_main_window_area(-0.1); break; // h
-					case 76: tiling.adjust_main_window_area(0.1); break; // l
-					case 85: tiling.adjust_current_window_size(0.1); break; //u
-					case 73: tiling.adjust_current_window_size(-0.1); break; //i
-					case 81: tiling.on_window_kill(Window.active); Window.active.close(); break; // q
-				}
-			}
-		});
-		new_window();
-		new_window();
-		new_window();
-	}, 0);
-});
-
-
-function log(s) { console.log(s); };
-*/

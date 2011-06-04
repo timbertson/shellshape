@@ -83,12 +83,10 @@ Tile = {
   within: function(val, a, b) {
     var max, min, _ref;
     _ref = this.minmax(a, b), min = _ref[0], max = _ref[1];
-    log("val " + val + " within " + min + "," + max + "? " + (val > min && val < max));
     return val > min && val < max;
   },
   moveRectWithin: function(original_rect, bounds) {
     var extent, max, min, movement_required, rect, resize_required;
-    log("moving " + (j(original_rect)) + " to be within " + (j(bounds)));
     min = Math.min;
     max = Math.max;
     movement_required = {
@@ -261,9 +259,10 @@ HorizontalTiledLayout = (function() {
     for (i = 0, _ref = this.tiles.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
       ret = func(this.tiles[i], i);
       if (ret === STOP) {
-        return;
+        return true;
       }
     }
+    return false;
   };
   HorizontalTiledLayout.prototype.contains = function(win) {
     return this.indexOf(win) !== -1;
@@ -276,7 +275,6 @@ HorizontalTiledLayout = (function() {
         return idx = i;
       }
     });
-    log("found window " + win + " at idx " + idx);
     return idx;
   };
   HorizontalTiledLayout.prototype.tile_for = function(win) {
@@ -302,8 +300,6 @@ HorizontalTiledLayout = (function() {
   HorizontalTiledLayout.prototype.layout = function() {
     var left, right, _ref;
     _ref = this.mainSplit.split(this.bounds, this.managed_tiles()), left = _ref[0], right = _ref[1];
-    log("laying out " + left[1].length + " windows on the left with rect " + (j(left[0])));
-    log("laying out " + right[1].length + " windows on the right with rect " + (j(right[0])));
     this.layout_side.apply(this, __slice.call(left).concat([this.splits.left]));
     return this.layout_side.apply(this, __slice.call(right).concat([this.splits.right]));
   };
@@ -396,12 +392,16 @@ HorizontalTiledLayout = (function() {
     return this.layout();
   };
   HorizontalTiledLayout.prototype.active_tile = function(fn) {
-    return this.each(function(tile, i) {
+    var found;
+    found = this.each(function(tile, i) {
       if (tile.window.is_active()) {
         fn(tile, i);
         return STOP;
       }
     });
+    if (!found) {
+      return log("could not find active window!");
+    }
   };
   HorizontalTiledLayout.prototype.cycle = function(int) {
     return this.active_tile(__bind(function(tile, idx) {
