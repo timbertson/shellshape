@@ -175,8 +175,11 @@ class HorizontalTiledLayout
 	STOP = '_stop_iter'
 	is_managed = (tile) -> tile.managed
 
-	constructor: (screen_width, screen_height) ->
-		@bounds = {pos:{x:0, y:0}, size:{x:screen_width, y:screen_height}}
+	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
+		@bounds = {
+			pos:{x:screen_offset_x, y:screen_offset_y},
+			size:{x:screen_width, y:screen_height}
+		}
 		@tiles = []
 		@mainAxis = 'x'
 		@mainSplit = new MultiSplit(@mainAxis, 1)
@@ -324,6 +327,8 @@ class HorizontalTiledLayout
 			else if tile.top_split?
 				adjust(tile.top_split, true)
 		
+	main_window: () ->
+		@tiles[0]
 	
 	swap_active_with_main: () ->
 		@active_tile (tile, idx) =>
@@ -341,7 +346,7 @@ class HorizontalTiledLayout
 	# 	log(@tiles)
 
 	_remove_tile_at: (idx) ->
-		# log("removing tile #{idx} from #{this.tiles}")
+		log("removing tile #{idx} from #{this.tiles}")
 		removed = this.tiles[idx]
 		@_modify_tiles ->
 			this.tiles.splice(idx, 1)
@@ -494,8 +499,8 @@ class TiledWindow
 	layout: ->
 		rect = @maximized_rect or Tile.addDiffToRect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensureRectExists(rect)
-		log("laying out window @ " + j(pos) + " :: " + j(size))
-		this.window.move_resize(false, pos.x, pos.y, size.x, size.y)
+		log("laying out window @ " + j(pos) + " with size " + j(size))
+		this.window.move_resize(pos.x, pos.y, size.x, size.y)
 	
 	set_volatile: ->
 		@volatile = true

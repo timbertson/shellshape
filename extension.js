@@ -20,8 +20,18 @@ const Ext = function Ext() {
 	//TODO: non-primaty monitor!
 	self.monitor = global.get_primary_monitor();
 	self.screen = global.screen;
-	self.Screen = {width: self.monitor.width, height:self.monitor.height - Main.panel.actor.height};
 
+	self.screenDimensions = {}
+	self.screenDimensions.width = self.monitor.width;
+	self.screenDimensions.offset_x = 0;
+	self.screenDimensions.offset_y = Main.panel.actor.height;
+	self.screenDimensions.height = self.monitor.height - self.screenDimensions.offset_y;
+
+	// sneaky hacks: tile all windows on current workspace when the panel is clicked
+	Main.panel.actor.reactive = true;
+	Main.panel.actor.connect('button-release-event', function() {
+		//self.currentWorkspace().tileAll();
+	});
 
 	self._do = function _do(action) {
 		try {
@@ -40,11 +50,13 @@ const Ext = function Ext() {
 	}
 
 	self.getWorkspace = function getWorkspace(metaWorkspace) {
-		log("getting workspace for MetaWorkspace: " + metaWorkspace);
 		let workspace = self.workspaces[metaWorkspace];
 		if(typeof(workspace) == "undefined") {
-			log(tiling.HorizontalTiledLayout);
-			var layout = new tiling.HorizontalTiledLayout(self.Screen.width, self.Screen.height);
+			var layout = new tiling.HorizontalTiledLayout(
+					self.screenDimensions.offset_x,
+					self.screenDimensions.offset_y,
+					self.screenDimensions.width,
+					self.screenDimensions.height);
 			log("creating new workspace for ws " + metaWorkspace);
 			workspace = self.workspaces[metaWorkspace] = new Workspace(metaWorkspace, layout, self);;
 		}
@@ -64,14 +76,15 @@ const Ext = function Ext() {
 		return win;
 	};
 
+	self.currentWorkspace = function currentWorkspace() {
+		return self.getWorkspace(self.currentMetaWorkspace());
+	};
+
 	self.currentMetaWorkspace = function currentMetaWorkspace() {
 		return global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
 	};
 
 	self.currentLayout = function currentLayout() {
-		log("currentLayout:: metaWorkspace = " + self.currentMetaWorkspace());
-		log("currentLayout:: workspace = " + self.getWorkspace(self.currentMetaWorkspace()));
-		log("currentLayout:: layout = " + self.getWorkspace(self.currentMetaWorkspace()).layout);
 		return self.getWorkspace(self.currentMetaWorkspace()).layout;
 	};
 
@@ -85,27 +98,41 @@ const Ext = function Ext() {
 		return win;
 	};
 
+	//TODO: move workspace
+	self.switch_workspace = function switch_workspace(offset, window) {
+		if(window !== undefined) {
+			// move window to new workspace as well
+		}
+	};
 
 	self._init_keybindings = function _init_keybindings() {
 		log("adding keyboard handlers for Shellshape");
-		handle('t',       function() { self.currentLayout().tile(self.currentWindow())});
-		handle('shift_t', function() { self.currentLayout().untile(self.currentWindow()); });
-		handle('comma',   function() { self.currentLayout().add_main_window_count(1); });
-		handle('dot',     function() { self.currentLayout().add_main_window_count(-1); });
-		handle('j',       function() { self.currentLayout().select_cycle(1); });
-		handle('k',       function() { self.currentLayout().select_cycle(-1); });
-		handle('shift_j', function() { self.currentLayout().cycle(1); });
-		handle('shift_k', function() { self.currentLayout().cycle(-1); });
-		handle('space',   function() { self.currentLayout().swap_active_with_main(); });
-		handle('h',       function() { self.currentLayout().adjust_main_window_area(-0.1); });
-		handle('l',       function() { self.currentLayout().adjust_main_window_area(0.1); });
-		handle('u',       function() { self.currentLayout().adjust_current_window_size(0.1); });
-		handle('i',       function() { self.currentLayout().adjust_current_window_size(-0.1); });
+		var RESIZE_INCREMENT = 0.05;
+		handle('t',           function() { self.currentLayout().tile(self.currentWindow())});
+		handle('shift_t',     function() { self.currentLayout().untile(self.currentWindow()); });
+		handle('comma',       function() { self.currentLayout().add_main_window_count(1); });
+		handle('dot',         function() { self.currentLayout().add_main_window_count(-1); });
+		handle('j',           function() { self.currentLayout().select_cycle(1); });
+		handle('k',           function() { self.currentLayout().select_cycle(-1); });
+		handle('shift_j',     function() { self.currentLayout().cycle(1); });
+		handle('shift_k',     function() { self.currentLayout().cycle(-1); });
+		handle('space',       function() { self.currentLayout().main().activate(); });
+		handle('shift_space', function() { self.currentLayout().swap_active_with_main(); });
+		handle('h',           function() { self.currentLayout().adjust_main_window_area(-RESIZE_INCREMENT); });
+		handle('l',           function() { self.currentLayout().adjust_main_window_area(+RESIZE_INCREMENT); });
+		handle('u',           function() { self.currentLayout().adjust_current_window_size(-RESIZE_INCREMENT); });
+		handle('i',           function() { self.currentLayout().adjust_current_window_size(+RESIZE_INCREMENT); });
+		handle('alt_j',       function() { self.switch_workspace(+1); });
+		handle('alt_k',       function() { self.switch_workspace(-1); });
+		handle('alt_shift_j', function() { self.switch_workspace(+1, self.currentWindow()); });
+		handle('alt_shift_k', function() { self.switch_workspace(-1, self.currentWindow()); });
+		handle('z',           function() { self.currentWindow().toggle_maximize(); });
 		log("Done adding keyboard handlers for Shellshape");
 	};
 	
 	self.removeWorkspace = function(metaWorkspace) {
 		delete self.workspaces[metaWorkspace];
+		//TODO: clean up windows in workspace? probably shouldn't happen given how GS works
 	};
 
 	self.removeWindow = function(metaWindow) {
@@ -114,8 +141,8 @@ const Ext = function Ext() {
 
 	self._init_workspaces = function() {
 		self.screen = global.screen;
-		self.screen.connect('workspace-added', self.getWorkspace);
-		self.screen.connect('workspace-added', self.removeWorkspace);
+		self.screen.connect('workspace-added', function(screen, workspace) { self.getWorkspace(workspace); });
+		self.screen.connect('workspace-removed', self.removeWorkspace);
 
 		// add existing workspaces
 		// (yay, iteration!)

@@ -116,10 +116,10 @@ function Window() { this._init(); }
 			this.elem.css({"border-color": inactive_border, opacity: dim});
 			Window.active = null;
 		}
-		,move: function(user_action, x, y) {
+		,move: function(x, y) {
 			this.elem.css({left:x, top:y});
 		}
-		,resize: function(user_action, w, h) {
+		,resize: function(w, h) {
 			this.elem.css({width:w-4, height:h-4});
 		}
 		,toggle_maximize: function() {
@@ -131,16 +131,16 @@ function Window() { this._init(); }
 			this.maximized = !this.maximized;
 		}
 		,maximize: function() {
-			this.unmaximize_args = [true, this.xpos(), this.ypos(), this.width(), this.height()];
-			this.move_resize(true, 10, 10, Screen.width - 20, Screen.height - 20);
+			this.unmaximize_args = [this.xpos(), this.ypos(), this.width(), this.height()];
+			this.move_resize(10, 10, Screen.width - 20, Screen.height - 20);
 		}
 		,unmaximize: function() {
 			this.move_resize.apply(this, this.unmaximize_args);
 		}
-		,move_resize: function(user_action, x, y, w, h) {
+		,move_resize: function(x, y, w, h) {
 			$("h3", this.elem).text(this.title + " @ " + Math.round(x) + "," + Math.round(y) + " (" + Math.round(w) + "x" + Math.round(h) +")");
-			this.move(user_action, x, y);
-			this.resize(user_action, w, h);
+			this.move(x, y);
+			this.resize(w, h);
 		}
 		,width: function() { return this.elem.outerWidth() + 2; }
 		,height: function() { return this.elem.outerHeight() + 2; }

@@ -228,11 +228,11 @@ HorizontalTiledLayout = (function() {
   is_managed = function(tile) {
     return tile.managed;
   };
-  function HorizontalTiledLayout(screen_width, screen_height) {
+  function HorizontalTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
     this.bounds = {
       pos: {
-        x: 0,
-        y: 0
+        x: screen_offset_x,
+        y: screen_offset_y
       },
       size: {
         x: screen_width,
@@ -383,7 +383,6 @@ HorizontalTiledLayout = (function() {
     if (this.contains(win)) {
       return;
     }
-    log("adding window to layout: " + win);
     this._modify_tiles(function() {
       var tile;
       tile = new TiledWindow(win);
@@ -675,8 +674,8 @@ TiledWindow = (function() {
     var pos, rect, size, _ref;
     rect = this.maximized_rect || Tile.addDiffToRect(this.rect, this.offset);
     _ref = Tile.ensureRectExists(rect), pos = _ref.pos, size = _ref.size;
-    log("laying out window @ " + j(pos) + " :: " + j(size));
-    return this.window.move_resize(false, pos.x, pos.y, size.x, size.y);
+    log("laying out window @ " + j(pos) + " with size " + j(size));
+    return this.window.move_resize(pos.x, pos.y, size.x, size.y);
   };
   TiledWindow.prototype.set_volatile = function() {
     return this.volatile = true;

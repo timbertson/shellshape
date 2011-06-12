@@ -14,6 +14,12 @@ Workspace.prototype = {
 		this.metaWindows().map(Lang.bind(this, this.onWindowCreate));
 	},
 
+	tileAll : function() {
+		this.metaWindows().map(Lang.bind(this, function(metaWindow) {
+			this.layout.tile(this.extension.getWindow(metaWindow));
+		}));
+	},
+
 	onWindowCreate: function(workspace, metaWindow) {
 		log("window created: " + metaWindow);
 		this.layout.on_window_created(this.extension.getWindow(metaWindow));
@@ -21,8 +27,10 @@ Workspace.prototype = {
 
 	onWindowRemove: function(workspace, metaWindow) {
 		log("window removed: " + metaWindow);
+		var window = this.extension.getWindow(metaWindow);
+		log("its Window is: " + metaWindow);
 		//TODO: segfaults mutter...
-		//this.layout.on_window_killed(this.extension.getWindow(metaWindow));
+		//this.layout.on_window_killed(window);
 		this.extension.removeWindow(metaWindow);
 	},
 
@@ -74,15 +82,14 @@ Window.prototype = {
 		this.maximized = !this.maximized;
 	}
 	,maximize: function() {
-		this.unmaximize_args = [true, this.xpos(), this.ypos(), this.width(), this.height()];
-		this.move_resize(true, 10, 10, this.ext.Screen.width - 20, this.ext.Screen.height - 20);
+		this.unmaximize_args = [this.xpos(), this.ypos(), this.width(), this.height()];
+		this.move_resize(10, 10, this.ext.Screen.width - 20, this.ext.Screen.height - 20);
 	}
 	,unmaximize: function() {
 		this.move_resize.apply(this, this.unmaximize_args);
 	}
-	,move_resize: function(user_action, x, y, w, h) {
-		this.metaWindow.resize(user_action, w, h);
-		this.metaWindow.move_frame(user_action, x, y);
+	,move_resize: function(x, y, w, h) {
+		this.metaWindow.move_resize_frame(true, x, y, w, h);
 	}
 	,width: function() { return this._outer_rect().width; }
 	,height: function() { return this._outer_rect().height; }
