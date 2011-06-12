@@ -84,10 +84,6 @@ Workspace.prototype = {
 		return wins;
 	},
 
-	// _isMyWindow : function (win) {
-	// 	return (this.metaWorkspace == null || Main.isWindowActorDisplayedOnWorkspace(win, this.metaWorkspace.index())) &&
-	// 		(!win.get_meta_window() || win.get_meta_window().get_monitor() == this.monitorIndex);
-	// },
 	_ignore_me: null
 }
 
@@ -112,7 +108,6 @@ Window.prototype = {
 	,bringToFront: function() {
 		// NOOP
 	}
-	// ,get_meta_window: function() { return this.metaWindow;}
 	,is_active: function() {
 		return this.ext.currentWindow() === this;
 	}
@@ -141,6 +136,7 @@ Window.prototype = {
 		)
 	}
 	,maximize: function() {
+		// more like bluetile than metacity, not sure if this should be a distinct thing...
 		let maximize_border = 15;
 		this.unmaximize_args = [this.xpos(), this.ypos(), this.width(), this.height()];
 		this.move_resize(
