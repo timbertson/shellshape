@@ -12,6 +12,7 @@ const real_mutter = Extension.real_mutter;
 const Window = real_mutter.Window;
 const Workspace = real_mutter.Workspace;
 
+//TODO: add a panel indicator showing the current layout algorithm
 
 const Ext = function Ext() {
 	let self = this;
@@ -30,7 +31,7 @@ const Ext = function Ext() {
 	// sneaky hacks: tile all windows on current workspace when the panel is clicked
 	Main.panel.actor.reactive = true;
 	Main.panel.actor.connect('button-release-event', function() {
-		//self.currentWorkspace().tileAll();
+		self.currentWorkspace().tileAll();
 	});
 
 	self._do = function _do(action) {
@@ -98,30 +99,55 @@ const Ext = function Ext() {
 		return win;
 	};
 
-	//TODO: move workspace
 	self.switch_workspace = function switch_workspace(offset, window) {
+		let activateIndex = global.screen.get_active_workspace_index()
+		let newIndex = activateIndex + offset;
+		if(newIndex < 0 || newIndex > global.screen.get_n_workspaces()) {
+			log("No such workspace; ignoring");
+			return;
+		}
+
+		let nextWorkspace = global.screen.get_workspace_by_index(newIndex);
 		if(window !== undefined) {
-			// move window to new workspace as well
+			window.moveToWorkspace(newIndex);
+			nextWorkspace.activate_with_focus(window.metaWindow, global.get_current_time())
+		} else {
+			nextWorkspace.activate(true);
 		}
 	};
 
 	self._init_keybindings = function _init_keybindings() {
 		log("adding keyboard handlers for Shellshape");
-		var RESIZE_INCREMENT = 0.05;
+		var BORDER_RESIZE_INCREMENT = 0.05;
+		var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
 		handle('t',           function() { self.currentLayout().tile(self.currentWindow())});
 		handle('shift_t',     function() { self.currentLayout().untile(self.currentWindow()); });
-		handle('comma',       function() { self.currentLayout().add_main_window_count(1); });
-		handle('dot',         function() { self.currentLayout().add_main_window_count(-1); });
+		/* (TODO: not yet functional) */ handle('comma',       function() { self.currentLayout().add_main_window_count(1); });
+		/* (TODO: not yet functional) */ handle('dot',         function() { self.currentLayout().add_main_window_count(-1); });
+
 		handle('j',           function() { self.currentLayout().select_cycle(1); });
 		handle('k',           function() { self.currentLayout().select_cycle(-1); });
+		/* (TODO: not yet functional) */ handle('tab',         function() { self.currentLayout().select_cycle(1); });
+		/* (TODO: not yet functional) */ handle('shift_tab',   function() { self.currentLayout().select_cycle(-1); });
+
 		handle('shift_j',     function() { self.currentLayout().cycle(1); });
 		handle('shift_k',     function() { self.currentLayout().cycle(-1); });
-		handle('space',       function() { self.currentLayout().main().activate(); });
-		handle('shift_space', function() { self.currentLayout().swap_active_with_main(); });
-		handle('h',           function() { self.currentLayout().adjust_main_window_area(-RESIZE_INCREMENT); });
-		handle('l',           function() { self.currentLayout().adjust_main_window_area(+RESIZE_INCREMENT); });
-		handle('u',           function() { self.currentLayout().adjust_current_window_size(-RESIZE_INCREMENT); });
-		handle('i',           function() { self.currentLayout().adjust_current_window_size(+RESIZE_INCREMENT); });
+
+		/* (TODO: not yet functional) */ handle('space',       function() { self.currentLayout().main().activate(); });
+		/* (TODO: not yet functional) */ handle('shift_space', function() { self.currentLayout().swap_active_with_main(); });
+
+		// move a window's borders to resize it
+		handle('h',           function() { self.currentLayout().adjust_main_window_area(-BORDER_RESIZE_INCREMENT); });
+		handle('l',           function() { self.currentLayout().adjust_main_window_area(+BORDER_RESIZE_INCREMENT); });
+		handle('u',           function() { self.currentLayout().adjust_current_window_size(-BORDER_RESIZE_INCREMENT); });
+		handle('i',           function() { self.currentLayout().adjust_current_window_size(+BORDER_RESIZE_INCREMENT); });
+
+		// resize a window without affecting others
+		handle('shift_h',     function() { self.currentLayout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
+		handle('shift_l',     function() { self.currentLayout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
+		handle('shift_u',     function() { self.currentLayout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
+		handle('shift_i',     function() { self.currentLayout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
+
 		handle('alt_j',       function() { self.switch_workspace(+1); });
 		handle('alt_k',       function() { self.switch_workspace(-1); });
 		handle('alt_shift_j', function() { self.switch_workspace(+1, self.currentWindow()); });

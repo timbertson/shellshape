@@ -66,8 +66,6 @@ Tile = {
 		min = Math.min
 		max = Math.max
 
-		movement_required = {x: 0, y:0}
-		resize_required = {x:0, y:0}
 		rect = Tile.copyRect(original_rect)
 
 		rect.size.x = min(rect.size.x, bounds.size.x)
@@ -205,20 +203,28 @@ class HorizontalTiledLayout
 		# log("found window #{win} at idx #{idx}")
 		return idx
 	
+	with_tile_for: (win, func) ->
+		idx = @indexOf(win)
+		if(idx >= 0)
+			return func(@tiles[idx], idx)
+
 	tile_for: (win) ->
 		idx = @indexOf(win)
-		throw("couldn't find window: " + window) if idx < 0
+		throw("couldn't find window in tiles: " + window) if idx < 0
 		@tiles[idx]
 	
 	managed_tiles: ->
 		return (tile for tile in @tiles when is_managed(tile))
 	
 	layout: ->
+		active = null
+		@active_tile((tile) -> active = tile.window)
 		[left, right] = @mainSplit.split(@bounds, @managed_tiles())
-		# log("laying out #{left[1].length} windows on the left with rect #{j left[0]}")
-		# log("laying out #{right[1].length} windows on the right with rect #{j right[0]}")
 		@layout_side(left..., @splits.left)
 		@layout_side(right..., @splits.right)
+		if active
+			log("preserving active window before layout: " + active)
+			active.beforeRedraw( -> active.activate())
 	
 	layout_side: (rect, windows, splits) ->
 		axis = Axis.other(@mainAxis)
@@ -266,7 +272,7 @@ class HorizontalTiledLayout
 
 	select_cycle: (offset) ->
 		@active_tile (tile, idx) =>
-			log("Active tile == #{idx}, #{tile.window.title}")
+			log("Active tile == #{idx}, #{tile.window}")
 			@tiles[@wrap_index(idx + offset)].activate()
 	
 	wrap_index: (idx) ->
@@ -278,10 +284,10 @@ class HorizontalTiledLayout
 
 	add: (win) ->
 		return if @contains(win)
-		@_modify_tiles ->
-			tile = new TiledWindow(win)
-			@tiles.push(tile)
-		@layout()
+		#NOTE: assumes autoTile is not enabled; if you want that
+		# you'll have to call tile() yourself after each add()
+		tile = new TiledWindow(win)
+		@tiles.push(tile)
 	
 	active_tile: (fn) ->
 		found = @each (tile, i) ->
@@ -310,6 +316,13 @@ class HorizontalTiledLayout
 				diff_ratio: diff,
 				axis: Axis.other(@mainAxis)})
 			@layout()
+	
+	scale_current_window: (amount, axis) ->
+		@active_tile (tile) =>
+			tile.scale_by(amount, axis)
+			tile.center_window()
+			tile.ensure_within(@bounds)
+			tile.layout()
 	
 	adjust_split_for_tile: (opts) ->
 		{axis, diff_px, diff_ratio, tile} = opts
@@ -350,40 +363,40 @@ class HorizontalTiledLayout
 		removed = this.tiles[idx]
 		@_modify_tiles ->
 			this.tiles.splice(idx, 1)
-			removed.release()
 		@layout()
 		return removed
 	
 	on_window_created: (win) ->
 		@add(win)
+
 	on_window_killed: (win) ->
-		@_remove_tile_at(@indexOf(win))
+		@with_tile_for win, (tile, idx) =>
+			@_remove_tile_at(idx)
 
 	on_window_moved: (win) ->
-		idx = @indexOf(win)
-		tile = @tiles[idx]
-		@swap_moved_tile_if_necessary(tile, idx)
-		tile.update_offset()
-		@layout()
+		@with_tile_for win, (tile, idx) =>
+			@swap_moved_tile_if_necessary(tile, idx)
+			tile.update_offset()
+			@layout()
 
 	on_split_resize_start: (win) ->
 		@split_resize_start_rect = Tile.copyRect(@tiles[@indexOf(win)].window_rect())
 		log("starting resize of split.. #{j @split_resize_start_rect}")
 
 	on_window_resized: (win) ->
-		tile = @tiles[@indexOf(win)]
-		if @split_resize_start_rect?
-			diff = Tile.pointDiff(@split_resize_start_rect.size, tile.window_rect().size)
-			log("split resized! diff = #{j diff}")
-			if diff.x != 0
-				@adjust_split_for_tile({tile: tile, diff_px: diff.x, axis: 'x'})
-			if diff.y != 0
-				@adjust_split_for_tile({tile: tile, diff_px: diff.y, axis: 'y'})
-			@split_resize_start_rect = null
-		else
-			tile.update_offset()
-		@layout()
-		true
+		@with_tile_for win, (tile, idx) =>
+			if @split_resize_start_rect?
+				diff = Tile.pointDiff(@split_resize_start_rect.size, tile.window_rect().size)
+				log("split resized! diff = #{j diff}")
+				if diff.x != 0
+					@adjust_split_for_tile({tile: tile, diff_px: diff.x, axis: 'x'})
+				if diff.y != 0
+					@adjust_split_for_tile({tile: tile, diff_px: diff.y, axis: 'y'})
+				@split_resize_start_rect = null
+			else
+				tile.update_offset()
+			@layout()
+			true
 	
 	swap_moved_tile_if_necessary: (tile, idx) ->
 		#TODO: should this be based on cursor position, not window midpoint?
@@ -439,14 +452,22 @@ class TiledWindow
 
 	tile: ->
 		this.managed = true
+		@original_rect = @window_rect()
 		@reset_offset()
 	
 	reset_offset: ->
 		@offset = {pos: {x:0, y:0}, size: {x:0, y:0}}
 	
+	toString: ->
+		"<\#TiledWindow of " + @window.toString() + ">"
+	
+	beforeRedraw: (f) ->
+		@window.beforeRedraw(f)
+	
 	snap_to_screen: ->
 		# after a swap, adjust the offset to ensure the window appears on-screen
 		true
+
 	update_offset: ->
 		rect = @rect
 		win = @window_rect()
@@ -496,6 +517,13 @@ class TiledWindow
 			log("now offset = #{j @offset}")
 			@layout()
 	
+	center_window: ->
+		window_rect = @window_rect()
+		tile_center = Tile.rectCenter(@rect)
+		window_center = Tile.rectCenter(window_rect)
+		movement_required = Tile.pointDiff(window_center, tile_center)
+		@offset.pos = Tile.pointAdd(@offset.pos, movement_required)
+	
 	layout: ->
 		rect = @maximized_rect or Tile.addDiffToRect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensureRectExists(rect)
@@ -504,6 +532,16 @@ class TiledWindow
 	
 	set_volatile: ->
 		@volatile = true
+
+	scale_by: (amount, axis) ->
+		window_rect = @window_rect()
+		log("scaling window @ " + j(window_rect) + " by " + amount)
+		current_dim = window_rect.size[axis]
+		diff_px = (amount * current_dim)
+		new_dim = current_dim + diff_px
+		@offset.size[axis] += diff_px
+		@offset.pos[axis] -= (diff_px / 2)
+		log("diff_px on axis " + axis + " = " + diff_px)
 
 	release: ->
 		this.set_rect(this.original_rect)
