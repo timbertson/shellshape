@@ -605,6 +605,9 @@ TiledWindow = (function() {
     this.managed = false;
   }
   TiledWindow.prototype.tile = function() {
+    if (this.managed) {
+      return;
+    }
     this.managed = true;
     this.original_rect = this.window_rect();
     return this.reset_offset();

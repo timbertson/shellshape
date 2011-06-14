@@ -451,6 +451,7 @@ class TiledWindow
 		@managed = false
 
 	tile: ->
+		return if @managed # already tiled
 		this.managed = true
 		@original_rect = @window_rect()
 		@reset_offset()
