@@ -348,7 +348,7 @@ class HorizontalTiledLayout
 			return if idx == 0
 			current_main = @tiles[0]
 			@_swap_windows_at(0, idx)
-
+	
 	untile: (win) ->
 		@_modify_tiles ->
 			@tile_for(win).release()

@@ -5,12 +5,14 @@ const Main = imports.ui.main;
 const Shell = imports.gi.Shell;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
+const GObject = imports.gi.GObject;
 
 const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
 const tiling = Extension.tiling;
 const real_mutter = Extension.real_mutter;
 const Window = real_mutter.Window;
 const Workspace = real_mutter.Workspace;
+const ShellshapeIndicator = real_mutter.ShellshapeIndicator;
 
 //TODO: add a panel indicator showing the current layout algorithm
 
@@ -27,12 +29,6 @@ const Ext = function Ext() {
 	self.screenDimensions.offset_x = 0;
 	self.screenDimensions.offset_y = Main.panel.actor.height;
 	self.screenDimensions.height = self.monitor.height - self.screenDimensions.offset_y;
-
-	// sneaky hacks: tile all windows on current workspace when the panel is clicked
-	Main.panel.actor.reactive = true;
-	Main.panel.actor.connect('button-release-event', function() {
-		self.currentWorkspace().tileAll();
-	});
 
 	self._do = function _do(action) {
 		try {
@@ -122,8 +118,8 @@ const Ext = function Ext() {
 		var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
 		handle('t',           function() { self.currentLayout().tile(self.currentWindow())});
 		handle('shift_t',     function() { self.currentLayout().untile(self.currentWindow()); });
-		/* (TODO: not yet functional) */ handle('comma',       function() { self.currentLayout().add_main_window_count(1); });
-		/* (TODO: not yet functional) */ handle('dot',         function() { self.currentLayout().add_main_window_count(-1); });
+		handle('comma',       function() { self.currentLayout().add_main_window_count(1); });
+		handle('dot',         function() { self.currentLayout().add_main_window_count(-1); });
 
 		handle('j',           function() { self.currentLayout().select_cycle(1); });
 		handle('k',           function() { self.currentLayout().select_cycle(-1); });
@@ -133,8 +129,12 @@ const Ext = function Ext() {
 		handle('shift_j',     function() { self.currentLayout().cycle(1); });
 		handle('shift_k',     function() { self.currentLayout().cycle(-1); });
 
-		/* (TODO: not yet functional) */ handle('space',       function() { self.currentLayout().main().activate(); });
-		/* (TODO: not yet functional) */ handle('shift_space', function() { self.currentLayout().swap_active_with_main(); });
+		handle('space',       function() { self.currentLayout().main_window().activate(); });
+		handle('shift_space', function() { self.currentLayout().swap_active_with_main(); });
+
+		// layout changers
+		handle('d',           function() { self.changeLayout(true); });
+		handle('f',           function() { self.changeLayout(false); });
 
 		// move a window's borders to resize it
 		handle('h',           function() { self.currentLayout().adjust_main_window_area(-BORDER_RESIZE_INCREMENT); });
@@ -154,6 +154,12 @@ const Ext = function Ext() {
 		handle('alt_shift_k', function() { self.switch_workspace(-1, self.currentWindow()); });
 		handle('z',           function() { self.currentWindow().toggle_maximize(); });
 		log("Done adding keyboard handlers for Shellshape");
+	};
+
+	self.changeLayout = function(doTile) {
+		self.currentWorkspace().tileAll(doTile);
+		//TODO: need to inherit from GObject
+		self.emit('layout-changed');
 	};
 	
 	self.removeWorkspace = function(metaWorkspace) {
@@ -177,10 +183,17 @@ const Ext = function Ext() {
 		}
 	};
 
+	self._init_indicator = function() {
+		ShellshapeIndicator.init(self);
+	};
+	self.toString = function() {
+		return "<Shellshape Extension>";
+	};
+
 	self._do(self._init_keybindings);
 	self._do(self._init_workspaces);
+	self._do(self._init_indicator);
 };
-
 
 // initialization
 function main() {

@@ -1,6 +1,103 @@
 const Main = imports.ui.main;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
+const PanelMenu = imports.ui.panelMenu;
+const PopupMenu = imports.ui.popupMenu;
+const Panel = imports.ui.panel;
+const St = imports.gi.St;
+
+function ShellshapeIndicator() {
+	this._init.apply(this, arguments);
+}
+
+ShellshapeIndicator.prototype = {
+	__proto__: PanelMenu.SystemStatusButton.prototype,
+	_init: function() {
+		log("this.ext = " + this.ext);
+		// TODO: 'folder'?
+		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
+
+		// create menu
+		this.menuEntries = [
+			{
+				label: 'Floating',
+				action: this._untileAll,
+				// activeText: 'X'
+			},
+			{
+				label: 'Tiled',
+				action: this._tileAll,
+				// activeText: 'Tiled'
+			}
+		];
+		this.menuIndexes = {
+			floating: 0,
+			vertical: 1
+		};
+
+		var items = new PopupMenu.PopupMenuSection();
+		for(i in this.menuEntries) {
+			let itemProps = this.menuEntries[i];
+			let item = new PopupMenu.PopupMenuItem(itemProps.label);
+			items.addMenuItem(item);
+			item.connect('activate', Lang.bind(this, function() {
+				log("callback for [" + itemProps.label + "] received by " + this);
+				this._setText(itemProps.label);
+				itemProps.action.call(this);
+			}));
+		}
+		this.menu.addMenuItem(items);
+
+		this.statusLabel = new St.Label({ text: this.menuEntries[0].label });
+		this.actor.set_child(this.statusLabel);
+
+		global.screen.connect_after('workspace-switched', Lang.bind(this,this._updateIndicator));
+		//TODO:
+		//this.ext.connect('layout-changed', Lang.bind(this, this._updateIndicator));
+	},
+
+	toString: function() {
+		return "<ShellshapeIndicator>";
+	},
+
+	_setText: function(text) {
+		log("Set label text to " + text);
+		this.statusLabel.set_text(text);
+	},
+
+	_updateIndicator: function(metaScreen, oldIndex, newIndex) {
+		var metaWorkspace = global.screen.get_workspace_by_index(newIndex);
+		log("indicator saw switch to new workspace: " + metaWorkspace);
+		//TODO: extend this when we have multiple tiling layouts
+		var itemProps = null;
+		log("autoTile = " + this.ext.getWorkspace(metaWorkspace).autoTile);
+		if(this.ext.getWorkspace(metaWorkspace).autoTile) {
+			itemProps = this.menuEntries[this.menuIndexes.vertical];
+		} else {
+			itemProps = this.menuEntries[this.menuIndexes.floating];
+		}
+		this._setText(itemProps.label);
+	},
+
+	_tileAll: function() {
+		this.ext.currentWorkspace().tileAll(true);
+	},
+
+	_untileAll: function() {
+		this.ext.currentWorkspace().tileAll(false);
+	},
+
+};
+ShellshapeIndicator.init = function(ext) {
+	// return;
+	log("starting ShellshapeIndicator with ext = "+ ext);
+	ShellshapeIndicator.prototype.ext = ext;
+	Panel.STANDARD_TRAY_ICON_ORDER.unshift('shellshape-indicator');
+	Panel.STANDARD_TRAY_ICON_SHELL_IMPLEMENTATION['shellshape-indicator'] = ShellshapeIndicator;
+};
+
+
+
 function Workspace() {
 	this._init.apply(this, arguments)
 }
@@ -16,9 +113,11 @@ Workspace.prototype = {
 		this.metaWindows().map(Lang.bind(this, this.onWindowCreate));
 	},
 
-	tileAll : function() {
-		this.autoTile = !this.autoTile;
-		this.log("tileAll - autoTile turned to " + this.autoTile);
+	tileAll : function(newFlag) {
+		if(typeof(newFlag) === 'undefined') {
+			newFlag = !this.autoTile;
+		}
+		this.autoTile = newFlag;
 		this.metaWindows().map(Lang.bind(this, function(metaWindow) {
 			if(this.autoTile) {
 				this.layout.tile(this.extension.getWindow(metaWindow));
@@ -56,7 +155,7 @@ Workspace.prototype = {
 
 	log: function(desc) {
 		var wins = this.metaWindows();
-		log("Workspace#" + desc + " // Workspace id ??? has " + wins.length + " metaWindows: \n" + wins.map(function(w) { return " - " + w; }));
+		log("Workspace#" + desc + " // Workspace id ??? has " + wins.length + " metaWindows: \n" + wins.map(function(w) { return " - " + w + "\n"; }));
 	},
 
 	// activate: function() { this.metaWorkspace.activate(true); },
@@ -75,7 +174,13 @@ Workspace.prototype = {
 	},
 
 	isNormalWindow: function(metaWindow) {
-		return metaWindow.get_window_type() == Meta.WindowType.NORMAL;
+		// TODO: add more smarts about floating / special windows (e.g. guake)
+		try {
+			return metaWindow.get_window_type() == Meta.WindowType.NORMAL && (!metaWindow.is_skip_taskbar());
+		} catch (e) {
+			log("Failed to get window type for window " + metaWindow + ", error was: " + e);
+			return false;
+		}
 	},
 
 	metaWindows: function() {
