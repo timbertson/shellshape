@@ -171,7 +171,8 @@ class MultiSplit extends BaseSplit
 	
 class HorizontalTiledLayout
 	STOP = '_stop_iter'
-	is_managed = (tile) -> tile.managed
+	is_managed = (tile) ->
+		tile.managed && (!tile.is_minimized())
 
 	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
 		@bounds = {
@@ -215,7 +216,9 @@ class HorizontalTiledLayout
 	
 	managed_tiles: ->
 		return (tile for tile in @tiles when is_managed(tile))
-	
+	visible_tiles: ->
+		return (tile for tile in @tiles when (!tile.is_minimized())
+
 	layout: ->
 		active = null
 		@active_tile((tile) -> active = tile.window)
@@ -270,6 +273,7 @@ class HorizontalTiledLayout
 			@tile_for(win).tile()
 		@layout()
 
+	#TODO: make many of these functions operate on @visible_tiles
 	select_cycle: (offset) ->
 		@active_tile (tile, idx) =>
 			log("Active tile == #{idx}, #{tile.window}")
@@ -486,6 +490,9 @@ class TiledWindow
 			@unmaximize()
 		else
 			@maximize(rect)
+	
+	is_minimized: () ->
+		@window.isMinimized()
 
 	maximize: (rect) ->
 		this.maximized_rect = rect

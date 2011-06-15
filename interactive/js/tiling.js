@@ -218,7 +218,7 @@ HorizontalTiledLayout = (function() {
   var STOP, is_managed;
   STOP = '_stop_iter';
   is_managed = function(tile) {
-    return tile.managed;
+    return tile.managed && (!tile.is_minimized());
   };
   function HorizontalTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
     this.bounds = {
@@ -661,6 +661,9 @@ TiledWindow = (function() {
     } else {
       return this.maximize(rect);
     }
+  };
+  TiledWindow.prototype.is_minimized = function() {
+    return this.window.isMinimized();
   };
   TiledWindow.prototype.maximize = function(rect) {
     this.maximized_rect = rect;

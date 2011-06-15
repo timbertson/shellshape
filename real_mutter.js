@@ -50,10 +50,11 @@ ShellshapeIndicator.prototype = {
 
 		this.statusLabel = new St.Label({ text: this.menuEntries[0].label });
 		this.actor.set_child(this.statusLabel);
+		this.metaWorkspace = global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
+		this._updateIndicator()
 
-		global.screen.connect_after('workspace-switched', Lang.bind(this,this._updateIndicator));
-		//TODO:
-		//this.ext.connect('layout-changed', Lang.bind(this, this._updateIndicator));
+		global.screen.connect_after('workspace-switched', Lang.bind(this,this._workspaceChanged));
+		this.ext.connect('layout-changed', Lang.bind(this, this._updateIndicator));
 	},
 
 	toString: function() {
@@ -65,13 +66,16 @@ ShellshapeIndicator.prototype = {
 		this.statusLabel.set_text(text);
 	},
 
-	_updateIndicator: function(metaScreen, oldIndex, newIndex) {
-		var metaWorkspace = global.screen.get_workspace_by_index(newIndex);
-		log("indicator saw switch to new workspace: " + metaWorkspace);
+	_workspaceChanged: function(metaScreen, oldIndex, newIndex) {
+		this.metaWorkspace = global.screen.get_workspace_by_index(newIndex);
+		log("indicator saw switch to new workspace: " + this.metaWorkspace);
+		this._updateIndicator();
+	},
+	_updateIndicator: function() {
 		//TODO: extend this when we have multiple tiling layouts
 		var itemProps = null;
-		log("autoTile = " + this.ext.getWorkspace(metaWorkspace).autoTile);
-		if(this.ext.getWorkspace(metaWorkspace).autoTile) {
+		log("autoTile = " + this.ext.getWorkspace(this.metaWorkspace).autoTile);
+		if(this.ext.getWorkspace(this.metaWorkspace).autoTile) {
 			itemProps = this.menuEntries[this.menuIndexes.vertical];
 		} else {
 			itemProps = this.menuEntries[this.menuIndexes.floating];
@@ -110,6 +114,7 @@ Workspace.prototype = {
 		this.extension = ext;
 		this.metaWorkspace.connect('window-added', Lang.bind(this, this.onWindowCreate));
 		this.metaWorkspace.connect('window-removed', Lang.bind(this, this.onWindowRemove));
+		//TODO: connect window-minimized
 		this.metaWindows().map(Lang.bind(this, this.onWindowCreate));
 	},
 
@@ -218,6 +223,9 @@ Window.prototype = {
 	}
 	,activate: function() {
 		Main.activateWindow(this.metaWindow);
+	}
+	,isMinimized: function() {
+		return this.metaWindow.minimized;
 	}
 	,toggle_maximize: function() {
 		if(this.maximized) {

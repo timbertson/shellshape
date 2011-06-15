@@ -5,7 +5,7 @@ const Main = imports.ui.main;
 const Shell = imports.gi.Shell;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
-const GObject = imports.gi.GObject;
+const Signals = imports.signals;
 
 const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
 const tiling = Extension.tiling;
@@ -158,7 +158,6 @@ const Ext = function Ext() {
 
 	self.changeLayout = function(doTile) {
 		self.currentWorkspace().tileAll(doTile);
-		//TODO: need to inherit from GObject
 		self.emit('layout-changed');
 	};
 	
@@ -194,6 +193,8 @@ const Ext = function Ext() {
 	self._do(self._init_workspaces);
 	self._do(self._init_indicator);
 };
+
+Signals.addSignalMethods(Ext.prototype);
 
 // initialization
 function main() {
