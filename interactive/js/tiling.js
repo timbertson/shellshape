@@ -296,6 +296,18 @@ HorizontalTiledLayout = (function() {
     }
     return _results;
   };
+  HorizontalTiledLayout.prototype.visible_tiles = function() {
+    var tile, _i, _len, _ref, _results;
+    _ref = this.tiles;
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      tile = _ref[_i];
+      if (!tile.is_minimized()) {
+        _results.push(tile);
+      }
+    }
+    return _results;
+  };
   HorizontalTiledLayout.prototype.layout = function() {
     var active, left, right, _ref;
     active = null;
@@ -341,10 +353,7 @@ HorizontalTiledLayout = (function() {
       _ref2 = _ref[_i], window = _ref2[0], split = _ref2[1];
       window.top_split = previous_split;
       _ref3 = split.layout_one(rect, windows), rect = _ref3[0], windows = _ref3[1];
-      if (window.just_moved) {
-        window.ensure_within(this.bounds);
-        window.just_moved = false;
-      }
+      window.ensure_within(this.bounds);
       window.bottom_split = windows.length > 0 ? split : null;
       _results.push(previous_split = split);
     }
@@ -393,7 +402,7 @@ HorizontalTiledLayout = (function() {
     if (this.contains(win)) {
       return;
     }
-    tile = new TiledWindow(win);
+    tile = new TiledWindow(win, this);
     return this.tiles.push(tile);
   };
   HorizontalTiledLayout.prototype.active_tile = function(fn) {
@@ -535,6 +544,22 @@ HorizontalTiledLayout = (function() {
       return true;
     }, this));
   };
+  HorizontalTiledLayout.prototype.toggle_maximize = function() {
+    var active;
+    active = null;
+    this.active_tile(__bind(function(tile, idx) {
+      return active = tile;
+    }, this));
+    return this.each(__bind(function(tile) {
+      if (tile === active) {
+        log("maximizing " + tile);
+        return tile.toggle_maximize();
+      } else {
+        log("un-maximizing " + tile);
+        return tile.unmaximize();
+      }
+    }, this));
+  };
   HorizontalTiledLayout.prototype.swap_moved_tile_if_necessary = function(tile, idx) {
     var center;
     center = Tile.rectCenter(tile.window_rect());
@@ -586,7 +611,7 @@ HorizontalTiledLayout = (function() {
   return HorizontalTiledLayout;
 })();
 TiledWindow = (function() {
-  function TiledWindow(win) {
+  function TiledWindow(win, layout) {
     this.window = win;
     this.original_rect = this.window_rect();
     this.rect = {
@@ -600,16 +625,19 @@ TiledWindow = (function() {
       }
     };
     this.reset_offset();
-    this.maximized_rect = null;
+    this.maximized = false;
     this.volatile = false;
     this.managed = false;
+    this._layout = layout;
   }
-  TiledWindow.prototype.tile = function() {
+  TiledWindow.prototype.tile = function(layout) {
     if (this.managed) {
-      return;
+      log("resetting offset for window " + this);
+      this.reset_offset();
+    } else {
+      this.managed = true;
+      this.original_rect = this.window_rect();
     }
-    this.managed = true;
-    this.original_rect = this.window_rect();
     return this.reset_offset();
   };
   TiledWindow.prototype.reset_offset = function() {
@@ -629,9 +657,6 @@ TiledWindow = (function() {
   };
   TiledWindow.prototype.beforeRedraw = function(f) {
     return this.window.beforeRedraw(f);
-  };
-  TiledWindow.prototype.snap_to_screen = function() {
-    return true;
   };
   TiledWindow.prototype.update_offset = function() {
     var rect, win;
@@ -655,22 +680,23 @@ TiledWindow = (function() {
       }
     };
   };
-  TiledWindow.prototype.toggle_maximize = function(rect) {
-    if (this.maximized_rect) {
+  TiledWindow.prototype.toggle_maximize = function() {
+    if (this.maximized) {
       return this.unmaximize();
     } else {
-      return this.maximize(rect);
+      return this.maximize();
     }
   };
   TiledWindow.prototype.is_minimized = function() {
     return this.window.isMinimized();
   };
-  TiledWindow.prototype.maximize = function(rect) {
-    this.maximized_rect = rect;
+  TiledWindow.prototype.maximize = function() {
+    this.maximized = true;
+    this.activate();
     return this.layout();
   };
   TiledWindow.prototype.unmaximize = function() {
-    this.maximized_rect = null;
+    this.maximized = false;
     return this.layout();
   };
   TiledWindow.prototype._resize = function(size) {
@@ -712,18 +738,45 @@ TiledWindow = (function() {
   };
   TiledWindow.prototype.layout = function() {
     var pos, rect, size, _ref;
-    rect = this.maximized_rect || Tile.addDiffToRect(this.rect, this.offset);
+    rect = this.maximized_rect() || Tile.addDiffToRect(this.rect, this.offset);
     _ref = Tile.ensureRectExists(rect), pos = _ref.pos, size = _ref.size;
     log("laying out window @ " + j(pos) + " with size " + j(size));
     return this.window.move_resize(pos.x, pos.y, size.x, size.y);
+  };
+  TiledWindow.prototype.maximized_rect = function() {
+    var border, bounds;
+    if (!this.maximized) {
+      return null;
+    }
+    bounds = this._layout.bounds;
+    border = 20;
+    return {
+      pos: {
+        x: bounds.pos.x + border,
+        y: bounds.pos.y + border
+      },
+      size: {
+        x: bounds.size.x - border * 2,
+        y: bounds.size.y - border * 2
+      }
+    };
   };
   TiledWindow.prototype.set_volatile = function() {
     return this.volatile = true;
   };
   TiledWindow.prototype.scale_by = function(amount, axis) {
-    var current_dim, diff_px, new_dim, window_rect;
+    var window_rect;
     window_rect = this.window_rect();
     log("scaling window @ " + j(window_rect) + " by " + amount);
+    if (axis != null) {
+      return this._scale_by(amount, axis, window_rect);
+    } else {
+      this._scale_by(amount, 'x', window_rect);
+      return this._scale_by(amount, 'y', window_rect);
+    }
+  };
+  TiledWindow.prototype._scale_by = function(amount, axis, window_rect) {
+    var current_dim, diff_px, new_dim;
     current_dim = window_rect.size[axis];
     diff_px = amount * current_dim;
     new_dim = current_dim + diff_px;

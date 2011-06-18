@@ -147,12 +147,14 @@ const Ext = function Ext() {
 		handle('shift_l',     function() { self.currentLayout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
 		handle('shift_u',     function() { self.currentLayout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
 		handle('shift_i',     function() { self.currentLayout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
+		handle('minus',       function() { self.currentLayout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT); });
+		handle('plus',        function() { self.currentLayout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT); });
 
 		handle('alt_j',       function() { self.switch_workspace(+1); });
 		handle('alt_k',       function() { self.switch_workspace(-1); });
 		handle('alt_shift_j', function() { self.switch_workspace(+1, self.currentWindow()); });
 		handle('alt_shift_k', function() { self.switch_workspace(-1, self.currentWindow()); });
-		handle('z',           function() { self.currentWindow().toggle_maximize(); });
+		handle('z',           function() { self.currentLayout().toggle_maximize();});
 		log("Done adding keyboard handlers for Shellshape");
 	};
 

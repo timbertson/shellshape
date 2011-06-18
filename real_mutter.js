@@ -213,7 +213,6 @@ Window.prototype = {
 	_init: function(metaWindow, ext) {
 		this.metaWindow = metaWindow;
 		this.ext = ext;
-		this.maximized = false;
 	}
 	,bringToFront: function() {
 		// NOOP
@@ -226,14 +225,6 @@ Window.prototype = {
 	}
 	,isMinimized: function() {
 		return this.metaWindow.minimized;
-	}
-	,toggle_maximize: function() {
-		if(this.maximized) {
-			this.unmaximize();
-		} else {
-			this.maximize();
-		}
-		this.maximized = !this.maximized;
 	}
 	,beforeRedraw: function(func) {
 		log("adding func before redraw: " + func);
@@ -248,23 +239,11 @@ Window.prototype = {
 			null //notify
 		)
 	}
-	,maximize: function() {
-		// more like bluetile than metacity, not sure if this should be a distinct thing...
-		let maximize_border = 15;
-		this.unmaximize_args = [this.xpos(), this.ypos(), this.width(), this.height()];
-		this.move_resize(
-				this.ext.screenDimensions.offset_x + maximize_border,
-				this.ext.screenDimensions.offset_y + maximize_border,
-				this.ext.screenDimensions.width - maximize_border * 2,
-				this.ext.screenDimensions.height - maximize_border * 2);
-	}
 	,moveToWorkspace: function(newIndex) {
 		this.metaWindow.change_workspace_by_index(newIndex, false, global.get_current_time());
 	}
-	,unmaximize: function() {
-		this.move_resize.apply(this, this.unmaximize_args);
-	}
 	,move_resize: function(x, y, w, h) {
+		this.metaWindow.unmaximize(Meta.MaximizeFlags.VERTICAL | Meta.MaximizeFlags.HORIZONTAL);
 		this.metaWindow.move_resize_frame(true, x, y, w, h);
 	}
 	,get_title: function() {

@@ -216,8 +216,9 @@ class HorizontalTiledLayout
 	
 	managed_tiles: ->
 		return (tile for tile in @tiles when is_managed(tile))
+
 	visible_tiles: ->
-		return (tile for tile in @tiles when (!tile.is_minimized())
+		return (tile for tile in @tiles when (!tile.is_minimized()))
 
 	layout: ->
 		active = null
@@ -246,10 +247,7 @@ class HorizontalTiledLayout
 		for [window, split] in zip(windows, splits)
 			window.top_split = previous_split
 			[rect, windows] = split.layout_one(rect, windows)
-			if window.just_moved
-				# after laying out a recently moved window, make sure it's entirely onscreen
-				window.ensure_within(@bounds)
-				window.just_moved = false
+			window.ensure_within(@bounds)
 			window.bottom_split = if (windows.length > 0) then split else null
 			previous_split = split
 
@@ -290,7 +288,7 @@ class HorizontalTiledLayout
 		return if @contains(win)
 		#NOTE: assumes autoTile is not enabled; if you want that
 		# you'll have to call tile() yourself after each add()
-		tile = new TiledWindow(win)
+		tile = new TiledWindow(win, this)
 		@tiles.push(tile)
 	
 	active_tile: (fn) ->
@@ -402,6 +400,18 @@ class HorizontalTiledLayout
 			@layout()
 			true
 	
+	toggle_maximize: ->
+		active = null
+		@active_tile (tile, idx) =>
+			active = tile
+		@each (tile) =>
+			if tile == active
+				log("maximizing #{tile}")
+				tile.toggle_maximize()
+			else
+				log("un-maximizing #{tile}")
+				tile.unmaximize()
+	
 	swap_moved_tile_if_necessary: (tile, idx) ->
 		#TODO: should this be based on cursor position, not window midpoint?
 		center = Tile.rectCenter(tile.window_rect())
@@ -420,6 +430,7 @@ class HorizontalTiledLayout
 			@tiles[idx1] = _orig
 	
 	_mark_tiles_as_moved: (tiles) ->
+		#TODO: is this necessary?
 		for tile in tiles
 			tile.just_moved = true
 
@@ -440,7 +451,7 @@ class HorizontalTiledLayout
 		log(" ----------------------------------- ")
 
 class TiledWindow
-	constructor: (win) ->
+	constructor: (win, layout) ->
 		# notes:
 		# - what is a unique key for a window?
 		#   sm_client_id?
@@ -450,14 +461,18 @@ class TiledWindow
 		@original_rect = @window_rect()
 		@rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
 		@reset_offset()
-		@maximized_rect = null
+		@maximized = false
 		@volatile = false
 		@managed = false
+		@_layout = layout
 
-	tile: ->
-		return if @managed # already tiled
-		this.managed = true
-		@original_rect = @window_rect()
+	tile: (layout) ->
+		if @managed
+			log("resetting offset for window #{this}")
+			@reset_offset()
+		else
+			this.managed = true
+			@original_rect = @window_rect()
 		@reset_offset()
 	
 	reset_offset: ->
@@ -469,10 +484,6 @@ class TiledWindow
 	beforeRedraw: (f) ->
 		@window.beforeRedraw(f)
 	
-	snap_to_screen: ->
-		# after a swap, adjust the offset to ensure the window appears on-screen
-		true
-
 	update_offset: ->
 		rect = @rect
 		win = @window_rect()
@@ -485,22 +496,23 @@ class TiledWindow
 	window_rect: () ->
 		{pos: {x:@window.xpos(), y:@window.ypos()}, size: {x:@window.width(), y:@window.height()}}
 
-	toggle_maximize: (rect) ->
-		if @maximized_rect
+	toggle_maximize: () ->
+		if @maximized
 			@unmaximize()
 		else
-			@maximize(rect)
+			@maximize()
 	
 	is_minimized: () ->
 		@window.isMinimized()
 
-	maximize: (rect) ->
-		this.maximized_rect = rect
-		this.layout()
+	maximize: () ->
+		@maximized = true
+		@activate()
+		@layout()
 	
 	unmaximize: ->
-		this.maximized_rect = null
-		this.layout()
+		@maximized = false
+		@layout()
 
 	_resize: (size) ->
 		@rect.size = {x:size.x, y:size.y}
@@ -533,10 +545,25 @@ class TiledWindow
 		@offset.pos = Tile.pointAdd(@offset.pos, movement_required)
 	
 	layout: ->
-		rect = @maximized_rect or Tile.addDiffToRect(@rect, @offset)
+		rect = @maximized_rect() or Tile.addDiffToRect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensureRectExists(rect)
 		log("laying out window @ " + j(pos) + " with size " + j(size))
 		this.window.move_resize(pos.x, pos.y, size.x, size.y)
+	
+	maximized_rect: ->
+		return null unless @maximized
+		bounds = @_layout.bounds
+		border = 20
+		return {
+			pos: {
+				x: bounds.pos.x + border,
+				y: bounds.pos.y + border
+			},
+			size: {
+				x: bounds.size.x - border * 2,
+				y: bounds.size.y - border * 2
+			}
+		}
 	
 	set_volatile: ->
 		@volatile = true
@@ -544,6 +571,14 @@ class TiledWindow
 	scale_by: (amount, axis) ->
 		window_rect = @window_rect()
 		log("scaling window @ " + j(window_rect) + " by " + amount)
+		if axis?
+			@_scale_by(amount, axis, window_rect)
+		else
+			# scale in both directions
+			@_scale_by(amount, 'x', window_rect)
+			@_scale_by(amount, 'y', window_rect)
+
+	_scale_by: (amount, axis, window_rect) ->
 		current_dim = window_rect.size[axis]
 		diff_px = (amount * current_dim)
 		new_dim = current_dim + diff_px
