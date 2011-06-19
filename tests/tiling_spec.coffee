@@ -1,5 +1,5 @@
 #require("sys").puts("??")
-tiling = require('../js/tiling')
+tiling = require('../tiling')
 window = {}
 puts = require('sys').puts
 require('helpers').extend(global, tiling)
@@ -24,8 +24,113 @@ describe 'ArrayUtil', ->
 			eq(tiling.ArrayUtil.moveItem([1,2,3,4,5], 4, 0), [5,1,2,3,4])
 
 describe 'tile collection', ->
-	it 'should layout a copy with managed items followed by visible items' ->
-		#todo
+	all_tiles = []
+	deactivate_all = ->
+		t.active = false for t in all_tiles
+	_activate = () ->
+		deactivate_all()
+		@active = true
+	_is_active = () ->
+		@active
+	_toString = -> @name
+
+	tiled = (name) ->
+		{
+			name: "#{name} (tiled)",
+			managed: true,
+			is_minimized: -> false,
+			toString: _toString,
+			is_active: _is_active,
+			activate: _activate
+		}
+	untiled = (name) ->
+		{
+			name: "#{name} (untiled)",
+			managed: false,
+			is_minimized: -> false,
+			toString: _toString,
+			is_active: _is_active,
+			activate: _activate
+		}
+	minimized = (name) ->
+		{
+			name: "#{name} (minimized)",
+			managed: false,
+			is_minimized: -> true,
+			toString: _toString,
+			is_active: _is_active,
+			activate: _activate
+		}
+
+	tiled_tiles = [tiled("0"), tiled("1"), tiled("2")]
+	untiled_tiles = [untiled("0"), untiled("1")]
+	minimized_tiles = [minimized("0"), minimized("1")]
+
+	all_tiles = [minimized_tiles[0], tiled_tiles[0], untiled_tiles[0], tiled_tiles[1], untiled_tiles[1], minimized_tiles[1], tiled_tiles[2]]
+
+	get_active = ->
+		for t in all_tiles
+			return t if t.is_active()
+		return null
+	
+	get_tiled = (c) ->
+		return c.filter(c.is_managed, c.items)
+
+	get_untiled = (c) ->
+		return c.filter(c.is_visible_and_unmanaged, c.items)
+
+	new_collection = ->
+		c = new TileCollection()
+		for tile in all_tiles
+			c.push(tile)
+		return c
+
+	it 'should select the main window as the first tiled window', (pass) ->
+		expect(1)
+		c = new_collection()
+		c.main (main) ->
+			eq main, tiled_tiles[0]
+			pass()
+
+	it 'should select the next tile grouping tiled windows before untiled windows and skipping minimised windows', ->
+		c = new_collection()
+		tiled_tiles[0].activate()
+		c.select_cycle(1)
+		eq get_active(), tiled_tiles[1]
+		c.select_cycle(1)
+		eq get_active(), tiled_tiles[2]
+		c.select_cycle(1)
+		eq get_active(), untiled_tiles[0]
+		c.select_cycle(1)
+		eq get_active(), untiled_tiles[1]
+		# loop around, skipping minimized windows
+		c.select_cycle(1)
+		eq get_active(), tiled_tiles[0]
+	
+	it 'should re-order tiled windows', ->
+		c = new_collection()
+		tiled_tiles[0].activate()
+		c.cycle(1)
+		eq get_tiled(c), [tiled_tiles[1], tiled_tiles[0], tiled_tiles[2]]
+		eq get_active(), tiled_tiles[0]
+		c.cycle(1)
+		eq get_tiled(c), [tiled_tiles[1], tiled_tiles[2], tiled_tiles[0]]
+		eq get_active(), tiled_tiles[0]
+		c.cycle(1)
+		eq get_tiled(c), [tiled_tiles[0], tiled_tiles[2], tiled_tiles[1]]
+		eq get_active(), tiled_tiles[0]
+	
+	it 'should re-order untiled windows', ->
+		c = new_collection()
+		untiled_tiles[0].activate()
+		c.cycle(1)
+		eq get_tiled(c), [tiled_tiles[0], tiled_tiles[1], tiled_tiles[2]]
+		eq get_untiled(c), [untiled_tiles[1], untiled_tiles[0]]
+		eq get_active(), untiled_tiles[0]
+		c.cycle(1)
+		eq get_untiled(c), [untiled_tiles[0], untiled_tiles[1]]
+		eq get_active(), untiled_tiles[0]
+
 
 rect = (x,y,w,h) -> {pos: {x:x, y:y}, size: {x:w, y:h}}
 describe 'rect* functions', ->

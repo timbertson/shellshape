@@ -1,6 +1,9 @@
-A tiling window manager work-in-progress extension for gnome-shell.
+# shellshape
+A tiling window manager extension for gnome-shell.
 
-**Note**: you will have to compile and run [my mutter fork](https://github.com/gfxmonk/mutter). I'm afraid I can't help you with how to do that, as the gnome build system is big and complicated, and you're probably better off just waiting until my patches are accepted (or I figure out something better).
+This software is in-development. I use it daily, but it might break stuff. Use at your own risk.
+
+**Note**: you will have to compile and run [my mutter fork](https://github.com/gfxmonk/mutter) to use this extension. I'm afraid I can't help you with how to do that, as the gnome build system is big and complicated, and you're probably better off just waiting until my patches are accepted (or I figure out something better).
 
 If you want to track progress towards a useable plugin, you can take a peek at the [project issues](https://github.com/gfxmonk/shellshape/issues)
 

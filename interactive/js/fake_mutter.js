@@ -80,6 +80,9 @@ function Window() { this._init(); }
 			if (idx < 0) throw("window not in stack! I am " + this.title + ", windows are " + logstack());
 			return idx;
 		}
+		,toString: function() {
+			return "<Window: " + this.title + ">";
+		}
 		,close: function() {
 			this._removeFromStack();
 			this.elem.detach();
@@ -107,6 +110,10 @@ function Window() { this._init(); }
 			stack.push(this);
 			restack();
 		}
+		,isMinimized: function() {
+			return false;
+		}
+		,beforeRedraw: function(func) { func(); }
 		,activate: function() {
 			if(Window.active) { Window.active.deactivate() }
 			this.elem.css({"border-color": active_border, opacity: bright});
@@ -157,10 +164,10 @@ $(function() {
 		Screen.width = 800;
 		Screen.height = 500;
 		$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
-		tiling = new HorizontalTiledLayout(Screen.width, Screen.height);
+		tiling = new HorizontalTiledLayout(0, 0, Screen.width, Screen.height);
 		function new_window() {
 			var win = new Window();
-			tiling.on_window_created(win);
+			tiling.add(win);
 			win.delegate = tiling;
 			tiling.tile(win);
 		}

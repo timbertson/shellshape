@@ -1,7 +1,7 @@
 # vim: set et ts=4:
 tricks:
 - watchdog.tricks.ShellCommandTrick:
-    patterns: ["*/js/*.coffee"]
+    patterns: ["**/*.coffee"]
     shell_command: "reset;make js"
 - watchdog.tricks.ShellCommandTrick:
     #TODO: shouldn't need leading "*" below...

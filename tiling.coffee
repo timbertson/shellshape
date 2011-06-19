@@ -114,33 +114,12 @@ Tile = {
 		return {pos: pos, size: size}
 }
 
-merge_sort = (array, comparison) ->
-	if(array.length < 2)
-		return array
-	middle = Math.ceil(array.length/2)
-	return merge(
-			merge_sort(array.slice(0,middle),comparison),
-			merge_sort(array.slice(middle),comparison),
-			comparison)
-
-merge = (left,right,comparison) ->
-	result = new Array()
-	while (left.length > 0) && (right.length > 0)
-		if comparison(left[0],right[0]) < 0
-			result.push(left.shift())
-		else
-			result.push(right.shift())
-	while left.length > 0
-		result.push(left.shift())
-	while right.length > 0
-		result.push(right.shift())
-	return result
-
 class TileCollection
 	constructor: ->
 		@items = []
 	
 	is_visible: (item) => !item.is_minimized()
+	is_visible_and_unmanaged: (item) => (!@is_managed(item)) && @is_visible(item)
 	is_managed: (item) => item.managed
 	is_active: (item) => item.is_active()
 	sort_order: (item) =>
@@ -153,11 +132,19 @@ class TileCollection
 
 	sorted_with_indexes: ->
 		items_and_indexes = []
+		ts = -> "#{this.item}@#{this.index}"
 		for index in [0 ... @items.length]
-			items_and_indexes.push({item: @items[index], index: index})
-		sorted = stable_sort items_and_indexes, (a, b) =>
-			@sort_order(a.item) - @sort_order(b.item)
-		log("sorted items #{@items} to: #{sorted}")
+			items_and_indexes.push({item: @items[index], index: index, toString: ts})
+		# log("\nSORTING: #{j items_and_indexes}")
+		sorted = items_and_indexes.slice().sort (a,b) =>
+			ordera = @sort_order(a.item)
+			orderb = @sort_order(b.item)
+			if ordera == orderb
+				return a.index - b.index
+			else
+				# ensure a stable sort by using index position for equivalent windows
+				return ordera - orderb
+		# log("sorted: #{items_and_indexes}\n    to: #{sorted}")
 		return sorted
 	
 	_wrap_index: (idx, length) ->
@@ -167,29 +154,59 @@ class TileCollection
 			idx -= length
 		idx
 
-	filter: (f, items) -> [item for item in items when f(item)]
+	filter: (f, items) -> (item for item in items when f(item))
 
 	select_cycle: (diff) ->
-		filter = (obj) => @is_visible(obj.item)
-		filtered = @filter(filter, @sorted_with_indexes())
-		for obj in filtered
-			if @is_active(obj.item)
-				local_idx = filtered.indexOf(obj)
-				new_local_idx = @_wrap_index(local_idx + diff, filtered.length)
-				filtered[new_local_idx].item.activate()
+		@_with_active_and_neighbor_when_filtered @is_visible, diff, (active, neighbor) =>
+			neighbor.item.activate()
 	
-	cycle: (diff) ->
+	sorted_view: (filter) ->
+		f = (obj) =>
+			filter(obj.item)
+		@filter(f, @sorted_with_indexes())
+	
+	_with_active_and_neighbor_when_filtered: (filter, diff, cb) ->
+		filtered = @sorted_view(filter)
 		active = null
-		active_idx = null
-		@active (item, idx) ->
-			active = item
-			active_idx = idx
-		return if active == null
-		filtered = @filter(@is_managed, @items)
-		new_idx = @_wrap_index(filtered.indexOf(active) + diff, filtered.length)
-		@swap_at(active_idx, new_idx)
+		# active_idx = null
+		# @active (tile, idx) ->
+		# 	active = tile
+		# 	active_idx = idx
+
+		filtered_active_idx = @_index_where filtered, (obj) =>
+			@is_active(obj.item)
+		return false if filtered_active_idx == null
+
+		new_idx = @_wrap_index filtered_active_idx + diff, filtered.length
+		cb(filtered[filtered_active_idx], filtered[new_idx])
+		return true
+
+	cycle: (diff) ->
+		# only one of these will have any effect, as the active tile is either tiled or untiled
+		done = @_with_active_and_neighbor_when_filtered @is_managed, diff, (active, neighbor) =>
+			@swap_at(active.index, neighbor.index)
+		done or @_with_active_and_neighbor_when_filtered @is_visible_and_unmanaged, diff, (active, neighbor) =>
+			@swap_at(active.index, neighbor.index)
+
+	_index_where: (elems, cond) ->
+		for i in [0 ... elems.length]
+			if cond(elems[i])
+				return i
+		return null
 	
-	swap_at: (a, b) ->
+	_wrap_index_until: (initial, offset, length, condition) ->
+		index = initial
+		while true
+			index = @_wrap_index(index + offset, length)
+			if index == initial
+				# break cycle in single-element list
+				return initial
+			else if condition(index)
+				return index
+			
+	
+	swap_at: (idx1, idx2) ->
+		log("swapping items at index #{idx1} and #{idx2}")
 		_orig = @items[idx2]
 		@items[idx2] = @items[idx1]
 		@items[idx1] = _orig
@@ -207,12 +224,12 @@ class TileCollection
 		@items.push(item)
 	
 	each: (f) ->
-		for i in [0 ... @tiles.length]
-			ret = func(@tiles[i], i)
+		for i in [0 ... @items.length]
+			ret = f(@items[i], i)
 			return true if ret == STOP
 		return false
-	each_tiled: (f) -> @filtered_each(@is_managed, f)
-	filtered_each: (filter, f) ->
+	each_tiled: (f) -> @_filtered_each(@is_managed, f)
+	_filtered_each: (filter, f) ->
 		each (tile, idx) =>
 			f(tile, idx) if filter(tile)
 
@@ -223,6 +240,7 @@ class TileCollection
 				return STOP
 
 	for_layout: ->
+		# log("tiles = #{@items}, filtered = #{@filter(@is_managed, @items)}")
 		@filter(@is_managed, @items)
 
 	remove_at: (idx) ->
@@ -278,7 +296,7 @@ class MultiSplit extends BaseSplit
 	
 	split: (bounds, windows) ->
 		@save_last_rect(bounds)
-		# log("mainsplit: dividing #{windows.length} after #{@primaryWindows}")
+		log("mainsplit: dividing #{windows.length} after #{@primaryWindows} for bounds #{j bounds}")
 		[left_windows, right_windows] = ArrayUtil.divideAfter(@primaryWindows, windows)
 		if left_windows.length > 0 and right_windows.length > 0
 			[left_rect, right_rect] = Tile.splitRect(bounds, @axis, @ratio)
@@ -303,7 +321,7 @@ class HorizontalTiledLayout
 		@splits = { left: [], right: []}
 
 	each_tiled: (func) ->
-		@tiles.each_tiled(finc)
+		@tiles.each_tiled(func)
 
 	each: (func) ->
 		@tiles.each(func)
@@ -313,15 +331,16 @@ class HorizontalTiledLayout
 
 	tile_for: (win, func) ->
 		@tiles.each (tile, idx) ->
-			func(tile, idx) if tile.window == win
-	
-	@active_tile: (func) ->
-		@tiles.active(finc)
+			if tile.window == win
+				func(tile, idx)
+				return STOP
 	
 	layout: ->
 		active = null
 		@active_tile((tile) -> active = tile.window)
-		[left, right] = @mainSplit.split(@bounds, @tiles.for_layout())
+		layout_windows = @tiles.for_layout()
+		[left, right] = @mainSplit.split(@bounds, layout_windows)
+		log("split screen into rect #{j left[0]} | #{j right[0]}")
 		@layout_side(left..., @splits.left)
 		@layout_side(right..., @splits.right)
 		if active
@@ -339,7 +358,7 @@ class HorizontalTiledLayout
 			return ([a[i], b[i]] for i in [0 ... Math.min(a.length, b.length)])
 
 		extend_to(windows.length, splits, -> new Split(axis))
-		# log("laying out side with rect #{j rect}, windows #{windows} and splits #{ splits}")
+		log("laying out side with rect #{j rect}, windows #{windows.length} and splits #{splits.length}")
 
 		previous_split = null
 		for [window, split] in zip(windows, splits)
@@ -354,11 +373,17 @@ class HorizontalTiledLayout
 		@layout()
 	
 	tile: (win) ->
-		@tile_for (win) => win.tile()
-		@layout()
+		tiled = false
+		@tile_for win, (tile) =>
+			tiled = true
+			log("TILING")
+			tile.tile()
+			@layout()
+		log("NO TILE for #{win} in #{@tiles.items}") unless tiled
 
 	select_cycle: (offset) ->
 		@tiles.select_cycle(offset)
+		@layout()
 	
 	add: (win) ->
 		return if @contains(win)
@@ -366,9 +391,11 @@ class HorizontalTiledLayout
 		@tiles.push(tile)
 	
 	active_tile: (fn) ->
-		@tiles.active_tile(fn)
+		@tiles.active(fn)
 
-	cycle: (diff) -> @tiles.cycle(diff)
+	cycle: (diff) ->
+		@tiles.cycle(diff)
+		@layout()
 	
 	adjust_main_window_area: (diff) ->
 		@mainSplit.adjust_ratio(diff)
@@ -412,10 +439,12 @@ class HorizontalTiledLayout
 		@tiles.active (tile, idx) =>
 			@tiles.main (main_tile, main_idx) =>
 				@tiles.swap_at(idx, main_idx)
+				@layout()
 	
 	untile: (win) ->
-		@tile_for(win).release()
-		@layout()
+		@tile_for win, (tile) =>
+			tile.release()
+			@layout()
 
 	on_window_killed: (win) ->
 		@tile_for win, (tile, idx) =>
@@ -546,19 +575,23 @@ class TiledWindow
 		@layout()
 
 	_resize: (size) ->
+		log("resize rect = #{j @rect} for size #{j size}")
 		@rect.size = {x:size.x, y:size.y}
+		log("resize rect = #{j @rect}")
 
 	_move: (pos) ->
 		@rect.pos = {x:pos.x, y:pos.y}
+		log("move rect = #{j @rect}")
 
 	set_rect : (r) ->
-		# log("Setting rect to " + j(r))
+		log("Setting rect to " + j(r))
 		# log("offset rect to " + j(@offset))
 		@_resize(r.size)
 		@_move(r.pos)
 		@layout()
 	
 	ensure_within: (screen_rect) ->
+		log("@rect=#{j @rect}, @offset=#{j @offset}")
 		combined_rect = Tile.addDiffToRect(@rect, @offset)
 		change_required = Tile.moveRectWithin(combined_rect, screen_rect)
 		unless Tile.zeroRect(change_required)
@@ -621,6 +654,9 @@ class TiledWindow
 	activate: ->
 		@window.activate()
 		@window.bringToFront()
+	
+	is_active: ->
+		@window.is_active()
 
 
 # hacky stuff for running in both the browser & gjs
@@ -633,18 +669,16 @@ unless log?
 		else
 			`log = function(s) { }`
 
-# export_to = (dest) ->
-# 	dest.HorizontalTiledLayout = HorizontalTiledLayout
-# 	dest.Axis = Axis
-# 	dest.Tile = Tile
-# 	dest.Split = Split
-# 	dest.MultiSplit = MultiSplit
-# 	dest.TiledWindow = TiledWindow
-# 	dest.ArrayUtil = ArrayUtil
-# 
-# if exports?
-# 	log("EXPORTS")
-# 	export_to(exports)
-# else
-# 	log("WINDOW")
-# 	export_to(window)
+export_to = (dest) ->
+	dest.HorizontalTiledLayout = HorizontalTiledLayout
+	dest.TileCollection = TileCollection
+	dest.Axis = Axis
+	dest.Tile = Tile
+	dest.Split = Split
+	dest.MultiSplit = MultiSplit
+	dest.TiledWindow = TiledWindow
+	dest.ArrayUtil = ArrayUtil
+
+if exports?
+	log("EXPORTS")
+	export_to(exports)
