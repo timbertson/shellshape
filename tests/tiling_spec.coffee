@@ -23,6 +23,10 @@ describe 'ArrayUtil', ->
 			eq(tiling.ArrayUtil.moveItem([1,2,3,4,5], 2, 1), [1,3,2,4,5])
 			eq(tiling.ArrayUtil.moveItem([1,2,3,4,5], 4, 0), [5,1,2,3,4])
 
+describe 'tile collection', ->
+	it 'should layout a copy with managed items followed by visible items' ->
+		#todo
+
 rect = (x,y,w,h) -> {pos: {x:x, y:y}, size: {x:w, y:h}}
 describe 'rect* functions', ->
 	describe 'moveRectWithin(rect, bounds)', ->
