@@ -15,6 +15,10 @@ ArrayUtil = {
 		return array
 }
 
+get_mouse_position = ->
+	throw("override get_mouse_position()")
+
+
 Tile = {
 	copyRect: (rect) ->
 		return {pos:{x:rect.pos.x, y:rect.pos.y}, size:{x:rect.size.x, y:rect.size.y}}
@@ -51,6 +55,18 @@ Tile = {
 			rect.pos.x == 0 and rect.pos.y == 0 and
 			rect.size.x == 0 and rect.size.y == 0
 		)
+	
+	shrink: (rect, borderPx) ->
+		return {
+			pos: {
+				x: rect.pos.x + borderPx,
+				y: rect.pos.y + borderPx
+			},
+			size: {
+				x: Math.max(0, rect.size.x - (2*borderPx)),
+				y: Math.max(0, rect.size.y - (2*borderPx))
+			}
+		}
 	
 	minmax: (a,b) -> [Math.min(a,b), Math.max(a,b)]
 	midpoint: (a,b) ->
@@ -119,11 +135,11 @@ class TileCollection
 		@items = []
 	
 	is_visible: (item) => !item.is_minimized()
-	is_visible_and_unmanaged: (item) => (!@is_managed(item)) && @is_visible(item)
-	is_managed: (item) => item.managed
+	is_visible_and_untiled: (item) => (!@is_tiled(item)) && @is_visible(item)
+	is_tiled: (item) => item.managed && @is_visible(item)
 	is_active: (item) => item.is_active()
 	sort_order: (item) =>
-		if @is_managed(item)
+		if @is_tiled(item)
 			0
 		else if @is_visible(item)
 			1
@@ -167,12 +183,6 @@ class TileCollection
 	
 	_with_active_and_neighbor_when_filtered: (filter, diff, cb) ->
 		filtered = @sorted_view(filter)
-		active = null
-		# active_idx = null
-		# @active (tile, idx) ->
-		# 	active = tile
-		# 	active_idx = idx
-
 		filtered_active_idx = @_index_where filtered, (obj) =>
 			@is_active(obj.item)
 		return false if filtered_active_idx == null
@@ -183,9 +193,9 @@ class TileCollection
 
 	cycle: (diff) ->
 		# only one of these will have any effect, as the active tile is either tiled or untiled
-		done = @_with_active_and_neighbor_when_filtered @is_managed, diff, (active, neighbor) =>
+		done = @_with_active_and_neighbor_when_filtered @is_tiled, diff, (active, neighbor) =>
 			@swap_at(active.index, neighbor.index)
-		done or @_with_active_and_neighbor_when_filtered @is_visible_and_unmanaged, diff, (active, neighbor) =>
+		done or @_with_active_and_neighbor_when_filtered @is_visible_and_untiled, diff, (active, neighbor) =>
 			@swap_at(active.index, neighbor.index)
 
 	_index_where: (elems, cond) ->
@@ -206,7 +216,7 @@ class TileCollection
 			
 	
 	swap_at: (idx1, idx2) ->
-		log("swapping items at index #{idx1} and #{idx2}")
+		# log("swapping items at index #{idx1} and #{idx2}")
 		_orig = @items[idx2]
 		@items[idx2] = @items[idx1]
 		@items[idx1] = _orig
@@ -228,9 +238,9 @@ class TileCollection
 			ret = f(@items[i], i)
 			return true if ret == STOP
 		return false
-	each_tiled: (f) -> @_filtered_each(@is_managed, f)
+	each_tiled: (f) -> @_filtered_each(@is_tiled, f)
 	_filtered_each: (filter, f) ->
-		each (tile, idx) =>
+		@each (tile, idx) =>
 			f(tile, idx) if filter(tile)
 
 	active: (f) ->
@@ -240,15 +250,15 @@ class TileCollection
 				return STOP
 
 	for_layout: ->
-		# log("tiles = #{@items}, filtered = #{@filter(@is_managed, @items)}")
-		@filter(@is_managed, @items)
+		# log("tiles = #{@items}, filtered = #{@filter(@is_tiled, @items)}")
+		@filter(@is_tiled, @items)
 
 	remove_at: (idx) ->
 		@items.splice(idx, 1)
 	
 	main: (f) ->
 		@each (tile, idx) =>
-			if @is_managed(tile)
+			if @is_tiled(tile)
 				f(tile, idx)
 				return STOP
 
@@ -296,7 +306,7 @@ class MultiSplit extends BaseSplit
 	
 	split: (bounds, windows) ->
 		@save_last_rect(bounds)
-		log("mainsplit: dividing #{windows.length} after #{@primaryWindows} for bounds #{j bounds}")
+		# log("mainsplit: dividing #{windows.length} after #{@primaryWindows} for bounds #{j bounds}")
 		[left_windows, right_windows] = ArrayUtil.divideAfter(@primaryWindows, windows)
 		if left_windows.length > 0 and right_windows.length > 0
 			[left_rect, right_rect] = Tile.splitRect(bounds, @axis, @ratio)
@@ -339,12 +349,13 @@ class HorizontalTiledLayout
 		active = null
 		@active_tile((tile) -> active = tile.window)
 		layout_windows = @tiles.for_layout()
+		log("laying out #{layout_windows.length} windows")
 		[left, right] = @mainSplit.split(@bounds, layout_windows)
-		log("split screen into rect #{j left[0]} | #{j right[0]}")
+		# log("split screen into rect #{j left[0]} | #{j right[0]}")
 		@layout_side(left..., @splits.left)
 		@layout_side(right..., @splits.right)
 		if active
-			log("preserving active window before layout: " + active)
+			# log("preserving active window before layout: " + active)
 			active.beforeRedraw( -> active.activate())
 	
 	layout_side: (rect, windows, splits) ->
@@ -358,7 +369,7 @@ class HorizontalTiledLayout
 			return ([a[i], b[i]] for i in [0 ... Math.min(a.length, b.length)])
 
 		extend_to(windows.length, splits, -> new Split(axis))
-		log("laying out side with rect #{j rect}, windows #{windows.length} and splits #{splits.length}")
+		# log("laying out side with rect #{j rect}, windows #{windows.length} and splits #{splits.length}")
 
 		previous_split = null
 		for [window, split] in zip(windows, splits)
@@ -373,17 +384,12 @@ class HorizontalTiledLayout
 		@layout()
 	
 	tile: (win) ->
-		tiled = false
 		@tile_for win, (tile) =>
-			tiled = true
-			log("TILING")
 			tile.tile()
 			@layout()
-		log("NO TILE for #{win} in #{@tiles.items}") unless tiled
 
 	select_cycle: (offset) ->
 		@tiles.select_cycle(offset)
-		@layout()
 	
 	add: (win) ->
 		return if @contains(win)
@@ -453,8 +459,8 @@ class HorizontalTiledLayout
 
 	on_window_moved: (win) ->
 		@tile_for win, (tile, idx) =>
-			@swap_moved_tile_if_necessary(tile, idx)
-			tile.update_offset()
+			moved = @swap_moved_tile_if_necessary(tile, idx)
+			tile.update_offset() unless moved
 			@layout()
 
 	on_split_resize_start: (win) ->
@@ -483,22 +489,23 @@ class HorizontalTiledLayout
 		return if active == null
 		@each (tile) =>
 			if tile == active
-				log("maximizing #{tile}")
 				tile.toggle_maximize()
 			else
-				log("un-maximizing #{tile}")
 				tile.unmaximize()
 	
 	swap_moved_tile_if_necessary: (tile, idx) ->
-		#TODO: should this be based on cursor position, not window midpoint?
-		center = Tile.rectCenter(tile.window_rect())
+		return unless @tiles.is_tiled(tile)
+		mouse_pos = get_mouse_position()
+		moved = false
 		@each_tiled (swap_candidate, swap_idx) =>
-			log("(midpoint #{j center}) within #{j swap_candidate.rect}?")
+			target_rect = Tile.shrink(swap_candidate.rect, 20)
 			return if swap_idx == idx
-			if Tile.pointIsWithin(center, swap_candidate.rect)
-				log("YES - swapping idx #{idx} and #{swap_idx}")
+			if Tile.pointIsWithin(mouse_pos, target_rect)
+				log("swapping idx #{idx} and #{swap_idx}")
 				@tiles.swap_at(idx, swap_idx)
+				moved = true
 				return STOP
+		return moved
 	
 	log_state: (lbl) ->
 		dump_win = (w) ->
@@ -575,30 +582,23 @@ class TiledWindow
 		@layout()
 
 	_resize: (size) ->
-		log("resize rect = #{j @rect} for size #{j size}")
 		@rect.size = {x:size.x, y:size.y}
-		log("resize rect = #{j @rect}")
 
 	_move: (pos) ->
 		@rect.pos = {x:pos.x, y:pos.y}
-		log("move rect = #{j @rect}")
 
 	set_rect : (r) ->
-		log("Setting rect to " + j(r))
 		# log("offset rect to " + j(@offset))
 		@_resize(r.size)
 		@_move(r.pos)
 		@layout()
 	
 	ensure_within: (screen_rect) ->
-		log("@rect=#{j @rect}, @offset=#{j @offset}")
 		combined_rect = Tile.addDiffToRect(@rect, @offset)
 		change_required = Tile.moveRectWithin(combined_rect, screen_rect)
 		unless Tile.zeroRect(change_required)
-			log("old offset = #{j @offset}")
 			log("moving tile #{j change_required} to keep it onscreen")
 			@offset = Tile.addDiffToRect(@offset, change_required)
-			log("now offset = #{j @offset}")
 			@layout()
 	
 	center_window: ->
@@ -611,7 +611,7 @@ class TiledWindow
 	layout: ->
 		rect = @maximized_rect() or Tile.addDiffToRect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensureRectExists(rect)
-		log("laying out window @ " + j(pos) + " with size " + j(size))
+		# log("laying out window @ " + j(pos) + " with size " + j(size))
 		this.window.move_resize(pos.x, pos.y, size.x, size.y)
 	
 	maximized_rect: ->
@@ -631,7 +631,6 @@ class TiledWindow
 	
 	scale_by: (amount, axis) ->
 		window_rect = @window_rect()
-		log("scaling window @ " + j(window_rect) + " by " + amount)
 		if axis?
 			@_scale_by(amount, axis, window_rect)
 		else
@@ -645,7 +644,6 @@ class TiledWindow
 		new_dim = current_dim + diff_px
 		@offset.size[axis] += diff_px
 		@offset.pos[axis] -= (diff_px / 2)
-		log("diff_px on axis " + axis + " = " + diff_px)
 
 	release: ->
 		this.set_rect(this.original_rect)

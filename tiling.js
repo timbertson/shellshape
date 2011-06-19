@@ -1,4 +1,4 @@
-var ArrayUtil, Axis, BaseSplit, HALF, HorizontalTiledLayout, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, export_to, j;
+var ArrayUtil, Axis, BaseSplit, HALF, HorizontalTiledLayout, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, export_to, get_mouse_position, j;
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
   for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
   function ctor() { this.constructor = child; }
@@ -31,6 +31,9 @@ ArrayUtil = {
     array.splice(end, 0, removed);
     return array;
   }
+};
+get_mouse_position = function() {
+  throw "override get_mouse_position()";
 };
 Tile = {
   copyRect: function(rect) {
@@ -72,6 +75,18 @@ Tile = {
   },
   zeroRect: function(rect) {
     return rect.pos.x === 0 && rect.pos.y === 0 && rect.size.x === 0 && rect.size.y === 0;
+  },
+  shrink: function(rect, borderPx) {
+    return {
+      pos: {
+        x: rect.pos.x + borderPx,
+        y: rect.pos.y + borderPx
+      },
+      size: {
+        x: Math.max(0, rect.size.x - (2 * borderPx)),
+        y: Math.max(0, rect.size.y - (2 * borderPx))
+      }
+    };
   },
   minmax: function(a, b) {
     return [Math.min(a, b), Math.max(a, b)];
@@ -148,24 +163,24 @@ TileCollection = (function() {
   function TileCollection() {
     this.sort_order = __bind(this.sort_order, this);;
     this.is_active = __bind(this.is_active, this);;
-    this.is_managed = __bind(this.is_managed, this);;
-    this.is_visible_and_unmanaged = __bind(this.is_visible_and_unmanaged, this);;
+    this.is_tiled = __bind(this.is_tiled, this);;
+    this.is_visible_and_untiled = __bind(this.is_visible_and_untiled, this);;
     this.is_visible = __bind(this.is_visible, this);;    this.items = [];
   }
   TileCollection.prototype.is_visible = function(item) {
     return !item.is_minimized();
   };
-  TileCollection.prototype.is_visible_and_unmanaged = function(item) {
-    return (!this.is_managed(item)) && this.is_visible(item);
+  TileCollection.prototype.is_visible_and_untiled = function(item) {
+    return (!this.is_tiled(item)) && this.is_visible(item);
   };
-  TileCollection.prototype.is_managed = function(item) {
-    return item.managed;
+  TileCollection.prototype.is_tiled = function(item) {
+    return item.managed && this.is_visible(item);
   };
   TileCollection.prototype.is_active = function(item) {
     return item.is_active();
   };
   TileCollection.prototype.sort_order = function(item) {
-    if (this.is_managed(item)) {
+    if (this.is_tiled(item)) {
       return 0;
     } else if (this.is_visible(item)) {
       return 1;
@@ -231,9 +246,8 @@ TileCollection = (function() {
     return this.filter(f, this.sorted_with_indexes());
   };
   TileCollection.prototype._with_active_and_neighbor_when_filtered = function(filter, diff, cb) {
-    var active, filtered, filtered_active_idx, new_idx;
+    var filtered, filtered_active_idx, new_idx;
     filtered = this.sorted_view(filter);
-    active = null;
     filtered_active_idx = this._index_where(filtered, __bind(function(obj) {
       return this.is_active(obj.item);
     }, this));
@@ -246,10 +260,10 @@ TileCollection = (function() {
   };
   TileCollection.prototype.cycle = function(diff) {
     var done;
-    done = this._with_active_and_neighbor_when_filtered(this.is_managed, diff, __bind(function(active, neighbor) {
+    done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, __bind(function(active, neighbor) {
       return this.swap_at(active.index, neighbor.index);
     }, this));
-    return done || this._with_active_and_neighbor_when_filtered(this.is_visible_and_unmanaged, diff, __bind(function(active, neighbor) {
+    return done || this._with_active_and_neighbor_when_filtered(this.is_visible_and_untiled, diff, __bind(function(active, neighbor) {
       return this.swap_at(active.index, neighbor.index);
     }, this));
   };
@@ -278,7 +292,6 @@ TileCollection = (function() {
   };
   TileCollection.prototype.swap_at = function(idx1, idx2) {
     var _orig;
-    log("swapping items at index " + idx1 + " and " + idx2);
     _orig = this.items[idx2];
     this.items[idx2] = this.items[idx1];
     return this.items[idx1] = _orig;
@@ -311,10 +324,10 @@ TileCollection = (function() {
     return false;
   };
   TileCollection.prototype.each_tiled = function(f) {
-    return this._filtered_each(this.is_managed, f);
+    return this._filtered_each(this.is_tiled, f);
   };
   TileCollection.prototype._filtered_each = function(filter, f) {
-    return each(__bind(function(tile, idx) {
+    return this.each(__bind(function(tile, idx) {
       if (filter(tile)) {
         return f(tile, idx);
       }
@@ -329,14 +342,14 @@ TileCollection = (function() {
     }, this));
   };
   TileCollection.prototype.for_layout = function() {
-    return this.filter(this.is_managed, this.items);
+    return this.filter(this.is_tiled, this.items);
   };
   TileCollection.prototype.remove_at = function(idx) {
     return this.items.splice(idx, 1);
   };
   TileCollection.prototype.main = function(f) {
     return this.each(__bind(function(tile, idx) {
-      if (this.is_managed(tile)) {
+      if (this.is_tiled(tile)) {
         f(tile, idx);
         return STOP;
       }
@@ -402,7 +415,6 @@ MultiSplit = (function() {
   MultiSplit.prototype.split = function(bounds, windows) {
     var left_rect, left_windows, right_rect, right_windows, _ref, _ref2, _ref3;
     this.save_last_rect(bounds);
-    log("mainsplit: dividing " + windows.length + " after " + this.primaryWindows + " for bounds " + (j(bounds)));
     _ref = ArrayUtil.divideAfter(this.primaryWindows, windows), left_windows = _ref[0], right_windows = _ref[1];
     if (left_windows.length > 0 && right_windows.length > 0) {
       _ref2 = Tile.splitRect(bounds, this.axis, this.ratio), left_rect = _ref2[0], right_rect = _ref2[1];
@@ -460,12 +472,11 @@ HorizontalTiledLayout = (function() {
       return active = tile.window;
     });
     layout_windows = this.tiles.for_layout();
+    log("laying out " + layout_windows.length + " windows");
     _ref = this.mainSplit.split(this.bounds, layout_windows), left = _ref[0], right = _ref[1];
-    log("split screen into rect " + (j(left[0])) + " | " + (j(right[0])));
     this.layout_side.apply(this, __slice.call(left).concat([this.splits.left]));
     this.layout_side.apply(this, __slice.call(right).concat([this.splits.right]));
     if (active) {
-      log("preserving active window before layout: " + active);
       return active.beforeRedraw(function() {
         return active.activate();
       });
@@ -493,7 +504,6 @@ HorizontalTiledLayout = (function() {
     extend_to(windows.length, splits, function() {
       return new Split(axis);
     });
-    log("laying out side with rect " + (j(rect)) + ", windows " + windows.length + " and splits " + splits.length);
     previous_split = null;
     _ref = zip(windows, splits);
     _results = [];
@@ -512,21 +522,13 @@ HorizontalTiledLayout = (function() {
     return this.layout();
   };
   HorizontalTiledLayout.prototype.tile = function(win) {
-    var tiled;
-    tiled = false;
-    this.tile_for(win, __bind(function(tile) {
-      tiled = true;
-      log("TILING");
+    return this.tile_for(win, __bind(function(tile) {
       tile.tile();
       return this.layout();
     }, this));
-    if (!tiled) {
-      return log("NO TILE for " + win + " in " + this.tiles.items);
-    }
   };
   HorizontalTiledLayout.prototype.select_cycle = function(offset) {
-    this.tiles.select_cycle(offset);
-    return this.layout();
+    return this.tiles.select_cycle(offset);
   };
   HorizontalTiledLayout.prototype.add = function(win) {
     var tile;
@@ -610,8 +612,11 @@ HorizontalTiledLayout = (function() {
   };
   HorizontalTiledLayout.prototype.on_window_moved = function(win) {
     return this.tile_for(win, __bind(function(tile, idx) {
-      this.swap_moved_tile_if_necessary(tile, idx);
-      tile.update_offset();
+      var moved;
+      moved = this.swap_moved_tile_if_necessary(tile, idx);
+      if (!moved) {
+        tile.update_offset();
+      }
       return this.layout();
     }, this));
   };
@@ -658,28 +663,33 @@ HorizontalTiledLayout = (function() {
     }
     return this.each(__bind(function(tile) {
       if (tile === active) {
-        log("maximizing " + tile);
         return tile.toggle_maximize();
       } else {
-        log("un-maximizing " + tile);
         return tile.unmaximize();
       }
     }, this));
   };
   HorizontalTiledLayout.prototype.swap_moved_tile_if_necessary = function(tile, idx) {
-    var center;
-    center = Tile.rectCenter(tile.window_rect());
-    return this.each_tiled(__bind(function(swap_candidate, swap_idx) {
-      log("(midpoint " + (j(center)) + ") within " + (j(swap_candidate.rect)) + "?");
+    var mouse_pos, moved;
+    if (!this.tiles.is_tiled(tile)) {
+      return;
+    }
+    mouse_pos = get_mouse_position();
+    moved = false;
+    this.each_tiled(__bind(function(swap_candidate, swap_idx) {
+      var target_rect;
+      target_rect = Tile.shrink(swap_candidate.rect, 20);
       if (swap_idx === idx) {
         return;
       }
-      if (Tile.pointIsWithin(center, swap_candidate.rect)) {
-        log("YES - swapping idx " + idx + " and " + swap_idx);
+      if (Tile.pointIsWithin(mouse_pos, target_rect)) {
+        log("swapping idx " + idx + " and " + swap_idx);
         this.tiles.swap_at(idx, swap_idx);
+        moved = true;
         return STOP;
       }
     }, this));
+    return moved;
   };
   HorizontalTiledLayout.prototype.log_state = function(lbl) {
     var dump_win;
@@ -788,36 +798,29 @@ TiledWindow = (function() {
     return this.layout();
   };
   TiledWindow.prototype._resize = function(size) {
-    log("resize rect = " + (j(this.rect)) + " for size " + (j(size)));
-    this.rect.size = {
+    return this.rect.size = {
       x: size.x,
       y: size.y
     };
-    return log("resize rect = " + (j(this.rect)));
   };
   TiledWindow.prototype._move = function(pos) {
-    this.rect.pos = {
+    return this.rect.pos = {
       x: pos.x,
       y: pos.y
     };
-    return log("move rect = " + (j(this.rect)));
   };
   TiledWindow.prototype.set_rect = function(r) {
-    log("Setting rect to " + j(r));
     this._resize(r.size);
     this._move(r.pos);
     return this.layout();
   };
   TiledWindow.prototype.ensure_within = function(screen_rect) {
     var change_required, combined_rect;
-    log("@rect=" + (j(this.rect)) + ", @offset=" + (j(this.offset)));
     combined_rect = Tile.addDiffToRect(this.rect, this.offset);
     change_required = Tile.moveRectWithin(combined_rect, screen_rect);
     if (!Tile.zeroRect(change_required)) {
-      log("old offset = " + (j(this.offset)));
       log("moving tile " + (j(change_required)) + " to keep it onscreen");
       this.offset = Tile.addDiffToRect(this.offset, change_required);
-      log("now offset = " + (j(this.offset)));
       return this.layout();
     }
   };
@@ -833,7 +836,6 @@ TiledWindow = (function() {
     var pos, rect, size, _ref;
     rect = this.maximized_rect() || Tile.addDiffToRect(this.rect, this.offset);
     _ref = Tile.ensureRectExists(rect), pos = _ref.pos, size = _ref.size;
-    log("laying out window @ " + j(pos) + " with size " + j(size));
     return this.window.move_resize(pos.x, pos.y, size.x, size.y);
   };
   TiledWindow.prototype.maximized_rect = function() {
@@ -857,7 +859,6 @@ TiledWindow = (function() {
   TiledWindow.prototype.scale_by = function(amount, axis) {
     var window_rect;
     window_rect = this.window_rect();
-    log("scaling window @ " + j(window_rect) + " by " + amount);
     if (axis != null) {
       return this._scale_by(amount, axis, window_rect);
     } else {
@@ -871,8 +872,7 @@ TiledWindow = (function() {
     diff_px = amount * current_dim;
     new_dim = current_dim + diff_px;
     this.offset.size[axis] += diff_px;
-    this.offset.pos[axis] -= diff_px / 2;
-    return log("diff_px on axis " + axis + " = " + diff_px);
+    return this.offset.pos[axis] -= diff_px / 2;
   };
   TiledWindow.prototype.release = function() {
     this.set_rect(this.original_rect);

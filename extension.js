@@ -13,6 +13,15 @@ const real_mutter = Extension.real_mutter;
 const Window = real_mutter.Window;
 const Workspace = real_mutter.Workspace;
 const ShellshapeIndicator = real_mutter.ShellshapeIndicator;
+const Gdk = imports.gi.Gdk;
+
+tiling.get_mouse_position = function() {
+	let display = Gdk.Display.get_default();
+	let deviceManager = display.get_device_manager();
+	let pointer = deviceManager.get_client_pointer();
+	let [screen, pointerX, pointerY] = pointer.get_position();
+	return {x: pointerX, y: pointerY};
+};
 
 //TODO: add a panel indicator showing the current layout algorithm
 
@@ -91,7 +100,7 @@ const Ext = function Ext() {
 
 	self.currentWindow = function currentWindow() {
 		let win = self.getWindow(self.currentDisplay()['focus-window']);
-		log("currently focussed window == " + win);
+		// log("currently focused window == " + win);
 		return win;
 	};
 
