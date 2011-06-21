@@ -15,8 +15,11 @@ ArrayUtil = {
 		return array
 }
 
+contains = (arr, item) ->
+	arr.indexOf(item) != -1
+
 get_mouse_position = ->
-	throw("override get_mouse_position()")
+	throw "override get_mouse_position()"
 
 
 Tile = {
@@ -271,16 +274,24 @@ class BaseSplit
 		@ratio = Math.min(1, Math.max(0, @ratio + diff))
 
 	save_last_rect: (rect) ->
+		# log("last_size changed from #{@last_size} -> #{rect.size[@axis]}")
 		@last_size = rect.size[@axis]
+	
+	maintain_split_position_with_rect_difference: (diff) ->
+		unwanted_addition = @ratio * diff
+		@last_size += diff
+		log("adjusting by #{-unwanted_addition} to accommodate for rect size change from #{@last_size-diff} to #{@last_size}")
+		@adjust_ratio_px(-unwanted_addition)
 
 	adjust_ratio_px: (diff) ->
 		log("adjusting ratio #{@ratio} by #{diff} px")
+		return if diff == 0
 		current_px = @ratio * @last_size
-		log("current ratio makes for #{current_px} px (assiming last size of #{@last_size}")
+		log("current ratio makes for #{current_px} px (assuming last size of #{@last_size}")
 		new_px = current_px + diff
 		log("but we want #{new_px}")
 		new_ratio = new_px / @last_size
-		throw new "failed ratio: #{new_ratio}" if not Tile.within(new_ratio, 0, 1)
+		throw "failed ratio: #{new_ratio}" if not Tile.within(new_ratio, 0, 1)
 		log("which makes a new ratio of #{new_ratio}")
 		@ratio = new_ratio
 
@@ -307,7 +318,7 @@ class MultiSplit extends BaseSplit
 	split: (bounds, windows) ->
 		@save_last_rect(bounds)
 		# log("mainsplit: dividing #{windows.length} after #{@primaryWindows} for bounds #{j bounds}")
-		[left_windows, right_windows] = ArrayUtil.divideAfter(@primaryWindows, windows)
+		[left_windows, right_windows] = @partition_windows(windows)
 		if left_windows.length > 0 and right_windows.length > 0
 			[left_rect, right_rect] = Tile.splitRect(bounds, @axis, @ratio)
 		else
@@ -315,6 +326,9 @@ class MultiSplit extends BaseSplit
 			[left_rect, right_rect] = [bounds, bounds]
 		return [[left_rect, left_windows], [right_rect, right_windows]]
 	
+	partition_windows: (windows) ->
+		ArrayUtil.divideAfter(@primaryWindows, windows)
+
 	in_primary_partition: (idx) ->
 		# log("on left? #{idx}, #{@primaryWindows} == #{idx < @primaryWindows}")
 		idx < @primaryWindows
@@ -345,20 +359,17 @@ class HorizontalTiledLayout
 				func(tile, idx)
 				return STOP
 	
-	layout: ->
-		active = null
-		@active_tile((tile) -> active = tile.window)
+	layout: (accommodate_window) ->
 		layout_windows = @tiles.for_layout()
-		log("laying out #{layout_windows.length} windows")
+		# log("laying out #{layout_windows.length} windows")
+		if accommodate_window?
+			@_change_main_ratio_to_accommodate(accommodate_window, @mainSplit)
 		[left, right] = @mainSplit.split(@bounds, layout_windows)
 		# log("split screen into rect #{j left[0]} | #{j right[0]}")
-		@layout_side(left..., @splits.left)
-		@layout_side(right..., @splits.right)
-		if active
-			# log("preserving active window before layout: " + active)
-			active.beforeRedraw( -> active.activate())
+		@layout_side(left..., @splits.left, accommodate_window)
+		@layout_side(right..., @splits.right, accommodate_window)
 	
-	layout_side: (rect, windows, splits) ->
+	layout_side: (rect, windows, splits, accommodate_window) ->
 		axis = Axis.other(@mainAxis)
 
 		extend_to = (size, array, generator) ->
@@ -370,6 +381,16 @@ class HorizontalTiledLayout
 
 		extend_to(windows.length, splits, -> new Split(axis))
 		# log("laying out side with rect #{j rect}, windows #{windows.length} and splits #{splits.length}")
+
+		if accommodate_window?
+			accommodate_idx = windows.indexOf(accommodate_window)
+			if accommodate_idx != -1
+				top_splits = splits[0...accommodate_idx]
+				bottom_split = splits[accommodate_idx]
+				if accommodate_idx == windows.length - 1
+					bottom_split = undefined
+				other_axis = Axis.other(@mainAxis)
+				@_change_minor_ratios_to_accommodate(accommodate_window, top_splits, bottom_split)
 
 		previous_split = null
 		for [window, split] in zip(windows, splits)
@@ -469,6 +490,7 @@ class HorizontalTiledLayout
 
 	on_window_resized: (win) ->
 		@tile_for win, (tile, idx) =>
+			#TODO: doesn't work in mutter yet
 			if @split_resize_start_rect?
 				diff = Tile.pointDiff(@split_resize_start_rect.size, tile.window_rect().size)
 				log("split resized! diff = #{j diff}")
@@ -482,13 +504,79 @@ class HorizontalTiledLayout
 			@layout()
 			true
 	
+	adjust_splits_to_fit: (win) ->
+		@tile_for win, (tile, idx) =>
+			return unless @tiles.is_tiled(tile)
+			@layout(tile)
+
+	_change_main_ratio_to_accommodate: (tile, split) ->
+		[left, right] = split.partition_windows(@tiles.for_layout())
+		if contains(left, tile)
+			log("LHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
+			split.adjust_ratio_px(tile.offset.size[@mainAxis] + tile.offset.pos[@mainAxis])
+			tile.offset.size[@mainAxis] = -tile.offset.pos[@mainAxis]
+		else if contains(right, tile)
+			log("RHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
+			split.adjust_ratio_px(tile.offset.pos[@mainAxis])
+			tile.offset.size[@mainAxis] += tile.offset.pos[@mainAxis]
+			tile.offset.pos[@mainAxis] = 0
+		log("After mainSplit accommodation, tile offset = #{j tile.offset}")
+		
+	_change_minor_ratios_to_accommodate: (tile, above_splits, below_split) ->
+		offset = tile.offset
+		axis = Axis.other(@mainAxis)
+		top_offset = offset.pos[axis]
+		bottom_offset = offset.size[axis]
+		if above_splits.length > 0
+			#TODO: this algorithm seems needlessly involved. Figure out if there's a cleaner
+			#      way of doing it.
+			log("ABOVE adjustment for offset: #{j offset}, #{top_offset} diff required across #{above_splits.length}")
+			diff_pxes = []
+			split_sizes = []
+			total_size_above = 0
+			for split in above_splits
+				split_size = split.last_size * split.ratio
+				split_sizes.push(split_size)
+				total_size_above += split_size
+
+			for i in [0...above_splits.length]
+				proportion = split_sizes[i] / total_size_above
+				diff_pxes.push(proportion * top_offset)
+
+			log("diff pxes for above splits are: #{j diff_pxes}")
+			size_taken = 0
+			for i in [0...above_splits.length]
+				split = above_splits[i]
+				diff_px = diff_pxes[i]
+				split.maintain_split_position_with_rect_difference(-size_taken)
+				size_taken += diff_px
+				split.adjust_ratio_px(diff_px)
+
+			tile.offset.pos[axis] = 0
+			if below_split?
+				log("MODIFYING bottom to accomodate top_px changes == #{top_offset}")
+				#TODO: seems a pretty hacky place to do it..
+				below_split.maintain_split_position_with_rect_difference(-top_offset)
+			else
+				tile.offset.size[axis] += top_offset
+		else
+			bottom_offset += top_offset
+		if below_split?
+			log("BELOW adjustment for offset: #{j offset}, bottom_offset = #{bottom_offset}")
+			log("before bottom minor adjustments, offset = #{j tile.offset}")
+			below_split.adjust_ratio_px(bottom_offset)
+			tile.offset.size[axis] -= bottom_offset
+		log("After minor adjustments, offset = #{j tile.offset}")
+	
 	toggle_maximize: ->
 		active = null
 		@active_tile (tile, idx) =>
 			active = tile
+		log("active == null") if active == null
 		return if active == null
 		@each (tile) =>
 			if tile == active
+				log("toggling maximize for #{tile}")
 				tile.toggle_maximize()
 			else
 				tile.unmaximize()
@@ -574,7 +662,6 @@ class TiledWindow
 
 	maximize: () ->
 		@maximized = true
-		@activate()
 		@layout()
 	
 	unmaximize: ->
@@ -609,10 +696,13 @@ class TiledWindow
 		@offset.pos = Tile.pointAdd(@offset.pos, movement_required)
 	
 	layout: ->
+		is_active = @is_active()
 		rect = @maximized_rect() or Tile.addDiffToRect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensureRectExists(rect)
-		# log("laying out window @ " + j(pos) + " with size " + j(size))
 		this.window.move_resize(pos.x, pos.y, size.x, size.y)
+		if is_active
+			@window.beforeRedraw =>
+				@activate()
 	
 	maximized_rect: ->
 		return null unless @maximized
@@ -676,6 +766,8 @@ export_to = (dest) ->
 	dest.MultiSplit = MultiSplit
 	dest.TiledWindow = TiledWindow
 	dest.ArrayUtil = ArrayUtil
+	dest.to_get_mouse_position = (f) ->
+		get_mouse_position = f
 
 if exports?
 	log("EXPORTS")

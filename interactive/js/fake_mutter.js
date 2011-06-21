@@ -175,17 +175,18 @@ $(function() {
 			console.log("key " + evt.keyCode);
 			if(evt.shiftKey) {
 				switch(evt.keyCode) {
-					case 84: tiling.untile(Window.active); break; // t
 					case 74: tiling.cycle(1); break; // j
 					case 75: tiling.cycle(-1); break; // k
 					case 32: tiling.swap_active_with_main(); break; // space
+					case 80: tiling.adjust_splits_to_fit(Window.active); break; // p
 				}
 			} else {
 				switch(evt.keyCode) {
 					case 13: new_window(); break; // enter
 					case 65: Window.active.toggleFrontmost(); break; // a
 					case 90: Window.active.toggle_maximize(); break; // z
-					case 84: tiling.tile(Window.active); break; // t
+					case 80: tiling.tile(Window.active); break; // p
+					case 89: tiling.untile(Window.active); break; // y
 					case 188: tiling.add_main_window_count(1); break; // , (<)
 					case 190: tiling.add_main_window_count(-1); break; // . (>)
 					case 74: tiling.select_cycle(1); break; // j

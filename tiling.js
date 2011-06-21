@@ -1,4 +1,4 @@
-var ArrayUtil, Axis, BaseSplit, HALF, HorizontalTiledLayout, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, export_to, get_mouse_position, j;
+var ArrayUtil, Axis, BaseSplit, HALF, HorizontalTiledLayout, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, contains, export_to, get_mouse_position, j;
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
   for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
   function ctor() { this.constructor = child; }
@@ -31,6 +31,9 @@ ArrayUtil = {
     array.splice(end, 0, removed);
     return array;
   }
+};
+contains = function(arr, item) {
+  return arr.indexOf(item) !== -1;
 };
 get_mouse_position = function() {
   throw "override get_mouse_position()";
@@ -368,16 +371,26 @@ BaseSplit = (function() {
   BaseSplit.prototype.save_last_rect = function(rect) {
     return this.last_size = rect.size[this.axis];
   };
+  BaseSplit.prototype.maintain_split_position_with_rect_difference = function(diff) {
+    var unwanted_addition;
+    unwanted_addition = this.ratio * diff;
+    this.last_size += diff;
+    log("adjusting by " + (-unwanted_addition) + " to accommodate for rect size change from " + (this.last_size - diff) + " to " + this.last_size);
+    return this.adjust_ratio_px(-unwanted_addition);
+  };
   BaseSplit.prototype.adjust_ratio_px = function(diff) {
     var current_px, new_px, new_ratio;
     log("adjusting ratio " + this.ratio + " by " + diff + " px");
+    if (diff === 0) {
+      return;
+    }
     current_px = this.ratio * this.last_size;
-    log("current ratio makes for " + current_px + " px (assiming last size of " + this.last_size);
+    log("current ratio makes for " + current_px + " px (assuming last size of " + this.last_size);
     new_px = current_px + diff;
     log("but we want " + new_px);
     new_ratio = new_px / this.last_size;
     if (!Tile.within(new_ratio, 0, 1)) {
-      throw new ("failed ratio: " + new_ratio);
+      throw "failed ratio: " + new_ratio;
     }
     log("which makes a new ratio of " + new_ratio);
     return this.ratio = new_ratio;
@@ -415,13 +428,16 @@ MultiSplit = (function() {
   MultiSplit.prototype.split = function(bounds, windows) {
     var left_rect, left_windows, right_rect, right_windows, _ref, _ref2, _ref3;
     this.save_last_rect(bounds);
-    _ref = ArrayUtil.divideAfter(this.primaryWindows, windows), left_windows = _ref[0], right_windows = _ref[1];
+    _ref = this.partition_windows(windows), left_windows = _ref[0], right_windows = _ref[1];
     if (left_windows.length > 0 && right_windows.length > 0) {
       _ref2 = Tile.splitRect(bounds, this.axis, this.ratio), left_rect = _ref2[0], right_rect = _ref2[1];
     } else {
       _ref3 = [bounds, bounds], left_rect = _ref3[0], right_rect = _ref3[1];
     }
     return [[left_rect, left_windows], [right_rect, right_windows]];
+  };
+  MultiSplit.prototype.partition_windows = function(windows) {
+    return ArrayUtil.divideAfter(this.primaryWindows, windows);
   };
   MultiSplit.prototype.in_primary_partition = function(idx) {
     return idx < this.primaryWindows;
@@ -465,25 +481,18 @@ HorizontalTiledLayout = (function() {
       }
     });
   };
-  HorizontalTiledLayout.prototype.layout = function() {
-    var active, layout_windows, left, right, _ref;
-    active = null;
-    this.active_tile(function(tile) {
-      return active = tile.window;
-    });
+  HorizontalTiledLayout.prototype.layout = function(accommodate_window) {
+    var layout_windows, left, right, _ref;
     layout_windows = this.tiles.for_layout();
-    log("laying out " + layout_windows.length + " windows");
-    _ref = this.mainSplit.split(this.bounds, layout_windows), left = _ref[0], right = _ref[1];
-    this.layout_side.apply(this, __slice.call(left).concat([this.splits.left]));
-    this.layout_side.apply(this, __slice.call(right).concat([this.splits.right]));
-    if (active) {
-      return active.beforeRedraw(function() {
-        return active.activate();
-      });
+    if (accommodate_window != null) {
+      this._change_main_ratio_to_accommodate(accommodate_window, this.mainSplit);
     }
+    _ref = this.mainSplit.split(this.bounds, layout_windows), left = _ref[0], right = _ref[1];
+    this.layout_side.apply(this, __slice.call(left).concat([this.splits.left], [accommodate_window]));
+    return this.layout_side.apply(this, __slice.call(right).concat([this.splits.right], [accommodate_window]));
   };
-  HorizontalTiledLayout.prototype.layout_side = function(rect, windows, splits) {
-    var axis, extend_to, previous_split, split, window, zip, _i, _len, _ref, _ref2, _ref3, _results;
+  HorizontalTiledLayout.prototype.layout_side = function(rect, windows, splits, accommodate_window) {
+    var accommodate_idx, axis, bottom_split, extend_to, other_axis, previous_split, split, top_splits, window, zip, _i, _len, _ref, _ref2, _ref3, _results;
     axis = Axis.other(this.mainAxis);
     extend_to = function(size, array, generator) {
       var _results;
@@ -504,6 +513,18 @@ HorizontalTiledLayout = (function() {
     extend_to(windows.length, splits, function() {
       return new Split(axis);
     });
+    if (accommodate_window != null) {
+      accommodate_idx = windows.indexOf(accommodate_window);
+      if (accommodate_idx !== -1) {
+        top_splits = splits.slice(0, accommodate_idx);
+        bottom_split = splits[accommodate_idx];
+        if (accommodate_idx === windows.length - 1) {
+          bottom_split = void 0;
+        }
+        other_axis = Axis.other(this.mainAxis);
+        this._change_minor_ratios_to_accommodate(accommodate_window, top_splits, bottom_split);
+      }
+    }
     previous_split = null;
     _ref = zip(windows, splits);
     _results = [];
@@ -652,6 +673,77 @@ HorizontalTiledLayout = (function() {
       return true;
     }, this));
   };
+  HorizontalTiledLayout.prototype.adjust_splits_to_fit = function(win) {
+    return this.tile_for(win, __bind(function(tile, idx) {
+      if (!this.tiles.is_tiled(tile)) {
+        return;
+      }
+      return this.layout(tile);
+    }, this));
+  };
+  HorizontalTiledLayout.prototype._change_main_ratio_to_accommodate = function(tile, split) {
+    var left, right, _ref;
+    _ref = split.partition_windows(this.tiles.for_layout()), left = _ref[0], right = _ref[1];
+    if (contains(left, tile)) {
+      log("LHS adjustment for size: " + (j(tile.offset.size)) + " and pos " + (j(tile.offset.pos)));
+      split.adjust_ratio_px(tile.offset.size[this.mainAxis] + tile.offset.pos[this.mainAxis]);
+      tile.offset.size[this.mainAxis] = -tile.offset.pos[this.mainAxis];
+    } else if (contains(right, tile)) {
+      log("RHS adjustment for size: " + (j(tile.offset.size)) + " and pos " + (j(tile.offset.pos)));
+      split.adjust_ratio_px(tile.offset.pos[this.mainAxis]);
+      tile.offset.size[this.mainAxis] += tile.offset.pos[this.mainAxis];
+      tile.offset.pos[this.mainAxis] = 0;
+    }
+    return log("After mainSplit accommodation, tile offset = " + (j(tile.offset)));
+  };
+  HorizontalTiledLayout.prototype._change_minor_ratios_to_accommodate = function(tile, above_splits, below_split) {
+    var axis, bottom_offset, diff_px, diff_pxes, i, offset, proportion, size_taken, split, split_size, split_sizes, top_offset, total_size_above, _i, _len, _ref, _ref2;
+    offset = tile.offset;
+    axis = Axis.other(this.mainAxis);
+    top_offset = offset.pos[axis];
+    bottom_offset = offset.size[axis];
+    if (above_splits.length > 0) {
+      log("ABOVE adjustment for offset: " + (j(offset)) + ", " + top_offset + " diff required across " + above_splits.length);
+      diff_pxes = [];
+      split_sizes = [];
+      total_size_above = 0;
+      for (_i = 0, _len = above_splits.length; _i < _len; _i++) {
+        split = above_splits[_i];
+        split_size = split.last_size * split.ratio;
+        split_sizes.push(split_size);
+        total_size_above += split_size;
+      }
+      for (i = 0, _ref = above_splits.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
+        proportion = split_sizes[i] / total_size_above;
+        diff_pxes.push(proportion * top_offset);
+      }
+      log("diff pxes for above splits are: " + (j(diff_pxes)));
+      size_taken = 0;
+      for (i = 0, _ref2 = above_splits.length; (0 <= _ref2 ? i < _ref2 : i > _ref2); (0 <= _ref2 ? i += 1 : i -= 1)) {
+        split = above_splits[i];
+        diff_px = diff_pxes[i];
+        split.maintain_split_position_with_rect_difference(-size_taken);
+        size_taken += diff_px;
+        split.adjust_ratio_px(diff_px);
+      }
+      tile.offset.pos[axis] = 0;
+      if (below_split != null) {
+        log("MODIFYING bottom to accomodate top_px changes == " + top_offset);
+        below_split.maintain_split_position_with_rect_difference(-top_offset);
+      } else {
+        tile.offset.size[axis] += top_offset;
+      }
+    } else {
+      bottom_offset += top_offset;
+    }
+    if (below_split != null) {
+      log("BELOW adjustment for offset: " + (j(offset)) + ", bottom_offset = " + bottom_offset);
+      log("before bottom minor adjustments, offset = " + (j(tile.offset)));
+      below_split.adjust_ratio_px(bottom_offset);
+      tile.offset.size[axis] -= bottom_offset;
+    }
+    return log("After minor adjustments, offset = " + (j(tile.offset)));
+  };
   HorizontalTiledLayout.prototype.toggle_maximize = function() {
     var active;
     active = null;
@@ -659,10 +751,14 @@ HorizontalTiledLayout = (function() {
       return active = tile;
     }, this));
     if (active === null) {
+      log("active == null");
+    }
+    if (active === null) {
       return;
     }
     return this.each(__bind(function(tile) {
       if (tile === active) {
+        log("toggling maximize for " + tile);
         return tile.toggle_maximize();
       } else {
         return tile.unmaximize();
@@ -790,7 +886,6 @@ TiledWindow = (function() {
   };
   TiledWindow.prototype.maximize = function() {
     this.maximized = true;
-    this.activate();
     return this.layout();
   };
   TiledWindow.prototype.unmaximize = function() {
@@ -833,10 +928,16 @@ TiledWindow = (function() {
     return this.offset.pos = Tile.pointAdd(this.offset.pos, movement_required);
   };
   TiledWindow.prototype.layout = function() {
-    var pos, rect, size, _ref;
+    var is_active, pos, rect, size, _ref;
+    is_active = this.is_active();
     rect = this.maximized_rect() || Tile.addDiffToRect(this.rect, this.offset);
     _ref = Tile.ensureRectExists(rect), pos = _ref.pos, size = _ref.size;
-    return this.window.move_resize(pos.x, pos.y, size.x, size.y);
+    this.window.move_resize(pos.x, pos.y, size.x, size.y);
+    if (is_active) {
+      return this.window.beforeRedraw(__bind(function() {
+        return this.activate();
+      }, this));
+    }
   };
   TiledWindow.prototype.maximized_rect = function() {
     var border, bounds;
@@ -906,7 +1007,10 @@ export_to = function(dest) {
   dest.Split = Split;
   dest.MultiSplit = MultiSplit;
   dest.TiledWindow = TiledWindow;
-  return dest.ArrayUtil = ArrayUtil;
+  dest.ArrayUtil = ArrayUtil;
+  return dest.to_get_mouse_position = function(f) {
+    return get_mouse_position = f;
+  };
 };
 if (typeof exports != "undefined" && exports !== null) {
   log("EXPORTS");

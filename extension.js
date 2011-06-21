@@ -125,8 +125,9 @@ const Ext = function Ext() {
 		log("adding keyboard handlers for Shellshape");
 		var BORDER_RESIZE_INCREMENT = 0.05;
 		var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
-		handle('t',           function() { self.currentLayout().tile(self.currentWindow())});
-		handle('shift_t',     function() { self.currentLayout().untile(self.currentWindow()); });
+		handle('p',           function() { self.currentLayout().tile(self.currentWindow())});
+		handle('y',           function() { self.currentLayout().untile(self.currentWindow()); });
+		handle('shift_p',     function() { self.currentLayout().adjust_splits_to_fit(self.currentWindow()); });
 		handle('comma',       function() { self.currentLayout().add_main_window_count(1); });
 		handle('dot',         function() { self.currentLayout().add_main_window_count(-1); });
 
