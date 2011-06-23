@@ -9,11 +9,12 @@
 	<homepage>http://gfxmonk.github.com/shellshape/</homepage>
 
 	<group main="run-gnome-shell">
-		<command name="run" path="run-gnome-shell"/>
-		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-			<version not-before="3.0.2"/>
-			<version before="3.0.3"/>
-		</requires>
+		<command name="run" path="run-gnome-shell">
+			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
+				<version not-before="3.0.2"/>
+				<version before="3.0.3"/>
+			</requires>
+		</command>
 		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml"/>
 		<environment name="XDG_DATA_DIRS" insert="xdg/data" mode="prepend"/>
 

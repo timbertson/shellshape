@@ -14,7 +14,6 @@ function ShellshapeIndicator() {
 ShellshapeIndicator.prototype = {
 	__proto__: PanelMenu.SystemStatusButton.prototype,
 	_init: function() {
-		log("this.ext = " + this.ext);
 		// TODO: 'folder'?
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
 
@@ -170,24 +169,14 @@ Workspace.prototype = {
 					// it's critical that this flag be reset before cb() happens, otherwise the
 					// callback will (frequently) trigger a stream of feedback events.
 					change_pending = false;
-					if(grab_op == Meta.GrabOp.NONE) {
-						if(change_happened) {
-							log("change event [" + event_name + "] happened for window " + win);
-							cb(win);
-						} else if (win.isMinimized()) {
-							// TODO: This seems like an awfully obtuse place to detect minimisation,
-							//       but I can't find a better signal to connect to...
-							this.layout.layout();
-						}
-					} else if (grab_op == Meta.GrabOp.COMPOSITOR) {
-						// TODO: This is even more obtuse than the above minimise case 
-						//       (the COMPOSITOR grab happens upon un-minimisation)
-						this.layout.layout();
+					if(grab_op == Meta.GrabOp.NONE && change_happened) {
+						log("change event [" + event_name + "] happened for window " + win);
+						cb(win);
 					}
 				}
 				return false;
 			});
-			win.workspaceSignals.push(actor.connect(event_name + '-changed', signal_handler));
+			win.workspaceSignals.push([actor, actor.connect(event_name + '-changed', signal_handler)]);
 		});
 
 
@@ -204,6 +193,7 @@ Workspace.prototype = {
 		];
 		bind_to_window_change('position', move_ops,     Lang.bind(this.layout, this.layout.on_window_moved));
 		bind_to_window_change('size',     resize_ops,   Lang.bind(this.layout, this.layout.on_window_resized));
+		win.workspaceSignals.push([metaWindow, metaWindow.connect('notify::minimized', Lang.bind(this, this.onWindowMinimizeChanged))]);
 
 		if(this.autoTile) {
 			// win.beforeRedraw(Lang.bind(this, function() { this.layout.tile(win); }));
@@ -216,7 +206,10 @@ Workspace.prototype = {
 		log("Workspace#" + desc + " // Workspace id ??? has " + wins.length + " metaWindows: \n" + wins.map(function(w) { return " - " + w + "\n"; }));
 	},
 
-	// activate: function() { this.metaWorkspace.activate(true); },
+	onWindowMinimizeChanged: function(workspace, metaWindow) {
+		log("window minimization state changed for window " + metaWindow);
+		this.layout.layout();
+	},
 
 	onWindowRemove: function(workspace, metaWindow) {
 		if (this.isNormalWindow(metaWindow)) {
@@ -226,7 +219,7 @@ Workspace.prototype = {
 				log("Disconnecting " + window.workspaceSignals.length + " workspace-managed signals from window");
 				window.workspaceSignals.map(function(signal) {
 					log("Signal is " + signal + ", disconnecting from " + metaWindow);
-					metaWindow.disconnect(signal);
+					signal[0].disconnect(signal[1]);
 				});
 			}
 			this.layout.on_window_killed(window);
