@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface uri="http://gfxmonk.net/dist/0install/shellshape.xml" xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+	<name>shellshape</name>
+	<summary>tiling window manager extension for gnome-shell</summary>
+	<publish mode="default" xmlns="http://gfxmonk.net/dist/0install"/>
+	<description>
+	</description>
+	<homepage>http://gfxmonk.github.com/shellshape/</homepage>
+
+	<group main="run-gnome-shell">
+		<command name="run" path="run-gnome-shell"/>
+		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
+			<version not-before="3.0.2"/>
+			<version before="3.0.3"/>
+		</requires>
+		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml"/>
+		<environment name="XDG_DATA_DIRS" insert="xdg/data" mode="prepend"/>
+
+		<implementation id="." version="0.0.1">
+		</implementation>
+	</group>
+</interface>

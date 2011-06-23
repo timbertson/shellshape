@@ -1,0 +1,16 @@
+[Desktop Entry]
+Type=Application
+Name=GNOME Shell
+Comment=Window management and application launching (shellshape variant)
+Exec=0launch http://gfxmonk.net/dist/0install/shellshape.xml
+X-GNOME-Bugzilla-Bugzilla=GNOME
+X-GNOME-Bugzilla-Product=gnome-shell
+X-GNOME-Bugzilla-Component=general
+X-GNOME-Bugzilla-Version=3.0.1
+Categories=GNOME;GTK;Core;
+OnlyShowIn=GNOME;
+NoDisplay=true
+X-GNOME-Autostart-Phase=WindowManager
+X-GNOME-Provides=panel;windowmanager;
+X-GNOME-Autostart-Notify=true
+X-GNOME-AutoRestart=true
