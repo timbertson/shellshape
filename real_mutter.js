@@ -73,7 +73,6 @@ ShellshapeIndicator.prototype = {
 	_updateIndicator: function() {
 		//TODO: extend this when we have multiple tiling layouts
 		var itemProps = null;
-		log("autoTile = " + this.ext.getWorkspace(this.metaWorkspace).autoTile);
 		if(this.ext.getWorkspace(this.metaWorkspace).autoTile) {
 			itemProps = this.menuEntries[this.menuIndexes.vertical];
 		} else {
@@ -149,7 +148,7 @@ Workspace.prototype = {
 			return;
 		}
 		var win = this.extension.getWindow(metaWindow);
-		this.log("onWindowCreate for " + win);
+		log("onWindowCreate for " + win);
 		this.layout.add(win);
 		// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
 		win.workspaceSignals = [];
@@ -201,11 +200,6 @@ Workspace.prototype = {
 		}
 	},
 
-	log: function(desc) {
-		var wins = this.metaWindows();
-		log("Workspace#" + desc + " // Workspace id ??? has " + wins.length + " metaWindows: \n" + wins.map(function(w) { return " - " + w + "\n"; }));
-	},
-
 	onWindowMinimizeChanged: function(workspace, metaWindow) {
 		log("window minimization state changed for window " + metaWindow);
 		this.layout.layout();
@@ -214,7 +208,7 @@ Workspace.prototype = {
 	onWindowRemove: function(workspace, metaWindow) {
 		if (this.isNormalWindow(metaWindow)) {
 			let window = this.extension.getWindow(metaWindow);
-			this.log("onWindowRemove for " + window);
+			log("onWindowRemove for " + window);
 			if(window.workspaceSignals !== undefined) {
 				log("Disconnecting " + window.workspaceSignals.length + " workspace-managed signals from window");
 				window.workspaceSignals.map(function(signal) {

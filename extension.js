@@ -63,7 +63,6 @@ const Ext = function Ext() {
 					self.screenDimensions.offset_y,
 					self.screenDimensions.width,
 					self.screenDimensions.height);
-			log("creating new workspace for ws " + metaWorkspace);
 			workspace = self.workspaces[metaWorkspace] = new Workspace(metaWorkspace, layout, self);;
 		}
 		return workspace;
@@ -76,7 +75,6 @@ const Ext = function Ext() {
 		}
 		var win = self.windows[metaWindow];
 		if(typeof(win) == "undefined") {
-			log("Creating new window for metaWindow");
 			win = self.windows[metaWindow] = new Window(metaWindow, self);
 		}
 		return win;
