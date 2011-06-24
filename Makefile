@@ -5,7 +5,7 @@ markdown=0launch http://gfxmonk.net/dist/0install/markdown.xml
 template=0launch http://gfxmonk.net/dist/0install/template.xml
 
 js: phony
-	${coffee} --bare -c tiling.coffee
+	${coffee} --bare -c shellshape/tiling.coffee
 
 test: phony js
 	${spec} -vc tests
@@ -13,7 +13,12 @@ test: phony js
 auto: phony js
 	${watchdog} tricks .tricks.yaml
 
-index.html: README.md index.html.template
-	export readme_content="`${markdown} README.md`" && ${template} index.html.template index.html
+0: phony js
+	mkzero-gfxmonk \
+		-p gnome-shell.desktop \
+		-p run-gnome-shell \
+		-p shellshape \
+		-p xdg \
+		shellshape.xml
 
 .PHONY: phony

@@ -1,5 +1,5 @@
 #require("sys").puts("??")
-tiling = require('../tiling')
+tiling = require('../shellshape/tiling')
 window = {}
 puts = require('sys').puts
 require('helpers').extend(global, tiling)
