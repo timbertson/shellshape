@@ -2,3 +2,4 @@ tests/*.js
 .tags
 0inst
 _coffee_specs
+video
