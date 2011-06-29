@@ -15,8 +15,8 @@ tiling.to_get_mouse_position ->
 	{x: 0, y:0}
 
 describe 'ArrayUtil', ->
-	it 'divideAfter should divide an array', ->
-		eq(tiling.ArrayUtil.divideAfter(2, [1,2,3,4,5]), [[1,2], [3,4,5]])
+	it 'divide_after should divide an array', ->
+		eq(tiling.ArrayUtil.divide_after(2, [1,2,3,4,5]), [[1,2], [3,4,5]])
 	
 	describe 'shiftItem', ->
 		it 'should move an item forwards', ->
@@ -138,30 +138,30 @@ describe 'tile collection', ->
 
 rect = (x,y,w,h) -> {pos: {x:x, y:y}, size: {x:w, y:h}}
 describe 'rect* functions', ->
-	describe 'moveRectWithin(rect, bounds)', ->
+	describe 'move_rect_within(rect, bounds)', ->
 		bounds = {pos: {x:0, y:0}, size: {x:800, y:600}}
 		it 'should leave a window that is within bounds', ->
-			eq Tile.moveRectWithin(rect(10, 10, 400, 300), bounds), rect(0,0,0,0)
+			eq Tile.move_rect_within(rect(10, 10, 400, 300), bounds), rect(0,0,0,0)
 
 		it 'should move a window to the right if it is too leftwards', ->
-			eq Tile.moveRectWithin(rect(-10, 10, 400, 300), bounds), rect(10,0,0,0)
+			eq Tile.move_rect_within(rect(-10, 10, 400, 300), bounds), rect(10,0,0,0)
 
 		it 'should move a window to the left if it is too rightwards', ->
-			eq Tile.moveRectWithin(rect(400, 10, 410, 300), bounds), rect(-10,0,0,0)
+			eq Tile.move_rect_within(rect(400, 10, 410, 300), bounds), rect(-10,0,0,0)
 
 		it 'should move a window down if it is too high', ->
-			eq Tile.moveRectWithin(rect(10, -10, 400, 300), bounds), rect(0,10,0,0)
+			eq Tile.move_rect_within(rect(10, -10, 400, 300), bounds), rect(0,10,0,0)
 
 		it 'should move a window up if it is too low', ->
-			eq Tile.moveRectWithin(rect(10, 300, 400, 310), bounds), rect(0,-10,0,0)
+			eq Tile.move_rect_within(rect(10, 300, 400, 310), bounds), rect(0,-10,0,0)
 
 		it 'should make a window match the bounds height if it is too tall', ->
-			eq Tile.moveRectWithin(rect(10,  10, 400, 620), bounds), rect(0,-10,0,-20)
-			eq Tile.moveRectWithin(rect(10, -10, 400, 620), bounds), rect(0, 10,0,-20)
+			eq Tile.move_rect_within(rect(10,  10, 400, 620), bounds), rect(0,-10,0,-20)
+			eq Tile.move_rect_within(rect(10, -10, 400, 620), bounds), rect(0, 10,0,-20)
 
 		it 'should make a window match the bounds width if it is too wide', ->
-			eq Tile.moveRectWithin(rect(10,  10, 820, 300), bounds), rect(-10,0,-20,0)
-			eq Tile.moveRectWithin(rect(-10, 10, 820, 300), bounds), rect( 10,0,-20,0)
+			eq Tile.move_rect_within(rect(10,  10, 820, 300), bounds), rect(-10,0,-20,0)
+			eq Tile.move_rect_within(rect(-10, 10, 820, 300), bounds), rect( 10,0,-20,0)
 
 	describe 'adding rect offsets', ->
 		it 'should add things', ->
@@ -172,7 +172,7 @@ describe 'rect* functions', ->
 			orig = {"pos":{"x":0,"y":0},"size":{"x":-181,"y":-48}}
 			diff = {"pos":{"x":0,"y":0},"size":{"x":0,"y":0}}
 			new_ = {"pos":{"x":0,"y":0},"size":{"x":-181,"y":-48}}
-			eq Tile.addDiffToRect(orig, diff), new_
+			eq Tile.add_diff_to_rect(orig, diff), new_
 
 describe 'Window tiling / untiling', ->
 	it 'should keep track of all windows', ->
@@ -183,15 +183,15 @@ describe 'Window Splitting / layout', ->
 
 describe 'Basic Tile functions', ->
 	it 'should split x', ->
-		eq Tile.splitRect({pos:{x:0,  y:0}, size: {x:100, y:200}}, 'x', 0.5),
+		eq Tile.split_rect({pos:{x:0,  y:0}, size: {x:100, y:200}}, 'x', 0.5),
 			               [{pos:{x:0,  y:0}, size: {x:50,  y:200}},
 			                {pos:{x:50, y:0}, size: {x:50,  y:200}}]
 	it 'should split y', ->
-		eq Tile.splitRect({pos:{x:0,  y:0},   size: {x:100, y:200}}, 'y', 0.5),
+		eq Tile.split_rect({pos:{x:0,  y:0},   size: {x:100, y:200}}, 'y', 0.5),
 			               [{pos:{x:0,  y:0},   size: {x:100, y:100}},
 			                {pos:{x:0,  y:100}, size: {x:100, y:100}}]
 	it 'should split non-evenly', ->
-		eq Tile.splitRect({pos:{x:0,  y:0},  size: {x:100, y:200}}, 'y', 0.1),
+		eq Tile.split_rect({pos:{x:0,  y:0},  size: {x:100, y:200}}, 'y', 0.1),
 			               [{pos:{x:0,  y:0},  size: {x:100, y:20}},
 			                {pos:{x:0,  y:20}, size: {x:100, y:180}}]
 
@@ -215,12 +215,12 @@ class MockWindow
 	width: -> @rect.w
 	height: -> @rect.h
 	is_active: -> @active || false
-	isMinimized: -> false
+	is_minimized: -> false
 	toString: ->
 		"<MockWindow (#{@name}) @ #{j @rect}>"
-	beforeRedraw: (f) -> f()
+	before_redraw: (f) -> f()
 	activate: -> null
-	bringToFront: -> null
+	bring_to_front: -> null
 
 describe 'HorizontalTiledLayout', ->
 	_num_tiles = (layout) ->
@@ -352,7 +352,7 @@ describe 'HorizontalTiledLayout', ->
 			eq(window3.rect, {x:400, y:300, w:400, h:150})
 			eq(window4.rect, {x:400, y:450, w:400, h:150})
 
-		describe 'mainSplit', ->
+		describe 'main_split', ->
 			it 'should adjust split for a resized LHS window', ->
 				reset()
 				resize window1, (rect) ->

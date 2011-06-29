@@ -15,75 +15,75 @@ ShellshapeIndicator.prototype = {
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
 
 		// create menu
-		this.menuEntries = [
+		this.menu_entries = [
 			{
 				label: 'Floating',
-				action: this._untileAll,
+				action: this._untile_all,
 				// activeText: 'X'
 			},
 			{
 				label: 'Tiled',
-				action: this._tileAll,
+				action: this._tile_all,
 				// activeText: 'Tiled'
 			}
 		];
-		this.menuIndexes = {
+		this.menu_indexes = {
 			floating: 0,
 			vertical: 1
 		};
 
 		var items = new PopupMenu.PopupMenuSection();
-		for(i in this.menuEntries) {
-			let itemProps = this.menuEntries[i];
-			let item = new PopupMenu.PopupMenuItem(itemProps.label);
+		for(i in this.menu_entries) {
+			let item_props = this.menu_entries[i];
+			let item = new PopupMenu.PopupMenuItem(item_props.label);
 			items.addMenuItem(item);
 			item.connect('activate', Lang.bind(this, function() {
-				log("callback for [" + itemProps.label + "] received by " + this);
-				this._setText(itemProps.label);
-				itemProps.action.call(this);
+				log("callback for [" + item_props.label + "] received by " + this);
+				this._set_text(item_props.label);
+				item_props.action.call(this);
 			}));
 		}
 		this.menu.addMenuItem(items);
 
-		this.statusLabel = new St.Label({ text: this.menuEntries[0].label });
-		this.actor.set_child(this.statusLabel);
-		this.metaWorkspace = global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
-		this._updateIndicator()
+		this.status_label = new St.Label({ text: this.menu_entries[0].label });
+		this.actor.set_child(this.status_label);
+		this.meta_workspace = global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
+		this._update_indicator()
 
 		global.screen.connect_after('workspace-switched', Lang.bind(this,this._workspaceChanged));
-		this.ext.connect('layout-changed', Lang.bind(this, this._updateIndicator));
+		this.ext.connect('layout-changed', Lang.bind(this, this._update_indicator));
 	},
 
 	toString: function() {
 		return "<ShellshapeIndicator>";
 	},
 
-	_setText: function(text) {
-		this.statusLabel.set_text(text);
+	_set_text: function(text) {
+		this.status_label.set_text(text);
 	},
 
-	_workspaceChanged: function(metaScreen, oldIndex, newIndex) {
-		this.metaWorkspace = global.screen.get_workspace_by_index(newIndex);
-		// log("indicator saw switch to new workspace: " + this.metaWorkspace);
-		this._updateIndicator();
+	_workspaceChanged: function(meta_screen, old_index, new_index) {
+		this.meta_workspace = global.screen.get_workspace_by_index(new_index);
+		// log("indicator saw switch to new workspace: " + this.meta_workspace);
+		this._update_indicator();
 	},
-	_updateIndicator: function() {
+	_update_indicator: function() {
 		//TODO: extend this when we have multiple tiling layouts
-		var itemProps = null;
-		if(this.ext.getWorkspace(this.metaWorkspace).autoTile) {
-			itemProps = this.menuEntries[this.menuIndexes.vertical];
+		var item_props = null;
+		if(this.ext.get_workspace(this.meta_workspace).auto_tile) {
+			item_props = this.menu_entries[this.menu_indexes.vertical];
 		} else {
-			itemProps = this.menuEntries[this.menuIndexes.floating];
+			item_props = this.menu_entries[this.menu_indexes.floating];
 		}
-		this._setText(itemProps.label);
+		this._set_text(item_props.label);
 	},
 
-	_tileAll: function() {
-		this.ext.currentWorkspace().tileAll(true);
+	_tile_all: function() {
+		this.ext.current_workspace().tile_all(true);
 	},
 
-	_untileAll: function() {
-		this.ext.currentWorkspace().tileAll(false);
+	_untile_all: function() {
+		this.ext.current_workspace().tile_all(false);
 	},
 
 };

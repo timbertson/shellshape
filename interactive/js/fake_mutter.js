@@ -43,7 +43,7 @@ function Window() { this._init(); }
 		if(direction == 1) {
 			stack[stack.length-1].sendToBack();
 		} else {
-			stack[0].bringToFront();
+			stack[0].bring_to_front();
 		}
 	};
 	Window.prototype = {
@@ -60,7 +60,7 @@ function Window() { this._init(); }
 			self.elem.mouseover(function() { self.activate(); });
 			// self.elem.mouseout(function() { self.deactivate(); });
 			self.elem.css({background: randomColor(), position:"absolute", width:size, height:size, left:left, top:top, border: "2px solid black", opacity:dim});
-			self.elem.mousedown(function() { self.bringToFront(); });
+			self.elem.mousedown(function() { self.bring_to_front(); });
 			// self.elem.bind('resize', function(){self.delegate.on_window_resize(self)});
 			// self.elem.bind('move', function(){self.delegate.on_window_move(self)});
 			self.elem.bind('resizestop', function(){self.delegate.on_window_resized(self)});
@@ -95,7 +95,7 @@ function Window() { this._init(); }
 			if(this.index() == stack.length - 1) {
 				this.sendToBack();
 			} else {
-				this.bringToFront();
+				this.bring_to_front();
 			}
 		}
 		,sendToBack: function() {
@@ -105,15 +105,15 @@ function Window() { this._init(); }
 			// Window.active.deactivate()
 			// this.activate()
 		}
-		,bringToFront: function() {
+		,bring_to_front: function() {
 			this._removeFromStack();
 			stack.push(this);
 			restack();
 		}
-		,isMinimized: function() {
+		,is_minimized: function() {
 			return false;
 		}
-		,beforeRedraw: function(func) { func(); }
+		,before_redraw: function(func) { func(); }
 		,activate: function() {
 			if(Window.active) { Window.active.deactivate() }
 			this.elem.css({"border-color": active_border, opacity: bright});

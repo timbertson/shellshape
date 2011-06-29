@@ -22,7 +22,7 @@ j = function(s) {
 HALF = 0.5;
 STOP = '_stop_iter';
 ArrayUtil = {
-  divideAfter: function(num, items) {
+  divide_after: function(num, items) {
     return [items.slice(0, num), items.slice(num)];
   },
   moveItem: function(array, start, end) {
@@ -39,7 +39,7 @@ get_mouse_position = function() {
   throw "override get_mouse_position()";
 };
 Tile = {
-  copyRect: function(rect) {
+  copy_rect: function(rect) {
     return {
       pos: {
         x: rect.pos.x,
@@ -51,43 +51,43 @@ Tile = {
       }
     };
   },
-  splitRect: function(rect, axis, ratio) {
-    var newRect, newSizeA, newSizeB;
+  split_rect: function(rect, axis, ratio) {
+    var new_rect, new_size_a, new_size_b;
     if (ratio > 1 || ratio < 0) {
       throw "invalid ratio: " + ratio + " (must be between 0 and 1)";
     }
-    newSizeA = rect.size[axis] * ratio;
-    newSizeB = rect.size[axis] - newSizeA;
-    newRect = Tile.copyRect(rect);
-    rect = Tile.copyRect(rect);
-    rect.size[axis] = newSizeA;
-    newRect.size[axis] = newSizeB;
-    newRect.pos[axis] += newSizeA;
-    return [rect, newRect];
+    new_size_a = rect.size[axis] * ratio;
+    new_size_b = rect.size[axis] - new_size_a;
+    new_rect = Tile.copy_rect(rect);
+    rect = Tile.copy_rect(rect);
+    rect.size[axis] = new_size_a;
+    new_rect.size[axis] = new_size_b;
+    new_rect.pos[axis] += new_size_a;
+    return [rect, new_rect];
   },
-  addDiffToRect: function(rect, diff) {
+  add_diff_to_rect: function(rect, diff) {
     return {
-      pos: Tile.pointAdd(rect.pos, diff.pos),
-      size: Tile.pointAdd(rect.size, diff.size)
+      pos: Tile.point_add(rect.pos, diff.pos),
+      size: Tile.point_add(rect.size, diff.size)
     };
   },
-  ensureRectExists: function(rect) {
+  ensure_rect_exists: function(rect) {
     rect.size.x = Math.max(1, rect.size.x);
     rect.size.y = Math.max(1, rect.size.y);
     return rect;
   },
-  zeroRect: function(rect) {
+  zero_rect: function(rect) {
     return rect.pos.x === 0 && rect.pos.y === 0 && rect.size.x === 0 && rect.size.y === 0;
   },
-  shrink: function(rect, borderPx) {
+  shrink: function(rect, border_px) {
     return {
       pos: {
-        x: rect.pos.x + borderPx,
-        y: rect.pos.y + borderPx
+        x: rect.pos.x + border_px,
+        y: rect.pos.y + border_px
       },
       size: {
-        x: Math.max(0, rect.size.x - (2 * borderPx)),
-        y: Math.max(0, rect.size.y - (2 * borderPx))
+        x: Math.max(0, rect.size.x - (2 * border_px)),
+        y: Math.max(0, rect.size.y - (2 * border_px))
       }
     };
   },
@@ -104,11 +104,11 @@ Tile = {
     _ref = this.minmax(a, b), min = _ref[0], max = _ref[1];
     return val > min && val < max;
   },
-  moveRectWithin: function(original_rect, bounds) {
+  move_rect_within: function(original_rect, bounds) {
     var extent, max, min, rect;
     min = Math.min;
     max = Math.max;
-    rect = Tile.copyRect(original_rect);
+    rect = Tile.copy_rect(original_rect);
     rect.size.x = min(rect.size.x, bounds.size.x);
     rect.size.y = min(rect.size.y, bounds.size.y);
     rect.pos.x = max(rect.pos.x, bounds.pos.x);
@@ -119,29 +119,29 @@ Tile = {
     rect.pos.x -= max(0, extent(rect, 'x') - extent(bounds, 'x'));
     rect.pos.y -= max(0, extent(rect, 'y') - extent(bounds, 'y'));
     return {
-      pos: this.pointDiff(original_rect.pos, rect.pos),
-      size: this.pointDiff(original_rect.size, rect.size)
+      pos: this.point_diff(original_rect.pos, rect.pos),
+      size: this.point_diff(original_rect.size, rect.size)
     };
   },
-  pointDiff: function(a, b) {
+  point_diff: function(a, b) {
     return {
       x: b.x - a.x,
       y: b.y - a.y
     };
   },
-  pointAdd: function(a, b) {
+  point_add: function(a, b) {
     return {
       x: a.x + b.x,
       y: a.y + b.y
     };
   },
-  rectCenter: function(rect) {
+  rect_center: function(rect) {
     return {
       x: this.midpoint(rect.pos.x, rect.pos.x + rect.size.x),
       y: this.midpoint(rect.pos.y, rect.pos.y + rect.size.y)
     };
   },
-  pointIsWithin: function(point, rect) {
+  point_is_within: function(point, rect) {
     return this.within(point.x, rect.pos.x, rect.pos.x + rect.size.x) && this.within(point.y, rect.pos.y, rect.pos.y + rect.size.y);
   },
   joinRects: function(a, b) {
@@ -410,7 +410,7 @@ Split = (function() {
       first_window.set_rect(rect);
       return [{}, []];
     }
-    _ref = Tile.splitRect(rect, this.axis, this.ratio), window_rect = _ref[0], remaining = _ref[1];
+    _ref = Tile.split_rect(rect, this.axis, this.ratio), window_rect = _ref[0], remaining = _ref[1];
     first_window.set_rect(window_rect);
     return [remaining, windows];
   };
@@ -421,8 +421,8 @@ Split = (function() {
 })();
 MultiSplit = (function() {
   __extends(MultiSplit, BaseSplit);
-  function MultiSplit(axis, primaryWindows) {
-    this.primaryWindows = primaryWindows;
+  function MultiSplit(axis, primary_windows) {
+    this.primary_windows = primary_windows;
     MultiSplit.__super__.constructor.call(this, axis);
   }
   MultiSplit.prototype.split = function(bounds, windows) {
@@ -430,17 +430,17 @@ MultiSplit = (function() {
     this.save_last_rect(bounds);
     _ref = this.partition_windows(windows), left_windows = _ref[0], right_windows = _ref[1];
     if (left_windows.length > 0 && right_windows.length > 0) {
-      _ref2 = Tile.splitRect(bounds, this.axis, this.ratio), left_rect = _ref2[0], right_rect = _ref2[1];
+      _ref2 = Tile.split_rect(bounds, this.axis, this.ratio), left_rect = _ref2[0], right_rect = _ref2[1];
     } else {
       _ref3 = [bounds, bounds], left_rect = _ref3[0], right_rect = _ref3[1];
     }
     return [[left_rect, left_windows], [right_rect, right_windows]];
   };
   MultiSplit.prototype.partition_windows = function(windows) {
-    return ArrayUtil.divideAfter(this.primaryWindows, windows);
+    return ArrayUtil.divide_after(this.primary_windows, windows);
   };
   MultiSplit.prototype.in_primary_partition = function(idx) {
-    return idx < this.primaryWindows;
+    return idx < this.primary_windows;
   };
   return MultiSplit;
 })();
@@ -457,8 +457,8 @@ HorizontalTiledLayout = (function() {
       }
     };
     this.tiles = new TileCollection();
-    this.mainAxis = 'x';
-    this.mainSplit = new MultiSplit(this.mainAxis, 1);
+    this.main_axis = 'x';
+    this.main_split = new MultiSplit(this.main_axis, 1);
     this.splits = {
       left: [],
       right: []
@@ -485,15 +485,15 @@ HorizontalTiledLayout = (function() {
     var layout_windows, left, right, _ref;
     layout_windows = this.tiles.for_layout();
     if (accommodate_window != null) {
-      this._change_main_ratio_to_accommodate(accommodate_window, this.mainSplit);
+      this._change_main_ratio_to_accommodate(accommodate_window, this.main_split);
     }
-    _ref = this.mainSplit.split(this.bounds, layout_windows), left = _ref[0], right = _ref[1];
+    _ref = this.main_split.split(this.bounds, layout_windows), left = _ref[0], right = _ref[1];
     this.layout_side.apply(this, __slice.call(left).concat([this.splits.left], [accommodate_window]));
     return this.layout_side.apply(this, __slice.call(right).concat([this.splits.right], [accommodate_window]));
   };
   HorizontalTiledLayout.prototype.layout_side = function(rect, windows, splits, accommodate_window) {
     var accommodate_idx, axis, bottom_split, extend_to, other_axis, previous_split, split, top_splits, window, zip, _i, _len, _ref, _ref2, _ref3, _results;
-    axis = Axis.other(this.mainAxis);
+    axis = Axis.other(this.main_axis);
     extend_to = function(size, array, generator) {
       var _results;
       _results = [];
@@ -521,7 +521,7 @@ HorizontalTiledLayout = (function() {
         if (accommodate_idx === windows.length - 1) {
           bottom_split = void 0;
         }
-        other_axis = Axis.other(this.mainAxis);
+        other_axis = Axis.other(this.main_axis);
         this._change_minor_ratios_to_accommodate(accommodate_window, top_splits, bottom_split);
       }
     }
@@ -539,7 +539,7 @@ HorizontalTiledLayout = (function() {
     return _results;
   };
   HorizontalTiledLayout.prototype.add_main_window_count = function(i) {
-    this.mainSplit.primaryWindows += i;
+    this.main_split.primary_windows += i;
     return this.layout();
   };
   HorizontalTiledLayout.prototype.tile = function(win) {
@@ -567,7 +567,7 @@ HorizontalTiledLayout = (function() {
     return this.layout();
   };
   HorizontalTiledLayout.prototype.adjust_main_window_area = function(diff) {
-    this.mainSplit.adjust_ratio(diff);
+    this.main_split.adjust_ratio(diff);
     return this.layout();
   };
   HorizontalTiledLayout.prototype.adjust_current_window_size = function(diff) {
@@ -575,7 +575,7 @@ HorizontalTiledLayout = (function() {
       this.adjust_split_for_tile({
         tile: tile,
         diff_ratio: diff,
-        axis: Axis.other(this.mainAxis)
+        axis: Axis.other(this.main_axis)
       });
       return this.layout();
     }, this));
@@ -598,8 +598,8 @@ HorizontalTiledLayout = (function() {
         return split.adjust_ratio(inverted ? -diff_ratio : diff_ratio);
       }
     };
-    if (axis === this.mainAxis) {
-      return adjust(this.mainSplit, !this.mainSplit.in_primary_partition(this.tiles.indexOf(tile)));
+    if (axis === this.main_axis) {
+      return adjust(this.main_split, !this.main_split.in_primary_partition(this.tiles.indexOf(tile)));
     } else {
       if (tile.bottom_split != null) {
         return adjust(tile.bottom_split, false);
@@ -642,14 +642,14 @@ HorizontalTiledLayout = (function() {
     }, this));
   };
   HorizontalTiledLayout.prototype.on_split_resize_start = function(win) {
-    this.split_resize_start_rect = Tile.copyRect(this.tiles[this.indexOf(win)].window_rect());
+    this.split_resize_start_rect = Tile.copy_rect(this.tiles[this.indexOf(win)].window_rect());
     return log("starting resize of split.. " + (j(this.split_resize_start_rect)));
   };
   HorizontalTiledLayout.prototype.on_window_resized = function(win) {
     return this.tile_for(win, __bind(function(tile, idx) {
       var diff;
       if (this.split_resize_start_rect != null) {
-        diff = Tile.pointDiff(this.split_resize_start_rect.size, tile.window_rect().size);
+        diff = Tile.point_diff(this.split_resize_start_rect.size, tile.window_rect().size);
         log("split resized! diff = " + (j(diff)));
         if (diff.x !== 0) {
           this.adjust_split_for_tile({
@@ -686,20 +686,20 @@ HorizontalTiledLayout = (function() {
     _ref = split.partition_windows(this.tiles.for_layout()), left = _ref[0], right = _ref[1];
     if (contains(left, tile)) {
       log("LHS adjustment for size: " + (j(tile.offset.size)) + " and pos " + (j(tile.offset.pos)));
-      split.adjust_ratio_px(tile.offset.size[this.mainAxis] + tile.offset.pos[this.mainAxis]);
-      tile.offset.size[this.mainAxis] = -tile.offset.pos[this.mainAxis];
+      split.adjust_ratio_px(tile.offset.size[this.main_axis] + tile.offset.pos[this.main_axis]);
+      tile.offset.size[this.main_axis] = -tile.offset.pos[this.main_axis];
     } else if (contains(right, tile)) {
       log("RHS adjustment for size: " + (j(tile.offset.size)) + " and pos " + (j(tile.offset.pos)));
-      split.adjust_ratio_px(tile.offset.pos[this.mainAxis]);
-      tile.offset.size[this.mainAxis] += tile.offset.pos[this.mainAxis];
-      tile.offset.pos[this.mainAxis] = 0;
+      split.adjust_ratio_px(tile.offset.pos[this.main_axis]);
+      tile.offset.size[this.main_axis] += tile.offset.pos[this.main_axis];
+      tile.offset.pos[this.main_axis] = 0;
     }
-    return log("After mainSplit accommodation, tile offset = " + (j(tile.offset)));
+    return log("After main_split accommodation, tile offset = " + (j(tile.offset)));
   };
   HorizontalTiledLayout.prototype._change_minor_ratios_to_accommodate = function(tile, above_splits, below_split) {
     var axis, bottom_offset, diff_px, diff_pxes, i, offset, proportion, size_taken, split, split_size, split_sizes, top_offset, total_size_above, _i, _len, _ref, _ref2;
     offset = tile.offset;
-    axis = Axis.other(this.mainAxis);
+    axis = Axis.other(this.main_axis);
     top_offset = offset.pos[axis];
     bottom_offset = offset.size[axis];
     if (above_splits.length > 0) {
@@ -778,7 +778,7 @@ HorizontalTiledLayout = (function() {
       if (swap_idx === idx) {
         return;
       }
-      if (Tile.pointIsWithin(mouse_pos, target_rect)) {
+      if (Tile.point_is_within(mouse_pos, target_rect)) {
         log("swapping idx " + idx + " and " + swap_idx);
         this.tiles.swap_at(idx, swap_idx);
         moved = true;
@@ -796,10 +796,10 @@ HorizontalTiledLayout = (function() {
     log(" // " + lbl);
     log(" - total windows: " + this.tiles.length);
     log("");
-    log(" - main windows: " + this.mainsplit.primaryWindows);
+    log(" - main windows: " + this.mainsplit.primary_windows);
     this.main_windows().map(dump_win);
     log("");
-    log(" - minor windows: " + this.tiles.length - this.mainsplit.primaryWindows);
+    log(" - minor windows: " + this.tiles.length - this.mainsplit.primary_windows);
     this.minor_windows().map(dump_win);
     return log(" ----------------------------------- ");
   };
@@ -849,16 +849,16 @@ TiledWindow = (function() {
   TiledWindow.prototype.toString = function() {
     return "<\#TiledWindow of " + this.window.toString() + ">";
   };
-  TiledWindow.prototype.beforeRedraw = function(f) {
-    return this.window.beforeRedraw(f);
+  TiledWindow.prototype.before_redraw = function(f) {
+    return this.window.before_redraw(f);
   };
   TiledWindow.prototype.update_offset = function() {
     var rect, win;
     rect = this.rect;
     win = this.window_rect();
     this.offset = {
-      pos: Tile.pointDiff(rect.pos, win.pos),
-      size: Tile.pointDiff(rect.size, win.size)
+      pos: Tile.point_diff(rect.pos, win.pos),
+      size: Tile.point_diff(rect.size, win.size)
     };
     return log("updated tile offset to " + (j(this.offset)));
   };
@@ -882,7 +882,7 @@ TiledWindow = (function() {
     }
   };
   TiledWindow.prototype.is_minimized = function() {
-    return this.window.isMinimized();
+    return this.window.is_minimized();
   };
   TiledWindow.prototype.maximize = function() {
     this.maximized = true;
@@ -911,30 +911,30 @@ TiledWindow = (function() {
   };
   TiledWindow.prototype.ensure_within = function(screen_rect) {
     var change_required, combined_rect;
-    combined_rect = Tile.addDiffToRect(this.rect, this.offset);
-    change_required = Tile.moveRectWithin(combined_rect, screen_rect);
-    if (!Tile.zeroRect(change_required)) {
+    combined_rect = Tile.add_diff_to_rect(this.rect, this.offset);
+    change_required = Tile.move_rect_within(combined_rect, screen_rect);
+    if (!Tile.zero_rect(change_required)) {
       log("moving tile " + (j(change_required)) + " to keep it onscreen");
-      this.offset = Tile.addDiffToRect(this.offset, change_required);
+      this.offset = Tile.add_diff_to_rect(this.offset, change_required);
       return this.layout();
     }
   };
   TiledWindow.prototype.center_window = function() {
     var movement_required, tile_center, window_center, window_rect;
     window_rect = this.window_rect();
-    tile_center = Tile.rectCenter(this.rect);
-    window_center = Tile.rectCenter(window_rect);
-    movement_required = Tile.pointDiff(window_center, tile_center);
-    return this.offset.pos = Tile.pointAdd(this.offset.pos, movement_required);
+    tile_center = Tile.rect_center(this.rect);
+    window_center = Tile.rect_center(window_rect);
+    movement_required = Tile.point_diff(window_center, tile_center);
+    return this.offset.pos = Tile.point_add(this.offset.pos, movement_required);
   };
   TiledWindow.prototype.layout = function() {
     var is_active, pos, rect, size, _ref;
     is_active = this.is_active();
-    rect = this.maximized_rect() || Tile.addDiffToRect(this.rect, this.offset);
-    _ref = Tile.ensureRectExists(rect), pos = _ref.pos, size = _ref.size;
+    rect = this.maximized_rect() || Tile.add_diff_to_rect(this.rect, this.offset);
+    _ref = Tile.ensure_rect_exists(rect), pos = _ref.pos, size = _ref.size;
     this.window.move_resize(pos.x, pos.y, size.x, size.y);
     if (is_active) {
-      return this.window.beforeRedraw(__bind(function() {
+      return this.window.before_redraw(__bind(function() {
         return this.activate();
       }, this));
     }
@@ -981,7 +981,7 @@ TiledWindow = (function() {
   };
   TiledWindow.prototype.activate = function() {
     this.window.activate();
-    return this.window.bringToFront();
+    return this.window.bring_to_front();
   };
   TiledWindow.prototype.is_active = function() {
     return this.window.is_active();

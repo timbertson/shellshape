@@ -7,7 +7,7 @@ HALF = 0.5
 STOP = '_stop_iter'
 
 ArrayUtil = {
-	divideAfter: (num, items) ->
+	divide_after: (num, items) ->
 		return [items[0 ... num], items[num ... ]]
 	moveItem: (array, start, end) ->
 		removed = array.splice(start, 1)[0]
@@ -23,51 +23,51 @@ get_mouse_position = ->
 
 
 Tile = {
-	copyRect: (rect) ->
+	copy_rect: (rect) ->
 		return {pos:{x:rect.pos.x, y:rect.pos.y}, size:{x:rect.size.x, y:rect.size.y}}
 
-	splitRect: (rect, axis, ratio) ->
-		# log("#splitRect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio)
+	split_rect: (rect, axis, ratio) ->
+		# log("#split_rect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio)
 		if(ratio > 1 || ratio < 0)
 			throw("invalid ratio: " + ratio + " (must be between 0 and 1)")
-		newSizeA = rect.size[axis] * ratio
-		newSizeB = rect.size[axis] - newSizeA
+		new_size_a = rect.size[axis] * ratio
+		new_size_b = rect.size[axis] - new_size_a
 
-		newRect = Tile.copyRect(rect)
-		rect = Tile.copyRect(rect)
-		rect.size[axis] = newSizeA
-		newRect.size[axis] = newSizeB
-		newRect.pos[axis] += newSizeA
+		new_rect = Tile.copy_rect(rect)
+		rect = Tile.copy_rect(rect)
+		rect.size[axis] = new_size_a
+		new_rect.size[axis] = new_size_b
+		new_rect.pos[axis] += new_size_a
 		# log("rect copy: " + j(rect))
-		# log("newRect: " + j(newRect))
-		return [rect, newRect]
+		# log("new_rect: " + j(new_rect))
+		return [rect, new_rect]
 
-	addDiffToRect: (rect, diff) ->
+	add_diff_to_rect: (rect, diff) ->
 		return {
-			pos: Tile.pointAdd(rect.pos, diff.pos),
-			size: Tile.pointAdd(rect.size, diff.size)
+			pos: Tile.point_add(rect.pos, diff.pos),
+			size: Tile.point_add(rect.size, diff.size)
 		}
 	
-	ensureRectExists: (rect) ->
+	ensure_rect_exists: (rect) ->
 		rect.size.x = Math.max(1, rect.size.x)
 		rect.size.y = Math.max(1, rect.size.y)
 		return rect
 
-	zeroRect: (rect) ->
+	zero_rect: (rect) ->
 		return (
 			rect.pos.x == 0 and rect.pos.y == 0 and
 			rect.size.x == 0 and rect.size.y == 0
 		)
 	
-	shrink: (rect, borderPx) ->
+	shrink: (rect, border_px) ->
 		return {
 			pos: {
-				x: rect.pos.x + borderPx,
-				y: rect.pos.y + borderPx
+				x: rect.pos.x + border_px,
+				y: rect.pos.y + border_px
 			},
 			size: {
-				x: Math.max(0, rect.size.x - (2*borderPx)),
-				y: Math.max(0, rect.size.y - (2*borderPx))
+				x: Math.max(0, rect.size.x - (2*border_px)),
+				y: Math.max(0, rect.size.y - (2*border_px))
 			}
 		}
 	
@@ -81,12 +81,12 @@ Tile = {
 		# log("val #{val} within #{min},#{max}? #{val > min && val < max}")
 		return (val > min && val < max)
 	
-	moveRectWithin: (original_rect, bounds) ->
+	move_rect_within: (original_rect, bounds) ->
 		# log("moving #{j original_rect} to be within #{j bounds}")
 		min = Math.min
 		max = Math.max
 
-		rect = Tile.copyRect(original_rect)
+		rect = Tile.copy_rect(original_rect)
 
 		rect.size.x = min(rect.size.x, bounds.size.x)
 		rect.size.y = min(rect.size.y, bounds.size.y)
@@ -99,23 +99,23 @@ Tile = {
 		rect.pos.y -= max(0, extent(rect, 'y') - extent(bounds, 'y'))
 
 		return {
-			pos: @pointDiff(original_rect.pos, rect.pos),
-			size: @pointDiff(original_rect.size, rect.size)
+			pos: @point_diff(original_rect.pos, rect.pos),
+			size: @point_diff(original_rect.size, rect.size)
 		}
 
-	pointDiff: (a, b) ->
+	point_diff: (a, b) ->
 		{x: b.x - a.x, y: b.y - a.y}
 	
-	pointAdd: (a,b) ->
+	point_add: (a,b) ->
 		{x: a.x + b.x, y: a.y + b.y}
 
-	rectCenter: (rect) ->
+	rect_center: (rect) ->
 		{
 			x: @midpoint(rect.pos.x, rect.pos.x + rect.size.x),
 			y: @midpoint(rect.pos.y, rect.pos.y + rect.size.y)
 		}
 	
-	pointIsWithin: (point, rect) ->
+	point_is_within: (point, rect) ->
 		(
 			@within(point.x, rect.pos.x, rect.pos.x + rect.size.x) &&
 			@within(point.y, rect.pos.y, rect.pos.y + rect.size.y)
@@ -302,7 +302,7 @@ class Split extends BaseSplit
 		if windows.length == 0
 			first_window.set_rect(rect)
 			return [{}, []]
-		[window_rect, remaining] = Tile.splitRect(rect, @axis, @ratio)
+		[window_rect, remaining] = Tile.split_rect(rect, @axis, @ratio)
 		first_window.set_rect(window_rect)
 		return [remaining, windows]
 	
@@ -312,26 +312,26 @@ class MultiSplit extends BaseSplit
 	# a slpitter that contains multiple windows on either side,
 	# which is split along @axis (where 'x' is a split
 	# that contains windows to the left and right)
-	constructor: (axis, @primaryWindows) ->
+	constructor: (axis, @primary_windows) ->
 		super(axis)
 	
 	split: (bounds, windows) ->
 		@save_last_rect(bounds)
-		# log("mainsplit: dividing #{windows.length} after #{@primaryWindows} for bounds #{j bounds}")
+		# log("mainsplit: dividing #{windows.length} after #{@primary_windows} for bounds #{j bounds}")
 		[left_windows, right_windows] = @partition_windows(windows)
 		if left_windows.length > 0 and right_windows.length > 0
-			[left_rect, right_rect] = Tile.splitRect(bounds, @axis, @ratio)
+			[left_rect, right_rect] = Tile.split_rect(bounds, @axis, @ratio)
 		else
 			# only one side wil actually be laid out...
 			[left_rect, right_rect] = [bounds, bounds]
 		return [[left_rect, left_windows], [right_rect, right_windows]]
 	
 	partition_windows: (windows) ->
-		ArrayUtil.divideAfter(@primaryWindows, windows)
+		ArrayUtil.divide_after(@primary_windows, windows)
 
 	in_primary_partition: (idx) ->
-		# log("on left? #{idx}, #{@primaryWindows} == #{idx < @primaryWindows}")
-		idx < @primaryWindows
+		# log("on left? #{idx}, #{@primary_windows} == #{idx < @primary_windows}")
+		idx < @primary_windows
 	
 class HorizontalTiledLayout
 	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
@@ -340,8 +340,8 @@ class HorizontalTiledLayout
 			size:{x:screen_width, y:screen_height}
 		}
 		@tiles = new TileCollection()
-		@mainAxis = 'x'
-		@mainSplit = new MultiSplit(@mainAxis, 1)
+		@main_axis = 'x'
+		@main_split = new MultiSplit(@main_axis, 1)
 		@splits = { left: [], right: []}
 
 	each_tiled: (func) ->
@@ -363,14 +363,14 @@ class HorizontalTiledLayout
 		layout_windows = @tiles.for_layout()
 		# log("laying out #{layout_windows.length} windows")
 		if accommodate_window?
-			@_change_main_ratio_to_accommodate(accommodate_window, @mainSplit)
-		[left, right] = @mainSplit.split(@bounds, layout_windows)
+			@_change_main_ratio_to_accommodate(accommodate_window, @main_split)
+		[left, right] = @main_split.split(@bounds, layout_windows)
 		# log("split screen into rect #{j left[0]} | #{j right[0]}")
 		@layout_side(left..., @splits.left, accommodate_window)
 		@layout_side(right..., @splits.right, accommodate_window)
 	
 	layout_side: (rect, windows, splits, accommodate_window) ->
-		axis = Axis.other(@mainAxis)
+		axis = Axis.other(@main_axis)
 
 		extend_to = (size, array, generator) ->
 			while array.length < size
@@ -389,7 +389,7 @@ class HorizontalTiledLayout
 				bottom_split = splits[accommodate_idx]
 				if accommodate_idx == windows.length - 1
 					bottom_split = undefined
-				other_axis = Axis.other(@mainAxis)
+				other_axis = Axis.other(@main_axis)
 				@_change_minor_ratios_to_accommodate(accommodate_window, top_splits, bottom_split)
 
 		previous_split = null
@@ -401,7 +401,7 @@ class HorizontalTiledLayout
 			previous_split = split
 
 	add_main_window_count: (i) ->
-		@mainSplit.primaryWindows += i
+		@main_split.primary_windows += i
 		@layout()
 	
 	tile: (win) ->
@@ -425,7 +425,7 @@ class HorizontalTiledLayout
 		@layout()
 	
 	adjust_main_window_area: (diff) ->
-		@mainSplit.adjust_ratio(diff)
+		@main_split.adjust_ratio(diff)
 		@layout()
 	
 	adjust_current_window_size: (diff) ->
@@ -433,7 +433,7 @@ class HorizontalTiledLayout
 			@adjust_split_for_tile({
 				tile: tile,
 				diff_ratio: diff,
-				axis: Axis.other(@mainAxis)})
+				axis: Axis.other(@main_axis)})
 			@layout()
 	
 	scale_current_window: (amount, axis) ->
@@ -451,8 +451,8 @@ class HorizontalTiledLayout
 			else
 				split.adjust_ratio(if inverted then -diff_ratio else diff_ratio)
 			
-		if axis == @mainAxis
-			adjust(@mainSplit, !@mainSplit.in_primary_partition(@tiles.indexOf(tile)))
+		if axis == @main_axis
+			adjust(@main_split, !@main_split.in_primary_partition(@tiles.indexOf(tile)))
 		else
 			if tile.bottom_split?
 				adjust(tile.bottom_split, false)
@@ -485,14 +485,14 @@ class HorizontalTiledLayout
 			@layout()
 
 	on_split_resize_start: (win) ->
-		@split_resize_start_rect = Tile.copyRect(@tiles[@indexOf(win)].window_rect())
+		@split_resize_start_rect = Tile.copy_rect(@tiles[@indexOf(win)].window_rect())
 		log("starting resize of split.. #{j @split_resize_start_rect}")
 
 	on_window_resized: (win) ->
 		@tile_for win, (tile, idx) =>
 			#TODO: doesn't work in mutter yet
 			if @split_resize_start_rect?
-				diff = Tile.pointDiff(@split_resize_start_rect.size, tile.window_rect().size)
+				diff = Tile.point_diff(@split_resize_start_rect.size, tile.window_rect().size)
 				log("split resized! diff = #{j diff}")
 				if diff.x != 0
 					@adjust_split_for_tile({tile: tile, diff_px: diff.x, axis: 'x'})
@@ -513,18 +513,18 @@ class HorizontalTiledLayout
 		[left, right] = split.partition_windows(@tiles.for_layout())
 		if contains(left, tile)
 			log("LHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
-			split.adjust_ratio_px(tile.offset.size[@mainAxis] + tile.offset.pos[@mainAxis])
-			tile.offset.size[@mainAxis] = -tile.offset.pos[@mainAxis]
+			split.adjust_ratio_px(tile.offset.size[@main_axis] + tile.offset.pos[@main_axis])
+			tile.offset.size[@main_axis] = -tile.offset.pos[@main_axis]
 		else if contains(right, tile)
 			log("RHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
-			split.adjust_ratio_px(tile.offset.pos[@mainAxis])
-			tile.offset.size[@mainAxis] += tile.offset.pos[@mainAxis]
-			tile.offset.pos[@mainAxis] = 0
-		log("After mainSplit accommodation, tile offset = #{j tile.offset}")
+			split.adjust_ratio_px(tile.offset.pos[@main_axis])
+			tile.offset.size[@main_axis] += tile.offset.pos[@main_axis]
+			tile.offset.pos[@main_axis] = 0
+		log("After main_split accommodation, tile offset = #{j tile.offset}")
 		
 	_change_minor_ratios_to_accommodate: (tile, above_splits, below_split) ->
 		offset = tile.offset
-		axis = Axis.other(@mainAxis)
+		axis = Axis.other(@main_axis)
 		top_offset = offset.pos[axis]
 		bottom_offset = offset.size[axis]
 		if above_splits.length > 0
@@ -588,7 +588,7 @@ class HorizontalTiledLayout
 		@each_tiled (swap_candidate, swap_idx) =>
 			target_rect = Tile.shrink(swap_candidate.rect, 20)
 			return if swap_idx == idx
-			if Tile.pointIsWithin(mouse_pos, target_rect)
+			if Tile.point_is_within(mouse_pos, target_rect)
 				log("swapping idx #{idx} and #{swap_idx}")
 				@tiles.swap_at(idx, swap_idx)
 				moved = true
@@ -603,11 +603,11 @@ class HorizontalTiledLayout
 		log(" // " + lbl)
 		log(" - total windows: " + this.tiles.length)
 		log("")
-		log(" - main windows: " + this.mainsplit.primaryWindows)
+		log(" - main windows: " + this.mainsplit.primary_windows)
 		# log(j(this.tiles))
 		this.main_windows().map(dump_win)
 		log("")
-		log(" - minor windows: " + @tiles.length - this.mainsplit.primaryWindows)
+		log(" - minor windows: " + @tiles.length - this.mainsplit.primary_windows)
 		this.minor_windows().map(dump_win)
 		log(" ----------------------------------- ")
 
@@ -636,15 +636,15 @@ class TiledWindow
 	toString: ->
 		"<\#TiledWindow of " + @window.toString() + ">"
 	
-	beforeRedraw: (f) ->
-		@window.beforeRedraw(f)
+	before_redraw: (f) ->
+		@window.before_redraw(f)
 	
 	update_offset: ->
 		rect = @rect
 		win = @window_rect()
 		@offset = {
-			pos:  Tile.pointDiff(rect.pos,  win.pos),
-			size: Tile.pointDiff(rect.size, win.size)
+			pos:  Tile.point_diff(rect.pos,  win.pos),
+			size: Tile.point_diff(rect.size, win.size)
 		}
 		log("updated tile offset to #{j @offset}")
 	
@@ -658,7 +658,7 @@ class TiledWindow
 			@maximize()
 	
 	is_minimized: () ->
-		@window.isMinimized()
+		@window.is_minimized()
 
 	maximize: () ->
 		@maximized = true
@@ -681,27 +681,27 @@ class TiledWindow
 		@layout()
 	
 	ensure_within: (screen_rect) ->
-		combined_rect = Tile.addDiffToRect(@rect, @offset)
-		change_required = Tile.moveRectWithin(combined_rect, screen_rect)
-		unless Tile.zeroRect(change_required)
+		combined_rect = Tile.add_diff_to_rect(@rect, @offset)
+		change_required = Tile.move_rect_within(combined_rect, screen_rect)
+		unless Tile.zero_rect(change_required)
 			log("moving tile #{j change_required} to keep it onscreen")
-			@offset = Tile.addDiffToRect(@offset, change_required)
+			@offset = Tile.add_diff_to_rect(@offset, change_required)
 			@layout()
 	
 	center_window: ->
 		window_rect = @window_rect()
-		tile_center = Tile.rectCenter(@rect)
-		window_center = Tile.rectCenter(window_rect)
-		movement_required = Tile.pointDiff(window_center, tile_center)
-		@offset.pos = Tile.pointAdd(@offset.pos, movement_required)
+		tile_center = Tile.rect_center(@rect)
+		window_center = Tile.rect_center(window_rect)
+		movement_required = Tile.point_diff(window_center, tile_center)
+		@offset.pos = Tile.point_add(@offset.pos, movement_required)
 	
 	layout: ->
 		is_active = @is_active()
-		rect = @maximized_rect() or Tile.addDiffToRect(@rect, @offset)
-		{pos:pos, size:size} = Tile.ensureRectExists(rect)
+		rect = @maximized_rect() or Tile.add_diff_to_rect(@rect, @offset)
+		{pos:pos, size:size} = Tile.ensure_rect_exists(rect)
 		this.window.move_resize(pos.x, pos.y, size.x, size.y)
 		if is_active
-			@window.beforeRedraw =>
+			@window.before_redraw =>
 				@activate()
 	
 	maximized_rect: ->
@@ -741,7 +741,7 @@ class TiledWindow
 	
 	activate: ->
 		@window.activate()
-		@window.bringToFront()
+		@window.bring_to_front()
 	
 	is_active: ->
 		@window.is_active()
