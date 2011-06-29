@@ -8,22 +8,12 @@ const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
 const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
-const tiling = Extension.tiling;
-const real_mutter = Extension.real_mutter;
-const Window = real_mutter.Window;
-const Workspace = real_mutter.Workspace;
-const ShellshapeIndicator = real_mutter.ShellshapeIndicator;
+const Tiling = Extension.tiling;
+const Window = Extension.mutter_window.Window;
+const Workspace = Extension.workspace.Workspace;
+const ShellshapeIndicator = Extension.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
 
-tiling.get_mouse_position = function() {
-	let display = Gdk.Display.get_default();
-	let deviceManager = display.get_device_manager();
-	let pointer = deviceManager.get_client_pointer();
-	let [screen, pointerX, pointerY] = pointer.get_position();
-	return {x: pointerX, y: pointerY};
-};
-
-//TODO: add a panel indicator showing the current layout algorithm
 
 const Ext = function Ext() {
 	let self = this;
@@ -58,7 +48,7 @@ const Ext = function Ext() {
 	self.getWorkspace = function getWorkspace(metaWorkspace) {
 		let workspace = self.workspaces[metaWorkspace];
 		if(typeof(workspace) == "undefined") {
-			var layout = new tiling.HorizontalTiledLayout(
+			var layout = new Tiling.HorizontalTiledLayout(
 					self.screenDimensions.offset_x,
 					self.screenDimensions.offset_y,
 					self.screenDimensions.width,
@@ -97,9 +87,7 @@ const Ext = function Ext() {
 	};
 
 	self.currentWindow = function currentWindow() {
-		let win = self.getWindow(self.currentDisplay()['focus-window']);
-		// log("currently focused window == " + win);
-		return win;
+		return self.getWindow(self.currentDisplay()['focus-window']);
 	};
 
 	self.switch_workspace = function switch_workspace(offset, window) {
@@ -131,8 +119,8 @@ const Ext = function Ext() {
 
 		handle('j',           function() { self.currentLayout().select_cycle(1); });
 		handle('k',           function() { self.currentLayout().select_cycle(-1); });
-		/* (TODO: not yet functional) */ handle('tab',         function() { self.currentLayout().select_cycle(1); });
-		/* (TODO: not yet functional) */ handle('shift_tab',   function() { self.currentLayout().select_cycle(-1); });
+		handle('tab',         function() { self.currentLayout().select_cycle(1); });
+		handle('shift_tab',   function() { self.currentLayout().select_cycle(-1); });
 
 		handle('shift_j',     function() { self.currentLayout().cycle(1); });
 		handle('shift_k',     function() { self.currentLayout().cycle(-1); });
@@ -209,6 +197,15 @@ Signals.addSignalMethods(Ext.prototype);
 // initialization
 function main() {
 	log("shellshape initialized!");
+
+	// inject the get_mouse_position function
+	Tiling.get_mouse_position = function() {
+		let display = Gdk.Display.get_default();
+		let deviceManager = display.get_device_manager();
+		let pointer = deviceManager.get_client_pointer();
+		let [screen, pointerX, pointerY] = pointer.get_position();
+		return {x: pointerX, y: pointerY};
+	};
 
 	//TODO: move into separate extension
 	St.set_slow_down_factor(0.75);
