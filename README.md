@@ -23,4 +23,7 @@ The core layout stuff is in `tiling.coffee`. This should run in both the shell a
 
 To report a bug or crash, please see the [github issues page](https://github.com/gfxmonk/shellshape/issues).
 
+## Licence
+GPLv3
+
 [bluetile]: http://bluetile.org/
