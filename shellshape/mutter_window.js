@@ -4,6 +4,15 @@ const Meta = imports.gi.Meta;
 
 function Window(meta_window, ext) { this._init(meta_window, ext); }
 
+// This seems to be a good set, from trial and error...
+Window.tileable_window_types = [
+	Meta.WindowType.NORMAL,
+	Meta.WindowType.DIALOG,
+	Meta.WindowType.TOOLBAR,
+	Meta.WindowType.UTILITY,
+	Meta.WindowType.SPLASHSCREEN
+];
+
 Window.prototype = {
 	_init: function(meta_window, ext) {
 		this.meta_window = meta_window;
@@ -49,6 +58,38 @@ Window.prototype = {
 	,toString: function() {
 		return ("<#Window with MetaWindow: " + this.get_title() + ">");
 	}
+
+	// functions for determining whether the window should
+	// be tiled by default, or can be tiled at all.
+	,is_resizeable: function() {
+		return this.meta_window.resizeable;
+	}
+	,window_type: function() {
+		try {
+			return this.meta_window['window-type'];
+		} catch (e) {
+			//TODO: shouldn't be necessary
+			log("Failed to get window type for window " + this.meta_window + ", error was: " + e);
+			return -1;
+		}
+	}
+	,is_shown_on_taskbar: function() {
+		return !this.meta_window.is_skip_taskbar();
+	}
+	,always_on_top: function() {
+		return this.meta_window.above;
+	}
+	,should_auto_tile: function() {
+		return this.can_be_tiled() && this.is_resizeable() && (!this.always_on_top());
+	}
+	,can_be_tiled: function() {
+		var window_type = this.window_type();
+		var result = Window.tileable_window_types.indexOf(window_type) != -1;
+		// log("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
+		return result;
+	}
+
+	// dimensions
 	,width: function() { return this._outer_rect().width; }
 	,height: function() { return this._outer_rect().height; }
 	,xpos: function() { return this._outer_rect().x; }

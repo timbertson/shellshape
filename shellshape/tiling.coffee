@@ -367,6 +367,12 @@ class HorizontalTiledLayout
 				func(tile, idx)
 				return STOP
 	
+	managed_tile_for: (win, func) ->
+		# like @tile_for, but ignore floating windows
+		@tile_for win, (tile, idx) =>
+			if @tiles.is_tiled(tile)
+				func(tile, idx)
+	
 	layout: (accommodate_window) ->
 		layout_windows = @tiles.for_layout()
 		# log("laying out #{layout_windows.length} windows")
@@ -497,7 +503,7 @@ class HorizontalTiledLayout
 			@layout()
 
 	on_window_moved: (win) ->
-		@tile_for win, (tile, idx) =>
+		@managed_tile_for win, (tile, idx) =>
 			moved = @swap_moved_tile_if_necessary(tile, idx)
 			tile.update_offset() unless moved
 			@layout()
@@ -507,7 +513,7 @@ class HorizontalTiledLayout
 		log("starting resize of split.. #{j @split_resize_start_rect}")
 
 	on_window_resized: (win) ->
-		@tile_for win, (tile, idx) =>
+		@managed_tile_for win, (tile, idx) =>
 			#TODO: doesn't work in mutter yet
 			if @split_resize_start_rect?
 				diff = Tile.point_diff(@split_resize_start_rect.size, tile.window_rect().size)
@@ -523,7 +529,7 @@ class HorizontalTiledLayout
 			true
 	
 	adjust_splits_to_fit: (win) ->
-		@tile_for win, (tile, idx) =>
+		@managed_tile_for win, (tile, idx) =>
 			return unless @tiles.is_tiled(tile)
 			@layout(tile)
 

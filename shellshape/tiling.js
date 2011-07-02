@@ -495,6 +495,13 @@ HorizontalTiledLayout = (function() {
       }
     });
   };
+  HorizontalTiledLayout.prototype.managed_tile_for = function(win, func) {
+    return this.tile_for(win, __bind(function(tile, idx) {
+      if (this.tiles.is_tiled(tile)) {
+        return func(tile, idx);
+      }
+    }, this));
+  };
   HorizontalTiledLayout.prototype.layout = function(accommodate_window) {
     var layout_windows, left, right, _ref;
     layout_windows = this.tiles.for_layout();
@@ -655,7 +662,7 @@ HorizontalTiledLayout = (function() {
     }, this));
   };
   HorizontalTiledLayout.prototype.on_window_moved = function(win) {
-    return this.tile_for(win, __bind(function(tile, idx) {
+    return this.managed_tile_for(win, __bind(function(tile, idx) {
       var moved;
       moved = this.swap_moved_tile_if_necessary(tile, idx);
       if (!moved) {
@@ -669,7 +676,7 @@ HorizontalTiledLayout = (function() {
     return log("starting resize of split.. " + (j(this.split_resize_start_rect)));
   };
   HorizontalTiledLayout.prototype.on_window_resized = function(win) {
-    return this.tile_for(win, __bind(function(tile, idx) {
+    return this.managed_tile_for(win, __bind(function(tile, idx) {
       var diff;
       if (this.split_resize_start_rect != null) {
         diff = Tile.point_diff(this.split_resize_start_rect.size, tile.window_rect().size);
@@ -697,7 +704,7 @@ HorizontalTiledLayout = (function() {
     }, this));
   };
   HorizontalTiledLayout.prototype.adjust_splits_to_fit = function(win) {
-    return this.tile_for(win, __bind(function(tile, idx) {
+    return this.managed_tile_for(win, __bind(function(tile, idx) {
       if (!this.tiles.is_tiled(tile)) {
         return;
       }

@@ -23,10 +23,11 @@ Workspace.prototype = {
 		}
 		this.auto_tile = new_flag;
 		this.meta_windows().map(Lang.bind(this, function(meta_window) {
-			if(this.auto_tile) {
-				this.layout.tile(this.extension.get_window(meta_window));
+			var win = this.extension.get_window(meta_window);
+			if(this.auto_tile && win.should_auto_tile()) {
+				this.layout.tile(win);
 			} else {
-				this.layout.untile(this.extension.get_window(meta_window));
+				this.layout.untile(win);
 			}
 		}));
 	},
@@ -46,10 +47,10 @@ Workspace.prototype = {
 			return;
 		}
 
-		if (!this.is_normal_window(meta_window)) {
+		var win = this.extension.get_window(meta_window);
+		if(!win.can_be_tiled()) {
 			return;
 		}
-		var win = this.extension.get_window(meta_window);
 		log("on_window_create for " + win);
 		this.layout.add(win);
 		// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
@@ -96,8 +97,7 @@ Workspace.prototype = {
 		bind_to_window_change('size',     resize_ops,   Lang.bind(this.layout, this.layout.on_window_resized));
 		win.workspace_signals.push([meta_window, meta_window.connect('notify::minimized', Lang.bind(this, this.on_window_minimize_changed))]);
 
-		if(this.auto_tile) {
-			// win.before_redraw(Lang.bind(this, function() { this.layout.tile(win); }));
+		if(this.auto_tile && win.should_auto_tile()) {
 			this.layout.tile(win);
 		}
 	},
@@ -108,34 +108,21 @@ Workspace.prototype = {
 	},
 
 	on_window_remove: function(workspace, meta_window) {
-		if (this.is_normal_window(meta_window)) {
-			let window = this.extension.get_window(meta_window);
-			log("on_window_remove for " + window);
-			if(window.workspace_signals !== undefined) {
-				log("Disconnecting " + window.workspace_signals.length + " workspace-managed signals from window");
-				window.workspace_signals.map(function(signal) {
-					log("Signal is " + signal + ", disconnecting from " + meta_window);
-					signal[0].disconnect(signal[1]);
-				});
-			}
-			this.layout.on_window_killed(window);
-			this.extension.remove_window(meta_window);
+		let window = this.extension.get_window(meta_window);
+		log("on_window_remove for " + window);
+		if(window.workspace_signals !== undefined) {
+			log("Disconnecting " + window.workspace_signals.length + " workspace-managed signals from window");
+			window.workspace_signals.map(function(signal) {
+				log("Signal is " + signal + ", disconnecting from " + meta_window);
+				signal[0].disconnect(signal[1]);
+			});
 		}
-	},
-
-	is_normal_window: function(meta_window) {
-		// TODO: add more smarts about floating / special windows (e.g. guake)
-		try {
-			return meta_window.get_window_type() == Meta.WindowType.NORMAL && (!meta_window.is_skip_taskbar());
-		} catch (e) {
-			log("Failed to get window type for window " + meta_window + ", error was: " + e);
-			return false;
-		}
+		this.layout.on_window_killed(window);
+		this.extension.remove_window(meta_window);
 	},
 
 	meta_windows: function() {
 		var wins = this.meta_workspace.list_windows();
-		wins = wins.filter(Lang.bind(this, this.is_normal_window));
 		return wins;
 	}
 }
