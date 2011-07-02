@@ -14,8 +14,10 @@ To run your own checkout, you should be able to clone this repo and run `0launch
 This extension is best used with the natural window placement extension.
 
 Other extensions I use and recommend:
+
  - alternate status menu (the fact that this is not default bewilders me)
  - workspace switcher
+
 All of these should be available from your package manager, or [the gnome shell extensions page](https://live.gnome.org/GnomeShell/Extensions)
 
 ## Hacking
