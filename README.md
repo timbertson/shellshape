@@ -10,6 +10,10 @@ Please see instructions on <http://gfxmonk.net/shellshape/>
 
 To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`.
 
+## Replace gnome-shell
+
+If you symlink the provided `gnome-shell.desktop` file to `~/.local/share/applications/`, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.
+
 ## Friends
 This extension is best used with the natural window placement extension.
 
