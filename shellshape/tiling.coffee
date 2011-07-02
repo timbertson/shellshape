@@ -476,8 +476,9 @@ class HorizontalTiledLayout
 			else if tile.top_split?
 				adjust(tile.top_split, true)
 		
-	main_window: () ->
-		@tiles.main()
+	activate_main_window: () ->
+		@tiles.main (win) =>
+			win.activate()
 	
 	swap_active_with_main: () ->
 		@tiles.active (tile, idx) =>

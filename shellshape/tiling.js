@@ -629,8 +629,10 @@ HorizontalTiledLayout = (function() {
       }
     }
   };
-  HorizontalTiledLayout.prototype.main_window = function() {
-    return this.tiles.main();
+  HorizontalTiledLayout.prototype.activate_main_window = function() {
+    return this.tiles.main(__bind(function(win) {
+      return win.activate();
+    }, this));
   };
   HorizontalTiledLayout.prototype.swap_active_with_main = function() {
     return this.tiles.active(__bind(function(tile, idx) {

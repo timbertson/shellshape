@@ -125,7 +125,7 @@ const Ext = function Ext() {
 		handle('shift_j',     function() { self.current_layout().cycle(1); });
 		handle('shift_k',     function() { self.current_layout().cycle(-1); });
 
-		handle('space',       function() { self.current_layout().main_window().activate(); });
+		handle('space',       function() { self.current_layout().activate_main_window(); });
 		handle('shift_space', function() { self.current_layout().swap_active_with_main(); });
 
 		// layout changers
