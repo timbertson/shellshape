@@ -151,6 +151,7 @@ const Ext = function Ext() {
 		handle('alt_shift_j', function() { self.switch_workspace(+1, self.current_window()); });
 		handle('alt_shift_k', function() { self.switch_workspace(-1, self.current_window()); });
 		handle('z',           function() { self.current_layout().toggle_maximize();});
+		handle('shift_m',     function() { self.current_layout().unminimize_last_window();});
 		log("Done adding keyboard handlers for Shellshape");
 	};
 

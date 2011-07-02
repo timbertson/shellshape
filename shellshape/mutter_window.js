@@ -21,6 +21,9 @@ Window.prototype = {
 	,is_minimized: function() {
 		return this.meta_window.minimized;
 	}
+	,unminimize: function() {
+		this.meta_window.unminimize();
+	}
 	,before_redraw: function(func) {
 		//TODO: idle seems to be the only LaterType that reliably works; but
 		// it causes a visual flash. before_redraw would be better, but that

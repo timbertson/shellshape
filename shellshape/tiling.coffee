@@ -138,6 +138,7 @@ class TileCollection
 		@items = []
 	
 	is_visible: (item) => !item.is_minimized()
+	is_minimized: (item) => item.is_minimized()
 	is_visible_and_untiled: (item) => (!@is_tiled(item)) && @is_visible(item)
 	is_tiled: (item) => item.managed && @is_visible(item)
 	is_active: (item) => item.is_active()
@@ -193,6 +194,13 @@ class TileCollection
 		new_idx = @_wrap_index filtered_active_idx + diff, filtered.length
 		cb(filtered[filtered_active_idx], filtered[new_idx])
 		return true
+	
+	most_recently_minimized: (f) ->
+		filtered = @filter(@is_minimized, @items)
+		if filtered.length > 0
+			sorted = filtered.sort (a,b) ->
+				b.minimized_order - a.minimized_order
+			f(sorted[0])
 
 	cycle: (diff) ->
 		# only one of these will have any effect, as the active tile is either tiled or untiled
@@ -443,6 +451,15 @@ class HorizontalTiledLayout
 			tile.ensure_within(@bounds)
 			tile.layout()
 	
+	unminimize_last_window: ->
+		@tiles.most_recently_minimized (win) =>
+			#TODO: this is a little odd...
+			#      we do a relayout() as a result of the unminimize, and this
+			#      is the only way to make sure we don't activate the previously
+			#      active window.
+			TiledWindow.with_active_window win, =>
+				win.unminimize()
+	
 	adjust_split_for_tile: (opts) ->
 		{axis, diff_px, diff_ratio, tile} = opts
 		adjust = (split, inverted) ->
@@ -612,6 +629,14 @@ class HorizontalTiledLayout
 		log(" ----------------------------------- ")
 
 class TiledWindow
+	minimized_counter = 0
+	active_window_override = null
+	@with_active_window: (win, f) ->
+		_old = active_window_override
+		active_window_override = win
+		f()
+		active_window_override = _old
+
 	constructor: (win, layout) ->
 		@window = win
 		@original_rect = @window_rect()
@@ -620,6 +645,8 @@ class TiledWindow
 		@maximized = false
 		@managed = false
 		@_layout = layout
+		@_was_minimized = false
+		@minimized_order = 0
 
 	tile: (layout) ->
 		if @managed
@@ -635,9 +662,6 @@ class TiledWindow
 	
 	toString: ->
 		"<\#TiledWindow of " + @window.toString() + ">"
-	
-	before_redraw: (f) ->
-		@window.before_redraw(f)
 	
 	update_offset: ->
 		rect = @rect
@@ -658,7 +682,12 @@ class TiledWindow
 			@maximize()
 	
 	is_minimized: () ->
-		@window.is_minimized()
+		min = @window.is_minimized()
+		if min and not @_was_minimized
+			# the window with the highest minimise order is the most-recently minimized
+			@minimized_order = minimized_counter++
+		@_was_minimized = min
+		return min
 
 	maximize: () ->
 		@maximized = true
@@ -667,6 +696,9 @@ class TiledWindow
 	unmaximize: ->
 		@maximized = false
 		@layout()
+	
+	unminimize: () ->
+		@window.unminimize()
 
 	_resize: (size) ->
 		@rect.size = {x:size.x, y:size.y}
@@ -696,14 +728,16 @@ class TiledWindow
 		@offset.pos = Tile.point_add(@offset.pos, movement_required)
 	
 	layout: ->
-		is_active = @is_active()
+		if active_window_override
+			is_active = active_window_override == this
+		else
+			is_active = @is_active()
 		rect = @maximized_rect() or Tile.add_diff_to_rect(@rect, @offset)
 		{pos:pos, size:size} = Tile.ensure_rect_exists(rect)
 		this.window.move_resize(pos.x, pos.y, size.x, size.y)
 		if is_active
-			@window.before_redraw =>
-				@activate()
-	
+			@activate_before_redraw("@layout")
+
 	maximized_rect: ->
 		return null unless @maximized
 		bounds = @_layout.bounds
@@ -742,6 +776,11 @@ class TiledWindow
 	activate: ->
 		@window.activate()
 		@window.bring_to_front()
+	
+	activate_before_redraw: (reason) ->
+		@window.before_redraw =>
+			# log("activating window " + this + " (" + reason + ")")
+			@activate()
 	
 	is_active: ->
 		@window.is_active()
