@@ -238,12 +238,10 @@ class TileCollection
 		@items[idx1] = _orig
 
 	contains: (item) ->
-		ret = false
-		@each (tile) =>
-			if item == tile
-				ret = true
-				return STOP
-		return ret
+		return @indexOf(item) != -1
+	
+	indexOf: (item) ->
+		return @items.indexOf(item)
 
 	push: (item) ->
 		return if @contains(item)
@@ -254,13 +252,14 @@ class TileCollection
 			ret = f(@items[i], i)
 			return true if ret == STOP
 		return false
+
 	each_tiled: (f) -> @_filtered_each(@is_tiled, f)
 	_filtered_each: (filter, f) ->
-		@each (tile, idx) =>
+		return @each (tile, idx) =>
 			f(tile, idx) if filter(tile)
 
 	active: (f) ->
-		@each (item, idx) =>
+		return @each (item, idx) =>
 			if @is_active(item)
 				f(item, idx)
 				return STOP
@@ -271,6 +270,9 @@ class TileCollection
 
 	remove_at: (idx) ->
 		@items.splice(idx, 1)
+	
+	insert_at: (idx, item) ->
+		@items.splice(idx, 0, item)
 	
 	main: (f) ->
 		@each (tile, idx) =>
@@ -367,14 +369,15 @@ class HorizontalTiledLayout
 		@tiles.contains(win)
 
 	tile_for: (win, func) ->
-		@tiles.each (tile, idx) ->
+		return false unless win
+		return @tiles.each (tile, idx) ->
 			if tile.window == win
 				func(tile, idx)
 				return STOP
 	
 	managed_tile_for: (win, func) ->
 		# like @tile_for, but ignore floating windows
-		@tile_for win, (tile, idx) =>
+		return @tile_for win, (tile, idx) =>
 			if @tiles.is_tiled(tile)
 				func(tile, idx)
 	
@@ -431,13 +434,21 @@ class HorizontalTiledLayout
 	select_cycle: (offset) ->
 		@tiles.select_cycle(offset)
 	
-	add: (win) ->
+	add: (win, active_win) ->
 		return if @contains(win)
 		tile = new TiledWindow(win, this)
-		@tiles.push(tile)
+		found = @tile_for active_win, (active_tile, active_idx) =>
+			@tiles.insert_at(active_idx+1, tile)
+			log("spliced #{tile} into tiles at idx #{active_idx + 1}")
+			log(@tiles.items[active_idx].splice)
+			log(@tiles.items[active_idx+1].splice)
+		if not found
+			# no active tile, just add the new window at the end
+			log(@tiles.items)
+			@tiles.push(tile)
 	
 	active_tile: (fn) ->
-		@tiles.active(fn)
+		return @tiles.active(fn)
 
 	cycle: (diff) ->
 		@tiles.cycle(diff)

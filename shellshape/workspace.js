@@ -63,7 +63,7 @@ Workspace.prototype = {
 			return;
 		}
 		log("on_window_create for " + win);
-		this.layout.add(win);
+		this.layout.add(win, this.extension.focus_window);
 		// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
 		win.workspace_signals = [];
 

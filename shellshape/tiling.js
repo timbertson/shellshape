@@ -321,15 +321,10 @@ TileCollection = (function() {
     return this.items[idx1] = _orig;
   };
   TileCollection.prototype.contains = function(item) {
-    var ret;
-    ret = false;
-    this.each(__bind(function(tile) {
-      if (item === tile) {
-        ret = true;
-        return STOP;
-      }
-    }, this));
-    return ret;
+    return this.indexOf(item) !== -1;
+  };
+  TileCollection.prototype.indexOf = function(item) {
+    return this.items.indexOf(item);
   };
   TileCollection.prototype.push = function(item) {
     if (this.contains(item)) {
@@ -370,6 +365,9 @@ TileCollection = (function() {
   };
   TileCollection.prototype.remove_at = function(idx) {
     return this.items.splice(idx, 1);
+  };
+  TileCollection.prototype.insert_at = function(idx, item) {
+    return this.items.splice(idx, 0, item);
   };
   TileCollection.prototype.main = function(f) {
     return this.each(__bind(function(tile, idx) {
@@ -495,6 +493,9 @@ HorizontalTiledLayout = (function() {
     return this.tiles.contains(win);
   };
   HorizontalTiledLayout.prototype.tile_for = function(win, func) {
+    if (!win) {
+      return false;
+    }
     return this.tiles.each(function(tile, idx) {
       if (tile.window === win) {
         func(tile, idx);
@@ -579,13 +580,22 @@ HorizontalTiledLayout = (function() {
   HorizontalTiledLayout.prototype.select_cycle = function(offset) {
     return this.tiles.select_cycle(offset);
   };
-  HorizontalTiledLayout.prototype.add = function(win) {
-    var tile;
+  HorizontalTiledLayout.prototype.add = function(win, active_win) {
+    var found, tile;
     if (this.contains(win)) {
       return;
     }
     tile = new TiledWindow(win, this);
-    return this.tiles.push(tile);
+    found = this.tile_for(active_win, __bind(function(active_tile, active_idx) {
+      this.tiles.insert_at(active_idx + 1, tile);
+      log("spliced " + tile + " into tiles at idx " + (active_idx + 1));
+      log(this.tiles.items[active_idx].splice);
+      return log(this.tiles.items[active_idx + 1].splice);
+    }, this));
+    if (!found) {
+      log(this.tiles.items);
+      return this.tiles.push(tile);
+    }
   };
   HorizontalTiledLayout.prototype.active_tile = function(fn) {
     return this.tiles.active(fn);

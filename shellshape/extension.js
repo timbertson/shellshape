@@ -58,13 +58,16 @@ const Ext = function Ext() {
 		return workspace;
 	};
 
-	self.get_window = function get_window(meta_window) {
+	self.get_window = function get_window(meta_window, create_if_necessary) {
+		if(typeof(create_if_necessary) == 'undefined') {
+			create_if_necessary = true;
+		}
 		if(!meta_window) {
-			log("bad window: " + meta_window);
+			// log("bad window: " + meta_window);
 			return null;
 		}
 		var win = self.windows[meta_window];
-		if(typeof(win) == "undefined") {
+		if(typeof(win) == "undefined" && create_if_necessary) {
 			win = self.windows[meta_window] = new Window(meta_window, self);
 		}
 		return win;
@@ -181,6 +184,20 @@ const Ext = function Ext() {
 		for (let i = 0; i < self.screen.n_workspaces; i++) {
 			_init_workspace(i);
 		}
+
+		var display = self.current_display();
+		//TODO: need to disconnect and reconnect when old display changes
+		//      (when does that happen?)
+		display.connect('notify::focus-window', function(display, meta_window) {
+			// DON'T update `focus_window` if this is a window we've never seen before
+			// (it's probbaly new, and we want to know what the *previous* focus_window
+			// was in order to place it appropriately)
+			var old_focused = self.focus_window;
+			var new_focused = self.get_window(display['focus-window'], false);
+			if(new_focused) {
+				self.focus_window = new_focused;
+			}
+		});
 	};
 
 	self._init_indicator = function() {
