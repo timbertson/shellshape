@@ -241,9 +241,16 @@ TileCollection = (function() {
     return _results;
   };
   TileCollection.prototype.select_cycle = function(diff) {
-    return this._with_active_and_neighbor_when_filtered(this.is_visible, diff, __bind(function(active, neighbor) {
+    var cycled, filtered;
+    cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, __bind(function(active, neighbor) {
       return neighbor.item.activate();
     }, this));
+    if (!cycled) {
+      filtered = this.filter(this.is_visible, this.items);
+      if (filtered.length > 0) {
+        return filtered[0].activate();
+      }
+    }
   };
   TileCollection.prototype.sorted_view = function(filter) {
     var f;

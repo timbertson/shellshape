@@ -177,8 +177,13 @@ class TileCollection
 	filter: (f, items) -> (item for item in items when f(item))
 
 	select_cycle: (diff) ->
-		@_with_active_and_neighbor_when_filtered @is_visible, diff, (active, neighbor) =>
+		cycled = @_with_active_and_neighbor_when_filtered @is_visible, diff, (active, neighbor) =>
 			neighbor.item.activate()
+		if not cycled
+			# no active window - just select the first visible window if there is one
+			filtered = @filter(@is_visible, @items)
+			if filtered.length > 0
+				filtered[0].activate()
 	
 	sorted_view: (filter) ->
 		f = (obj) =>
