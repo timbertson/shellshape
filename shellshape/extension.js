@@ -171,13 +171,15 @@ const Ext = function Ext() {
 
 	self._init_workspaces = function() {
 		self.screen = global.screen;
-		self.screen.connect('workspace-added', function(screen, workspace) { self.get_workspace(workspace); });
+		function _init_workspace (i) {
+			self.get_workspace(self.screen.get_workspace_by_index(i));
+		};
+		self.screen.connect('workspace-added', function(screen, i) { _init_workspace(i); });
 		self.screen.connect('workspace-removed', self.remove_workspace);
 
 		// add existing workspaces
-		// (yay, iteration!)
 		for (let i = 0; i < self.screen.n_workspaces; i++) {
-			self.get_workspace(self.screen.get_workspace_by_index(i));
+			_init_workspace(i);
 		}
 	};
 

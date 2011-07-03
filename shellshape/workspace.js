@@ -33,13 +33,24 @@ Workspace.prototype = {
 	},
 
 	on_window_create: function(workspace, meta_window) {
-
-		let actor = meta_window.get_compositor_private();
+		var get_actor = function() {
+			try {
+				return meta_window.get_compositor_private();
+			} catch (e) {
+				log("couldn't call get_compositor_private for window " + meta_window);
+				if(meta_window.get_compositor_private) {
+					log("But the function exists! aborting...");
+					throw(e);
+				}
+			}
+			return null;
+		};
+		let actor = get_actor();
 		if (!actor) {
 			// Newly-created windows are added to a workspace before
 			// the compositor finds out about them...
 			Mainloop.idle_add(Lang.bind(this, function () {
-				if (meta_window.get_compositor_private() && meta_window.get_workspace() == this.meta_workspace) {
+				if (get_actor() && meta_window.get_workspace() == this.meta_workspace) {
 					this.on_window_create(workspace, meta_window);
 				}
 				return false;
