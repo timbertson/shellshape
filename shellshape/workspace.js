@@ -124,7 +124,7 @@ Workspace.prototype = {
 		if(window.workspace_signals !== undefined) {
 			log("Disconnecting " + window.workspace_signals.length + " workspace-managed signals from window");
 			window.workspace_signals.map(function(signal) {
-				log("Signal is " + signal + ", disconnecting from " + meta_window);
+				log("Signal is " + signal + ", disconnecting from " + signal[0]);
 				signal[0].disconnect(signal[1]);
 			});
 		}

@@ -2,7 +2,7 @@
 Type=Application
 Name=GNOME Shell
 Comment=Window management and application launching (shellshape variant)
-Exec=0launch -co http://gfxmonk.net/dist/0install/shellshape.xml
+Exec=0launch -co -v http://gfxmonk.net/dist/0install/shellshape.xml
 X-GNOME-Bugzilla-Bugzilla=GNOME
 X-GNOME-Bugzilla-Product=gnome-shell
 X-GNOME-Bugzilla-Component=general

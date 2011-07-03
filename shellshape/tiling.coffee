@@ -440,8 +440,6 @@ class HorizontalTiledLayout
 		found = @tile_for active_win, (active_tile, active_idx) =>
 			@tiles.insert_at(active_idx+1, tile)
 			log("spliced #{tile} into tiles at idx #{active_idx + 1}")
-			log(@tiles.items[active_idx].splice)
-			log(@tiles.items[active_idx+1].splice)
 		if not found
 			# no active tile, just add the new window at the end
 			log(@tiles.items)
