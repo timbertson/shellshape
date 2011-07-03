@@ -163,6 +163,11 @@ $(function() {
 	window.setTimeout(function() {
 		Screen.width = 800;
 		Screen.height = 500;
+		var Log = log4javascript;
+		var logger = Log.getLogger("shellshape");
+		var appender = new Log.InPageAppender();
+		logger.addAppender(appender);
+
 		$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
 		tiling = new HorizontalTiledLayout(0, 0, Screen.width, Screen.height);
 		function new_window() {
@@ -172,7 +177,7 @@ $(function() {
 			tiling.tile(win);
 		}
 		$(document).keydown(function(evt) {
-			console.log("key " + evt.keyCode);
+			logger.debug("key " + evt.keyCode + ", shift pressed = " + evt.shiftKey);
 			if(evt.shiftKey) {
 				switch(evt.keyCode) {
 					case 74: tiling.cycle(1); break; // j
@@ -205,5 +210,3 @@ $(function() {
 	}, 0);
 });
 
-
-function log(s) { console.log(s); };
