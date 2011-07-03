@@ -13,6 +13,7 @@ const Window = Extension.mutter_window.Window;
 const Workspace = Extension.workspace.Workspace;
 const ShellshapeIndicator = Extension.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
+const Log = imports.log4javascript.log4javascript;
 
 
 const Ext = function Ext() {
@@ -28,20 +29,20 @@ const Ext = function Ext() {
 	self.screen_dimensions.offset_x = 0;
 	self.screen_dimensions.offset_y = Main.panel.actor.height;
 	self.screen_dimensions.height = self.monitor.height - self.screen_dimensions.offset_y;
+	self.log = Log.getLogger("shellshape.extension");
 
-	self._do = function _do(action) {
+	self._do = function _do(action, desc) {
 		try {
 			action();
 		} catch (e) {
-			log("ERROR in tiling: " + e);
-			log("err = " + JSON.stringify(e));
+			self.log.error("ERROR in tiling (" + desc + "): ", e);
 		}
 	};
 
 	function handle(name, func) {
 		Main.wm.setKeybindingHandler('key_win_' + name, function() {
-			log("handling trigger " + name);
-			self._do(func);
+			self.log.debug("handling trigger " + name);
+			self._do(func, "handler for binding " + name);
 		});
 	}
 
@@ -63,7 +64,7 @@ const Ext = function Ext() {
 			create_if_necessary = true;
 		}
 		if(!meta_window) {
-			// log("bad window: " + meta_window);
+			// self.log.debug("bad window: " + meta_window);
 			return null;
 		}
 		var win = self.windows[meta_window];
@@ -97,7 +98,7 @@ const Ext = function Ext() {
 		let activate_index = global.screen.get_active_workspace_index()
 		let new_index = activate_index + offset;
 		if(new_index < 0 || new_index > global.screen.get_n_workspaces()) {
-			log("No such workspace; ignoring");
+			self.log.debug("No such workspace; ignoring");
 			return;
 		}
 
@@ -111,7 +112,7 @@ const Ext = function Ext() {
 	};
 
 	self._init_keybindings = function _init_keybindings() {
-		log("adding keyboard handlers for Shellshape");
+		self.log.debug("adding keyboard handlers for Shellshape");
 		var BORDER_RESIZE_INCREMENT = 0.05;
 		var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
 		handle('p',           function() { self.current_layout().tile(self.current_window())});
@@ -155,7 +156,7 @@ const Ext = function Ext() {
 		handle('alt_shift_k', function() { self.switch_workspace(-1, self.current_window()); });
 		handle('z',           function() { self.current_layout().toggle_maximize();});
 		handle('shift_m',     function() { self.current_layout().unminimize_last_window();});
-		log("Done adding keyboard handlers for Shellshape");
+		self.log.debug("Done adding keyboard handlers for Shellshape");
 	};
 
 	self.change_layout = function(do_tile) {
@@ -203,20 +204,22 @@ const Ext = function Ext() {
 	self._init_indicator = function() {
 		ShellshapeIndicator.init(self);
 	};
+
+
 	self.toString = function() {
 		return "<Shellshape Extension>";
 	};
 
-	self._do(self._init_keybindings);
-	self._do(self._init_workspaces);
-	self._do(self._init_indicator);
+	self._do(self._init_keybindings, "init keybindings");
+	self._do(self._init_workspaces, "init workspaces");
+	self._do(self._init_indicator, "init indicator");
+	self.log.info("shellshape initialized!");
 };
 
 Signals.addSignalMethods(Ext.prototype);
 
 // initialization
 function main() {
-	log("shellshape initialized!");
 
 	// inject the get_mouse_position function
 	Tiling.get_mouse_position = function() {
@@ -229,6 +232,12 @@ function main() {
 
 	//TODO: move into separate extension
 	St.set_slow_down_factor(0.75);
+
+	let root_logger = Log.getLogger("shellshape");
+	let GjsAppender = imports.log4javascript_gjs_appender.GjsAppender;
+	let appender = new GjsAppender();
+	appender.setLayout(new Log.PatternLayout("%-5p: %m"));
+	root_logger.addAppender(appender);
 
 	let ext = new Ext();
 }

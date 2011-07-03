@@ -1,6 +1,7 @@
 const Main = imports.ui.main;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
+const Log = imports.log4javascript.log4javascript;
 
 function Window(meta_window, ext) { this._init(meta_window, ext); }
 
@@ -17,6 +18,7 @@ Window.prototype = {
 	_init: function(meta_window, ext) {
 		this.meta_window = meta_window;
 		this.ext = ext;
+		this.log = Log.getLogger("shellshape.Window");
 	}
 	,bring_to_front: function() {
 		// NOOP (TODO: remove)
@@ -69,7 +71,7 @@ Window.prototype = {
 			return this.meta_window['window-type'];
 		} catch (e) {
 			//TODO: shouldn't be necessary
-			log("Failed to get window type for window " + this.meta_window + ", error was: " + e);
+			this.log.error("Failed to get window type for window " + this.meta_window + ", error was:", e);
 			return -1;
 		}
 	}
@@ -85,7 +87,7 @@ Window.prototype = {
 	,can_be_tiled: function() {
 		var window_type = this.window_type();
 		var result = Window.tileable_window_types.indexOf(window_type) != -1;
-		// log("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
+		// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
 		return result;
 	}
 

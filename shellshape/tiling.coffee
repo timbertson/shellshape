@@ -21,7 +21,6 @@ contains = (arr, item) ->
 get_mouse_position = ->
 	throw "override get_mouse_position()"
 
-
 Tile = {
 	copy_rect: (rect) ->
 		return {pos:{x:rect.pos.x, y:rect.pos.y}, size:{x:rect.size.x, y:rect.size.y}}
@@ -135,6 +134,7 @@ Tile = {
 
 class TileCollection
 	constructor: ->
+		@log = Log.getLogger("shellshape.tiling.TileCollection")
 		@items = []
 	
 	is_visible: (item) => !item.is_minimized()
@@ -155,7 +155,7 @@ class TileCollection
 		ts = -> "#{this.item}@#{this.index}"
 		for index in [0 ... @items.length]
 			items_and_indexes.push({item: @items[index], index: index, toString: ts})
-		# log("\nSORTING: #{j items_and_indexes}")
+		# @log.debug("\nSORTING: #{j items_and_indexes}")
 		sorted = items_and_indexes.slice().sort (a,b) =>
 			ordera = @sort_order(a.item)
 			orderb = @sort_order(b.item)
@@ -164,7 +164,7 @@ class TileCollection
 			else
 				# ensure a stable sort by using index position for equivalent windows
 				return ordera - orderb
-		# log("sorted: #{items_and_indexes}\n    to: #{sorted}")
+		# @log.debug("sorted: #{items_and_indexes}\n    to: #{sorted}")
 		return sorted
 	
 	_wrap_index: (idx, length) ->
@@ -232,7 +232,7 @@ class TileCollection
 			
 	
 	swap_at: (idx1, idx2) ->
-		# log("swapping items at index #{idx1} and #{idx2}")
+		# @log.debug("swapping items at index #{idx1} and #{idx2}")
 		_orig = @items[idx2]
 		@items[idx2] = @items[idx1]
 		@items[idx1] = _orig
@@ -265,7 +265,7 @@ class TileCollection
 				return STOP
 
 	for_layout: ->
-		# log("tiles = #{@items}, filtered = #{@filter(@is_tiled, @items)}")
+		# @log.debug("tiles = #{@items}, filtered = #{@filter(@is_tiled, @items)}")
 		@filter(@is_tiled, @items)
 
 	remove_at: (idx) ->
@@ -283,31 +283,32 @@ class TileCollection
 
 class BaseSplit
 	constructor: (@axis) ->
+		@log = Log.getLogger("shellshape.tiling.BaseSplit")
 		@ratio = HALF
 
 	adjust_ratio: (diff) ->
 		@ratio = Math.min(1, Math.max(0, @ratio + diff))
 
 	save_last_rect: (rect) ->
-		# log("last_size changed from #{@last_size} -> #{rect.size[@axis]}")
+		# @log.debug("last_size changed from #{@last_size} -> #{rect.size[@axis]}")
 		@last_size = rect.size[@axis]
 	
 	maintain_split_position_with_rect_difference: (diff) ->
 		unwanted_addition = @ratio * diff
 		@last_size += diff
-		log("adjusting by #{-unwanted_addition} to accommodate for rect size change from #{@last_size-diff} to #{@last_size}")
+		@log.debug("adjusting by #{-unwanted_addition} to accommodate for rect size change from #{@last_size-diff} to #{@last_size}")
 		@adjust_ratio_px(-unwanted_addition)
 
 	adjust_ratio_px: (diff) ->
-		log("adjusting ratio #{@ratio} by #{diff} px")
+		@log.debug("adjusting ratio #{@ratio} by #{diff} px")
 		return if diff == 0
 		current_px = @ratio * @last_size
-		log("current ratio makes for #{current_px} px (assuming last size of #{@last_size}")
+		@log.debug("current ratio makes for #{current_px} px (assuming last size of #{@last_size}")
 		new_px = current_px + diff
-		log("but we want #{new_px}")
+		@log.debug("but we want #{new_px}")
 		new_ratio = new_px / @last_size
 		throw "failed ratio: #{new_ratio}" if not Tile.within(new_ratio, 0, 1)
-		log("which makes a new ratio of #{new_ratio}")
+		@log.debug("which makes a new ratio of #{new_ratio}")
 		@ratio = new_ratio
 
 class Split extends BaseSplit
@@ -328,11 +329,12 @@ class MultiSplit extends BaseSplit
 	# which is split along @axis (where 'x' is a split
 	# that contains windows to the left and right)
 	constructor: (axis, @primary_windows) ->
+		@log = Log.getLogger("shellshape.tiling.MultiSplit")
 		super(axis)
 	
 	split: (bounds, windows) ->
 		@save_last_rect(bounds)
-		# log("mainsplit: dividing #{windows.length} after #{@primary_windows} for bounds #{j bounds}")
+		# @log.debug("mainsplit: dividing #{windows.length} after #{@primary_windows} for bounds #{j bounds}")
 		[left_windows, right_windows] = @partition_windows(windows)
 		if left_windows.length > 0 and right_windows.length > 0
 			[left_rect, right_rect] = Tile.split_rect(bounds, @axis, @ratio)
@@ -345,11 +347,12 @@ class MultiSplit extends BaseSplit
 		ArrayUtil.divide_after(@primary_windows, windows)
 
 	in_primary_partition: (idx) ->
-		# log("on left? #{idx}, #{@primary_windows} == #{idx < @primary_windows}")
+		# @log.debug("on left? #{idx}, #{@primary_windows} == #{idx < @primary_windows}")
 		idx < @primary_windows
 	
 class HorizontalTiledLayout
 	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
+		@log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout")
 		@bounds = {
 			pos:{x:screen_offset_x, y:screen_offset_y},
 			size:{x:screen_width, y:screen_height}
@@ -383,11 +386,11 @@ class HorizontalTiledLayout
 	
 	layout: (accommodate_window) ->
 		layout_windows = @tiles.for_layout()
-		# log("laying out #{layout_windows.length} windows")
+		# @log.debug("laying out #{layout_windows.length} windows")
 		if accommodate_window?
 			@_change_main_ratio_to_accommodate(accommodate_window, @main_split)
 		[left, right] = @main_split.split(@bounds, layout_windows)
-		# log("split screen into rect #{j left[0]} | #{j right[0]}")
+		# @log.debug("split screen into rect #{j left[0]} | #{j right[0]}")
 		@layout_side(left..., @splits.left, accommodate_window)
 		@layout_side(right..., @splits.right, accommodate_window)
 	
@@ -402,7 +405,7 @@ class HorizontalTiledLayout
 			return ([a[i], b[i]] for i in [0 ... Math.min(a.length, b.length)])
 
 		extend_to(windows.length, splits, -> new Split(axis))
-		# log("laying out side with rect #{j rect}, windows #{windows.length} and splits #{splits.length}")
+		# @log.debug("laying out side with rect #{j rect}, windows #{windows.length} and splits #{splits.length}")
 
 		if accommodate_window?
 			accommodate_idx = windows.indexOf(accommodate_window)
@@ -439,10 +442,9 @@ class HorizontalTiledLayout
 		tile = new TiledWindow(win, this)
 		found = @tile_for active_win, (active_tile, active_idx) =>
 			@tiles.insert_at(active_idx+1, tile)
-			log("spliced #{tile} into tiles at idx #{active_idx + 1}")
+			@log.debug("spliced #{tile} into tiles at idx #{active_idx + 1}")
 		if not found
 			# no active tile, just add the new window at the end
-			log(@tiles.items)
 			@tiles.push(tile)
 	
 	active_tile: (fn) ->
@@ -524,14 +526,14 @@ class HorizontalTiledLayout
 
 	on_split_resize_start: (win) ->
 		@split_resize_start_rect = Tile.copy_rect(@tiles[@indexOf(win)].window_rect())
-		log("starting resize of split.. #{j @split_resize_start_rect}")
+		@log.debug("starting resize of split.. #{j @split_resize_start_rect}")
 
 	on_window_resized: (win) ->
 		@managed_tile_for win, (tile, idx) =>
 			#TODO: doesn't work in mutter yet
 			if @split_resize_start_rect?
 				diff = Tile.point_diff(@split_resize_start_rect.size, tile.window_rect().size)
-				log("split resized! diff = #{j diff}")
+				@log.debug("split resized! diff = #{j diff}")
 				if diff.x != 0
 					@adjust_split_for_tile({tile: tile, diff_px: diff.x, axis: 'x'})
 				if diff.y != 0
@@ -550,15 +552,15 @@ class HorizontalTiledLayout
 	_change_main_ratio_to_accommodate: (tile, split) ->
 		[left, right] = split.partition_windows(@tiles.for_layout())
 		if contains(left, tile)
-			log("LHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
+			@log.debug("LHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
 			split.adjust_ratio_px(tile.offset.size[@main_axis] + tile.offset.pos[@main_axis])
 			tile.offset.size[@main_axis] = -tile.offset.pos[@main_axis]
 		else if contains(right, tile)
-			log("RHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
+			@log.debug("RHS adjustment for size: #{j tile.offset.size} and pos #{j tile.offset.pos}")
 			split.adjust_ratio_px(tile.offset.pos[@main_axis])
 			tile.offset.size[@main_axis] += tile.offset.pos[@main_axis]
 			tile.offset.pos[@main_axis] = 0
-		log("After main_split accommodation, tile offset = #{j tile.offset}")
+		@log.debug("After main_split accommodation, tile offset = #{j tile.offset}")
 		
 	_change_minor_ratios_to_accommodate: (tile, above_splits, below_split) ->
 		offset = tile.offset
@@ -568,7 +570,7 @@ class HorizontalTiledLayout
 		if above_splits.length > 0
 			#TODO: this algorithm seems needlessly involved. Figure out if there's a cleaner
 			#      way of doing it.
-			log("ABOVE adjustment for offset: #{j offset}, #{top_offset} diff required across #{above_splits.length}")
+			@log.debug("ABOVE adjustment for offset: #{j offset}, #{top_offset} diff required across #{above_splits.length}")
 			diff_pxes = []
 			split_sizes = []
 			total_size_above = 0
@@ -581,7 +583,7 @@ class HorizontalTiledLayout
 				proportion = split_sizes[i] / total_size_above
 				diff_pxes.push(proportion * top_offset)
 
-			log("diff pxes for above splits are: #{j diff_pxes}")
+			@log.debug("diff pxes for above splits are: #{j diff_pxes}")
 			size_taken = 0
 			for i in [0...above_splits.length]
 				split = above_splits[i]
@@ -592,7 +594,7 @@ class HorizontalTiledLayout
 
 			tile.offset.pos[axis] = 0
 			if below_split?
-				log("MODIFYING bottom to accomodate top_px changes == #{top_offset}")
+				@log.debug("MODIFYING bottom to accomodate top_px changes == #{top_offset}")
 				#TODO: seems a pretty hacky place to do it..
 				below_split.maintain_split_position_with_rect_difference(-top_offset)
 			else
@@ -600,21 +602,21 @@ class HorizontalTiledLayout
 		else
 			bottom_offset += top_offset
 		if below_split?
-			log("BELOW adjustment for offset: #{j offset}, bottom_offset = #{bottom_offset}")
-			log("before bottom minor adjustments, offset = #{j tile.offset}")
+			@log.debug("BELOW adjustment for offset: #{j offset}, bottom_offset = #{bottom_offset}")
+			@log.debug("before bottom minor adjustments, offset = #{j tile.offset}")
 			below_split.adjust_ratio_px(bottom_offset)
 			tile.offset.size[axis] -= bottom_offset
-		log("After minor adjustments, offset = #{j tile.offset}")
+		@log.debug("After minor adjustments, offset = #{j tile.offset}")
 	
 	toggle_maximize: ->
 		active = null
 		@active_tile (tile, idx) =>
 			active = tile
-		log("active == null") if active == null
+		@log.debug("active == null") if active == null
 		return if active == null
 		@each (tile) =>
 			if tile == active
-				log("toggling maximize for #{tile}")
+				@log.debug("toggling maximize for #{tile}")
 				tile.toggle_maximize()
 			else
 				tile.unmaximize()
@@ -627,7 +629,7 @@ class HorizontalTiledLayout
 			target_rect = Tile.shrink(swap_candidate.rect, 20)
 			return if swap_idx == idx
 			if Tile.point_is_within(mouse_pos, target_rect)
-				log("swapping idx #{idx} and #{swap_idx}")
+				@log.debug("swapping idx #{idx} and #{swap_idx}")
 				@tiles.swap_at(idx, swap_idx)
 				moved = true
 				return STOP
@@ -635,19 +637,19 @@ class HorizontalTiledLayout
 	
 	log_state: (lbl) ->
 		dump_win = (w) ->
-			log("   - " + j(w.rect))
+			@log.debug("   - " + j(w.rect))
 
-		log(" -------------- layout ------------- ")
-		log(" // " + lbl)
-		log(" - total windows: " + this.tiles.length)
-		log("")
-		log(" - main windows: " + this.mainsplit.primary_windows)
-		# log(j(this.tiles))
+		@log.debug(" -------------- layout ------------- ")
+		@log.debug(" // " + lbl)
+		@log.debug(" - total windows: " + this.tiles.length)
+		@log.debug("")
+		@log.debug(" - main windows: " + this.mainsplit.primary_windows)
+		# @log.debug(j(this.tiles))
 		this.main_windows().map(dump_win)
-		log("")
-		log(" - minor windows: " + @tiles.length - this.mainsplit.primary_windows)
+		@log.debug("")
+		@log.debug(" - minor windows: " + @tiles.length - this.mainsplit.primary_windows)
 		this.minor_windows().map(dump_win)
-		log(" ----------------------------------- ")
+		@log.debug(" ----------------------------------- ")
 
 class TiledWindow
 	minimized_counter = 0
@@ -659,6 +661,7 @@ class TiledWindow
 		active_window_override = _old
 
 	constructor: (win, layout) ->
+		@log = Log.getLogger("shellshape.tiling.TiledWindow")
 		@window = win
 		@original_rect = @window_rect()
 		@rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
@@ -671,7 +674,7 @@ class TiledWindow
 
 	tile: (layout) ->
 		if @managed
-			log("resetting offset for window #{this}")
+			@log.debug("resetting offset for window #{this}")
 			@reset_offset()
 		else
 			this.managed = true
@@ -691,7 +694,7 @@ class TiledWindow
 			pos:  Tile.point_diff(rect.pos,  win.pos),
 			size: Tile.point_diff(rect.size, win.size)
 		}
-		log("updated tile offset to #{j @offset}")
+		@log.debug("updated tile offset to #{j @offset}")
 	
 	window_rect: () ->
 		{pos: {x:@window.xpos(), y:@window.ypos()}, size: {x:@window.width(), y:@window.height()}}
@@ -807,7 +810,7 @@ class TiledWindow
 		@window.is_active()
 
 
-# hacky stuff for running in both the browser & gjs
+#hacky stuff for running in the browser, node & gjs
 unless log?
 	if reqire?
 		`log = require('util').log`
@@ -816,6 +819,20 @@ unless log?
 			`log = function(s) { console.log(s); }`
 		else
 			`log = function(s) { }`
+
+unless Log?
+	if require?
+		`Log = {
+			getLogger: function() { return Log; },
+			error: function() { log.apply(null, arguments) },
+			warn:  function() { log.apply(null, arguments) },
+			info:  function() { log.apply(null, arguments) },
+			debug: function() { log.apply(null, arguments) }
+		}`
+	else if imports?
+		`var Log = imports.log4javascript.log4javascript`
+	else
+		`Log = log4javascript`
 
 export_to = (dest) ->
 	dest.HorizontalTiledLayout = HorizontalTiledLayout

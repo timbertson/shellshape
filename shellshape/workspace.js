@@ -1,13 +1,14 @@
 const Mainloop = imports.mainloop;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
+const Log = imports.log4javascript.log4javascript;
 
 function Workspace() {
 	this._init.apply(this, arguments)
 }
 Workspace.prototype = {
 	_init : function(meta_workspace, layout, ext) {
-		var self = this;
+		this.log = Log.getLogger("shellshape.Workspace");
 		this.auto_tile = false;
 		this.meta_workspace = meta_workspace;
 		this.layout = layout;
@@ -33,18 +34,18 @@ Workspace.prototype = {
 	},
 
 	on_window_create: function(workspace, meta_window) {
-		var get_actor = function() {
+		var get_actor = Lang.bind(this, function() {
 			try {
 				return meta_window.get_compositor_private();
 			} catch (e) {
-				log("couldn't call get_compositor_private for window " + meta_window);
+				this.log.warn("couldn't call get_compositor_private for window " + meta_window, e);
 				if(meta_window.get_compositor_private) {
-					log("But the function exists! aborting...");
+					this.log.error("But the function exists! aborting...");
 					throw(e);
 				}
 			}
 			return null;
-		};
+		});
 		let actor = get_actor();
 		if (!actor) {
 			// Newly-created windows are added to a workspace before
@@ -62,7 +63,7 @@ Workspace.prototype = {
 		if(!win.can_be_tiled()) {
 			return;
 		}
-		log("on_window_create for " + win);
+		this.log.debug("on_window_create for " + win);
 		this.layout.add(win, this.extension.focus_window);
 		// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
 		win.workspace_signals = [];
@@ -83,7 +84,7 @@ Workspace.prototype = {
 					// callback will (frequently) trigger a stream of feedback events.
 					change_pending = false;
 					if(grab_op == Meta.GrabOp.NONE && change_happened) {
-						log("change event [" + event_name + "] happened for window " + win);
+						this.log.debug("change event [" + event_name + "] happened for window " + win);
 						cb(win);
 					}
 				}
@@ -114,19 +115,19 @@ Workspace.prototype = {
 	},
 
 	on_window_minimize_changed: function(workspace, meta_window) {
-		log("window minimization state changed for window " + meta_window);
+		this.log.debug("window minimization state changed for window " + meta_window);
 		this.layout.layout();
 	},
 
 	on_window_remove: function(workspace, meta_window) {
 		let window = this.extension.get_window(meta_window);
-		log("on_window_remove for " + window);
+		this.log.debug("on_window_remove for " + window);
 		if(window.workspace_signals !== undefined) {
-			log("Disconnecting " + window.workspace_signals.length + " workspace-managed signals from window");
-			window.workspace_signals.map(function(signal) {
-				log("Signal is " + signal + ", disconnecting from " + signal[0]);
+			this.log.debug("Disconnecting " + window.workspace_signals.length + " workspace-managed signals from window");
+			window.workspace_signals.map(Lang.bind(this, function(signal) {
+				this.log.debug("Signal is " + signal + ", disconnecting from " + signal[0]);
 				signal[0].disconnect(signal[1]);
-			});
+			}));
 		}
 		this.layout.on_window_killed(window);
 		this.extension.remove_window(meta_window);

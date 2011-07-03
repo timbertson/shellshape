@@ -3,6 +3,7 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const Panel = imports.ui.panel;
 const St = imports.gi.St;
+const Log = imports.log4javascript.log4javascript;
 
 function ShellshapeIndicator() {
 	this._init.apply(this, arguments);
@@ -12,6 +13,7 @@ ShellshapeIndicator.prototype = {
 	__proto__: PanelMenu.SystemStatusButton.prototype,
 	_init: function() {
 		// TODO: 'folder'?
+		this.log = Log.getLogger("shellshape.Indicator");
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
 
 		// create menu
@@ -38,7 +40,7 @@ ShellshapeIndicator.prototype = {
 			let item = new PopupMenu.PopupMenuItem(item_props.label);
 			items.addMenuItem(item);
 			item.connect('activate', Lang.bind(this, function() {
-				log("callback for [" + item_props.label + "] received by " + this);
+				this.log.debug("callback for [" + item_props.label + "] received by " + this);
 				this._set_text(item_props.label);
 				item_props.action.call(this);
 			}));
@@ -64,7 +66,7 @@ ShellshapeIndicator.prototype = {
 
 	_workspaceChanged: function(meta_screen, old_index, new_index) {
 		this.meta_workspace = global.screen.get_workspace_by_index(new_index);
-		// log("indicator saw switch to new workspace: " + this.meta_workspace);
+		// this.log.debug("indicator saw switch to new workspace: " + this.meta_workspace);
 		this._update_indicator();
 	},
 	_update_indicator: function() {
@@ -89,7 +91,6 @@ ShellshapeIndicator.prototype = {
 };
 ShellshapeIndicator.init = function(ext) {
 	// return;
-	log("starting ShellshapeIndicator with ext = "+ ext);
 	ShellshapeIndicator.prototype.ext = ext;
 	Panel.STANDARD_TRAY_ICON_ORDER.unshift('shellshape-indicator');
 	Panel.STANDARD_TRAY_ICON_SHELL_IMPLEMENTATION['shellshape-indicator'] = ShellshapeIndicator;

@@ -59,5 +59,17 @@ To report a bug or crash, please see the [github issues page](https://github.com
 		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml"/>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		
+	</group>
+
+	<group main="run-gnome-shell">
+		<command name="run" path="run-gnome-shell">
+			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
+				<version not-before="3.0.2"/>
+				<version before="3.0.3"/>
+			</requires>
+		</command>
+		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml"/>
+		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
+		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 	<implementation id="." version="0.1-post"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
