@@ -18,7 +18,7 @@ Window.prototype = {
 	_init: function(meta_window, ext) {
 		this.meta_window = meta_window;
 		this.ext = ext;
-		this.log = Log.getLogger("shellshape.Window");
+		this.log = Log.getLogger("shellshape.window");
 	}
 	,bring_to_front: function() {
 		// NOOP (TODO: remove)

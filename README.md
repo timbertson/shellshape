@@ -29,6 +29,9 @@ The core layout stuff is in `tiling.coffee`. This should run in both the shell a
 
 To report a bug or crash, please see the [github issues page](https://github.com/gfxmonk/shellshape/issues).
 
+## Debugging
+If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/shellshape.log`. You can set values other than `all` if you want to debug on specific topics (available topics include `extension`, `indicator`, `tiling`, `workspace` and `window`) - they should be set as a comma-delimited string, e.g `SHELLSHAPE_DEBUG=workspace,tiling`.
+
 ## Licence
 GPLv3
 

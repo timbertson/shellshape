@@ -14,6 +14,7 @@ const Workspace = Extension.workspace.Workspace;
 const ShellshapeIndicator = Extension.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
 const Log = imports.log4javascript.log4javascript;
+const GLib = imports.gi.GLib;
 
 
 const Ext = function Ext() {
@@ -218,9 +219,45 @@ const Ext = function Ext() {
 
 Signals.addSignalMethods(Ext.prototype);
 
+function _init_logging() {
+	let root_logger = Log.getLogger("shellshape");
+	let GjsAppender = imports.log4javascript_gjs_appender.GjsAppender;
+	let appender = new GjsAppender();
+	appender.setLayout(new Log.PatternLayout("%-5p: %m"));
+	let shellshape_debug = GLib.getenv("SHELLSHAPE_DEBUG");
+	let root_level = Log.Level.INFO;
+	root_logger.addAppender(appender);
+
+	if(shellshape_debug) {
+		var FileAppender = imports.log4javascript_file_appender.FileAppender;
+		let fileAppender = new FileAppender("/tmp/shellshape.log");
+		fileAppender.setLayout(new Log.PatternLayout("%d{HH:mm:ss,SSS} %-5p [%c]: %m"));
+		root_logger.addAppender(fileAppender);
+
+		if(shellshape_debug == "true" || shellshape_debug == "all" || shellshape_debug == "1") {
+			root_level = Log.Level.DEBUG;
+			root_logger.info("set log level DEBUG for shellshape.*");
+		} else {
+			let debug_topics = shellshape_debug.split(",");
+			debug_topics.map(function(topic) {
+				let log_name = "shellshape." + topic;
+				let logger = Log.getLogger(log_name);
+				logger.setLevel(Log.Level.DEBUG);
+				root_logger.info("set log level DEBUG for " + log_name);
+			});
+		}
+		root_logger.info(" ---- Shellshape starting ---- ");
+	}
+	root_logger.setLevel(root_level);
+}
+
 // initialization
 function main() {
-
+	try {
+		_init_logging();
+	} catch (e) {
+		print("ERROR in log initialization: " + e);
+	}
 	// inject the get_mouse_position function
 	Tiling.get_mouse_position = function() {
 		let display = Gdk.Display.get_default();
@@ -232,12 +269,6 @@ function main() {
 
 	//TODO: move into separate extension
 	St.set_slow_down_factor(0.75);
-
-	let root_logger = Log.getLogger("shellshape");
-	let GjsAppender = imports.log4javascript_gjs_appender.GjsAppender;
-	let appender = new GjsAppender();
-	appender.setLayout(new Log.PatternLayout("%-5p: %m"));
-	root_logger.addAppender(appender);
 
 	let ext = new Ext();
 }

@@ -8,7 +8,7 @@ function Workspace() {
 }
 Workspace.prototype = {
 	_init : function(meta_workspace, layout, ext) {
-		this.log = Log.getLogger("shellshape.Workspace");
+		this.log = Log.getLogger("shellshape.workspace");
 		this.auto_tile = false;
 		this.meta_workspace = meta_workspace;
 		this.layout = layout;

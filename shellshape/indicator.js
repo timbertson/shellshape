@@ -13,7 +13,7 @@ ShellshapeIndicator.prototype = {
 	__proto__: PanelMenu.SystemStatusButton.prototype,
 	_init: function() {
 		// TODO: 'folder'?
-		this.log = Log.getLogger("shellshape.Indicator");
+		this.log = Log.getLogger("shellshape.indicator");
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
 
 		// create menu
