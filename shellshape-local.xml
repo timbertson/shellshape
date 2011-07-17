@@ -1,8 +1,9 @@
-<?xml version="1.0" ?>
-<?xml-stylesheet type='text/xsl' href='interface.xsl'?><interface uri="http://gfxmonk.net/dist/0install/shellshape.xml" xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+<?xml version="1.0"?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://gfxmonk.net/dist/0install/shellshape.xml">
 	<name>shellshape</name>
 	<summary>tiling window manager extension for gnome-shell</summary>
-	<publish mode="default" xmlns="http://gfxmonk.net/dist/0install"/>
+	<publish xmlns="http://gfxmonk.net/dist/0install" mode="default"/>
 	<description>
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
@@ -16,18 +17,30 @@ Please see instructions on &lt;http://gfxmonk.net/shellshape/&gt;
 
 To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`.
 
+## Replace gnome-shell
+
+If you symlink the provided `gnome-shell.desktop` file to `~/.local/share/applications/`, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.
+
 ## Friends
 This extension is best used with the natural window placement extension.
 
 Other extensions I use and recommend:
+
  - alternate status menu (the fact that this is not default bewilders me)
  - workspace switcher
+
 All of these should be available from your package manager, or [the gnome shell extensions page](https://live.gnome.org/GnomeShell/Extensions)
 
 ## Hacking
 The core layout stuff is in `tiling.coffee`. This should run in both the shell and in the web browser (see `interactive/index.html`; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for `tiling.js`, it is generated from `tiling.coffee`).
 
 To report a bug or crash, please see the [github issues page](https://github.com/gfxmonk/shellshape/issues).
+
+## Debugging
+If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/shellshape.log`. You can set values other than `all` if you want to debug on specific topics (available topics include `extension`, `indicator`, `tiling`, `workspace` and `window`) - they should be set as a comma-delimited string, e.g `SHELLSHAPE_DEBUG=workspace,tiling`.
+
+## Licence
+GPLv3
 
 [bluetile]: http://bluetile.org/
 	</description>
@@ -39,14 +52,25 @@ To report a bug or crash, please see the [github issues page](https://github.com
 			<p>This software is in-development. I use it daily, but it might break stuff. Use at your own risk.</p>
 			<p>I must thank <a href="http://bluetile.org/">bluetile</a>, for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).</p>
 			<h2 id="running-it">Running it</h2>
-			<p>Please see instructions on <a href="http://gfxmonk.net/shellshape/"><code>http://gfxmonk.net/shellshape/</code></a></p>
+			<p>Please see instructions on <a href="http://gfxmonk.net/shellshape/"><code class="url">http://gfxmonk.net/shellshape/</code></a></p>
 			<p>To run your own checkout, you should be able to clone this repo and run <code>0launch shellshape-local.xml</code>.</p>
+			<h2 id="replace-gnome-shell">Replace gnome-shell</h2>
+			<p>If you symlink the provided <code>gnome-shell.desktop</code> file to <code>~/.local/share/applications/</code>, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.</p>
 			<h2 id="friends">Friends</h2>
 			<p>This extension is best used with the natural window placement extension.</p>
-			<p>Other extensions I use and recommend: - alternate status menu (the fact that this is not default bewilders me) - workspace switcher All of these should be available from your package manager, or <a href="https://live.gnome.org/GnomeShell/Extensions">the gnome shell extensions page</a></p>
+			<p>Other extensions I use and recommend:</p>
+			<ul>
+				<li>alternate status menu (the fact that this is not default bewilders me)</li>
+				<li>workspace switcher</li>
+			</ul>
+			<p>All of these should be available from your package manager, or <a href="https://live.gnome.org/GnomeShell/Extensions">the gnome shell extensions page</a></p>
 			<h2 id="hacking">Hacking</h2>
 			<p>The core layout stuff is in <code>tiling.coffee</code>. This should run in both the shell and in the web browser (see <code>interactive/index.html</code>; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for <code>tiling.js</code>, it is generated from <code>tiling.coffee</code>).</p>
 			<p>To report a bug or crash, please see the <a href="https://github.com/gfxmonk/shellshape/issues">github issues page</a>.</p>
+			<h2 id="debugging">Debugging</h2>
+			<p>If you export <code>SHELLSHAPE_DEBUG=all</code>, you will get a debug log written to <code>/tmp/shellshape.log</code>. You can set values other than <code>all</code> if you want to debug on specific topics (available topics include <code>extension</code>, <code>indicator</code>, <code>tiling</code>, <code>workspace</code> and <code>window</code>) - they should be set as a comma-delimited string, e.g <code>SHELLSHAPE_DEBUG=workspace,tiling</code>.</p>
+			<h2 id="licence">Licence</h2>
+			<p>GPLv3</p>
 		</div>
 	</rich-description>
 	<group main="run-gnome-shell">
@@ -56,11 +80,12 @@ To report a bug or crash, please see the [github issues page](https://github.com
 				<version before="3.0.3"/>
 			</requires>
 		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml"/>
+		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
+			<version not-before="0.1"/>
+			<version before="0.2"/>
+		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		
 	</group>
-
 	<group main="run-gnome-shell">
 		<command name="run" path="run-gnome-shell">
 			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
@@ -68,8 +93,13 @@ To report a bug or crash, please see the [github issues page](https://github.com
 				<version before="3.0.3"/>
 			</requires>
 		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml"/>
+		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
+			<version not-before="0.2"/>
+			<version before="0.3"/>
+		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-	<implementation id="." version="0.1-post"/></group>
-<feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
+		<implementation id="." version="0.2-post"/>
+	</group>
+	<feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/>
+</interface>

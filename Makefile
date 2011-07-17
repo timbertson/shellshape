@@ -19,6 +19,7 @@ auto: phony js
 		-p run-gnome-shell \
 		-p shellshape \
 		-p xdg \
+		-p lib \
 		shellshape.xml
 
 .PHONY: phony
