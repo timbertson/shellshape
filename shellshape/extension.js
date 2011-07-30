@@ -98,7 +98,7 @@ const Ext = function Ext() {
 	self.switch_workspace = function switch_workspace(offset, window) {
 		let activate_index = global.screen.get_active_workspace_index()
 		let new_index = activate_index + offset;
-		if(new_index < 0 || new_index > global.screen.get_n_workspaces()) {
+		if(new_index < 0 || new_index >= global.screen.get_n_workspaces()) {
 			self.log.debug("No such workspace; ignoring");
 			return;
 		}
