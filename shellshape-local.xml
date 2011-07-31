@@ -1,9 +1,8 @@
-<?xml version="1.0"?>
-<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
-<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://gfxmonk.net/dist/0install/shellshape.xml">
+<?xml version="1.0" ?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?><interface uri="http://gfxmonk.net/dist/0install/shellshape.xml" xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
 	<name>shellshape</name>
 	<summary>tiling window manager extension for gnome-shell</summary>
-	<publish xmlns="http://gfxmonk.net/dist/0install" mode="default"/>
+	<publish mode="default" xmlns="http://gfxmonk.net/dist/0install"/>
 	<description>
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
@@ -85,9 +84,15 @@ GPLv3
 			<version before="0.2"/>
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
+		
 	</group>
-	<group main="run-gnome-shell">
-		<command name="run" path="run-gnome-shell">
+	<group>
+		<command name="run">
+			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
+				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
+				<arg>--plugin-command</arg>
+				<arg>run</arg>
+			</runner>
 			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
 				<version not-before="3.0.2"/>
 				<version before="3.0.3"/>
@@ -99,7 +104,6 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="." version="0.2-post"/>
-	</group>
-	<feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/>
-</interface>
+		
+	<implementation id="." version="0.2-post"/></group>
+<feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>

@@ -90,8 +90,13 @@ GPLv3
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.1.tgz" size="19310"/>
 		</implementation>
 	</group>
-	<group main="run-gnome-shell">
-		<command name="run" path="run-gnome-shell">
+	<group>
+		<command name="run">
+			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
+				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
+				<arg>--plugin-command</arg>
+				<arg>run</arg>
+			</runner>
 			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
 				<version not-before="3.0.2"/>
 				<version before="3.0.3"/>
