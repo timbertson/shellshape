@@ -714,12 +714,17 @@ class TiledWindow
 		return min
 
 	maximize: () ->
-		@maximized = true
-		@layout()
+		unless @maximized
+			@maximized = true
+			@update_offset()
+			@layout()
 	
 	unmaximize: ->
-		@maximized = false
-		@layout()
+		if @maximized
+			@maximized = false
+			unless @managed
+				@log.debug("unmaximize caused layout()")
+			@layout()
 	
 	unminimize: () ->
 		@window.unminimize()

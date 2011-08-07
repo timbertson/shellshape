@@ -949,12 +949,20 @@ TiledWindow = (function() {
     return min;
   };
   TiledWindow.prototype.maximize = function() {
-    this.maximized = true;
-    return this.layout();
+    if (!this.maximized) {
+      this.maximized = true;
+      this.update_offset();
+      return this.layout();
+    }
   };
   TiledWindow.prototype.unmaximize = function() {
-    this.maximized = false;
-    return this.layout();
+    if (this.maximized) {
+      this.maximized = false;
+      if (!this.managed) {
+        this.log.debug("unmaximize caused layout()");
+      }
+      return this.layout();
+    }
   };
   TiledWindow.prototype.unminimize = function() {
     return this.window.unminimize();
