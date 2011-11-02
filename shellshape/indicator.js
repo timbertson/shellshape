@@ -1,14 +1,15 @@
 const Lang = imports.lang;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
-const Panel = imports.ui.panel;
 const St = imports.gi.St;
 const Log = imports.log4javascript.log4javascript;
+const Main = imports.ui.main;
+
+let _indicator;
 
 function ShellshapeIndicator() {
 	this._init.apply(this, arguments);
 }
-
 
 
 function PopupImageMenuItem() {
@@ -38,8 +39,9 @@ PopupImageMenuItem.prototype = {
 
 ShellshapeIndicator.prototype = {
 	__proto__: PanelMenu.SystemStatusButton.prototype,
-	_init: function() {
+	_init: function(ext) {
 		this.log = Log.getLogger("shellshape.indicator");
+		this.ext = ext;
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
 
 		// create menu
@@ -93,7 +95,8 @@ ShellshapeIndicator.prototype = {
 		});
 		this.box.add_actor(this.icon);
 		this.box.add_actor(this.status_label);
-		this.actor.set_child(this.box);
+		this.actor.get_children().forEach(function(c) { c.destroy() });
+		this.actor.add_actor(this.box);
 
 		this.meta_workspace = global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
 		this._update_indicator()
@@ -136,11 +139,14 @@ ShellshapeIndicator.prototype = {
 	},
 
 };
-ShellshapeIndicator.init = function(ext) {
-	// return;
-	ShellshapeIndicator.prototype.ext = ext;
-	Panel.STANDARD_TRAY_ICON_ORDER.unshift('shellshape-indicator');
-	Panel.STANDARD_TRAY_ICON_SHELL_IMPLEMENTATION['shellshape-indicator'] = ShellshapeIndicator;
+ShellshapeIndicator.enable = function(ext) {
+	_indicator = new ShellshapeIndicator(ext);
+	Main.panel.addToStatusArea('shellshape-indicator', _indicator);
+};
+
+ShellshapeIndicator.disable = function() {
+	_indicator.destroy();
+	_indicator = undefined;
 };
 
 

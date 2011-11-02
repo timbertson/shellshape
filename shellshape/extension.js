@@ -19,17 +19,6 @@ const GLib = imports.gi.GLib;
 
 const Ext = function Ext() {
 	let self = this;
-	self.workspaces = {};
-	self.windows = {};
-	//TODO: non-primaty monitor!
-	self.monitor = global.get_primary_monitor();
-	self.screen = global.screen;
-
-	self.screen_dimensions = {}
-	self.screen_dimensions.width = self.monitor.width;
-	self.screen_dimensions.offset_x = 0;
-	self.screen_dimensions.offset_y = Main.panel.actor.height;
-	self.screen_dimensions.height = self.monitor.height - self.screen_dimensions.offset_y;
 	self.log = Log.getLogger("shellshape.extension");
 
 	self._do = function _do(action, desc) {
@@ -203,18 +192,41 @@ const Ext = function Ext() {
 	};
 
 	self._init_indicator = function() {
-		ShellshapeIndicator.init(self);
+		ShellshapeIndicator.enable(self);
 	};
-
 
 	self.toString = function() {
 		return "<Shellshape Extension>";
 	};
 
-	self._do(self._init_keybindings, "init keybindings");
-	self._do(self._init_workspaces, "init workspaces");
-	self._do(self._init_indicator, "init indicator");
 	self.log.info("shellshape initialized!");
+
+	self.enable = function() {
+		self.log.info("shellshape enable() called");
+		self.workspaces = {};
+		self.windows = {};
+		let screen = self.screen = global.screen;
+		//TODO: non-primaty monitor!
+		var monitorIdx = screen.get_primary_monitor();
+		self.monitor = screen.get_monitor_geometry(monitorIdx);
+
+		self.screen_dimensions = {}
+		self.screen_dimensions.width = self.monitor.width;
+		self.screen_dimensions.offset_x = 0;
+		self.screen_dimensions.offset_y = Main.panel.actor.height;
+		self.screen_dimensions.height = self.monitor.height - self.screen_dimensions.offset_y;
+		self._do(self._init_keybindings, "init keybindings");
+		self._do(self._init_workspaces, "init workspaces");
+		self._do(self._init_indicator, "init indicator");
+		self.log.info("shellshape enabled");
+	};
+
+	self.disable = function() {
+		self.log.info("shellshape disable() called");
+		ShellshapeIndicator.disable();
+		//TODO: be a good citizen!
+		self.log.info("shellshape disabled");
+	};
 };
 
 Signals.addSignalMethods(Ext.prototype);
@@ -252,7 +264,7 @@ function _init_logging() {
 }
 
 // initialization
-function main() {
+function init() {
 	try {
 		_init_logging();
 	} catch (e) {
@@ -271,4 +283,9 @@ function main() {
 	St.set_slow_down_factor(0.75);
 
 	let ext = new Ext();
+	return ext;
 }
+
+function main() {
+	init().enable();
+};
