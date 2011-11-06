@@ -112,10 +112,6 @@ GPLv3
 			<manifest-digest sha256="1ddd07270621510b0146d878663cb658a82c551d85ae8b7c8340792f1a77adbf"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.2.tgz" size="52106"/>
 		</implementation>
-		<implementation id="sha1new=5911b1408350157fe60331346296c32e3f579857" released="2011-11-06" version="0.3">
-			<manifest-digest sha256="74ad0de60e71ac63577e37e9c7c277fc15eb6622b2a1905f473c86e2d007d2ba"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.tgz" size="52270"/>
-		</implementation>
 	</group>
 	<group>
 		<command name="run">
@@ -135,5 +131,9 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
+		<implementation id="sha1new=5911b1408350157fe60331346296c32e3f579857" released="2011-11-06" version="0.3">
+			<manifest-digest sha256="74ad0de60e71ac63577e37e9c7c277fc15eb6622b2a1905f473c86e2d007d2ba"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.tgz" size="52270"/>
+		</implementation>
 	</group>
 </interface>
