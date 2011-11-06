@@ -104,6 +104,7 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
+		
 	</group>
 	<group>
 		<command name="run">
@@ -123,6 +124,5 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		
-	<implementation id="." version="0.3-pre1"/></group>
+	<implementation id="." version="0.3-post"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
