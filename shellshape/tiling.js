@@ -1,4 +1,4 @@
-var ArrayUtil, Axis, BaseSplit, HALF, HorizontalTiledLayout, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, contains, export_to, get_mouse_position, j;
+var ArrayUtil, Axis, BaseSplit, BaseTiledLayout, HALF, HorizontalTiledLayout, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, VerticalTiledLayout, contains, export_to, get_mouse_position, j;
 var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
   for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
   function ctor() { this.constructor = child; }
@@ -466,8 +466,8 @@ MultiSplit = (function() {
   };
   return MultiSplit;
 })();
-HorizontalTiledLayout = (function() {
-  function HorizontalTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
+BaseTiledLayout = (function() {
+  function BaseTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
     this.log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout");
     this.bounds = {
       pos: {
@@ -480,23 +480,22 @@ HorizontalTiledLayout = (function() {
       }
     };
     this.tiles = new TileCollection();
-    this.main_axis = 'x';
     this.main_split = new MultiSplit(this.main_axis, 1);
     this.splits = {
       left: [],
       right: []
     };
   }
-  HorizontalTiledLayout.prototype.each_tiled = function(func) {
+  BaseTiledLayout.prototype.each_tiled = function(func) {
     return this.tiles.each_tiled(func);
   };
-  HorizontalTiledLayout.prototype.each = function(func) {
+  BaseTiledLayout.prototype.each = function(func) {
     return this.tiles.each(func);
   };
-  HorizontalTiledLayout.prototype.contains = function(win) {
+  BaseTiledLayout.prototype.contains = function(win) {
     return this.tiles.contains(win);
   };
-  HorizontalTiledLayout.prototype.tile_for = function(win, func) {
+  BaseTiledLayout.prototype.tile_for = function(win, func) {
     if (!win) {
       return false;
     }
@@ -507,14 +506,14 @@ HorizontalTiledLayout = (function() {
       }
     });
   };
-  HorizontalTiledLayout.prototype.managed_tile_for = function(win, func) {
+  BaseTiledLayout.prototype.managed_tile_for = function(win, func) {
     return this.tile_for(win, __bind(function(tile, idx) {
       if (this.tiles.is_tiled(tile)) {
         return func(tile, idx);
       }
     }, this));
   };
-  HorizontalTiledLayout.prototype.layout = function(accommodate_window) {
+  BaseTiledLayout.prototype.layout = function(accommodate_window) {
     var layout_windows, left, right, _ref;
     layout_windows = this.tiles.for_layout();
     if (accommodate_window != null) {
@@ -524,7 +523,7 @@ HorizontalTiledLayout = (function() {
     this.layout_side.apply(this, __slice.call(left).concat([this.splits.left], [accommodate_window]));
     return this.layout_side.apply(this, __slice.call(right).concat([this.splits.right], [accommodate_window]));
   };
-  HorizontalTiledLayout.prototype.layout_side = function(rect, windows, splits, accommodate_window) {
+  BaseTiledLayout.prototype.layout_side = function(rect, windows, splits, accommodate_window) {
     var accommodate_idx, axis, bottom_split, extend_to, other_axis, previous_split, split, top_splits, window, zip, _i, _len, _ref, _ref2, _ref3, _results;
     axis = Axis.other(this.main_axis);
     extend_to = function(size, array, generator) {
@@ -571,20 +570,20 @@ HorizontalTiledLayout = (function() {
     }
     return _results;
   };
-  HorizontalTiledLayout.prototype.add_main_window_count = function(i) {
+  BaseTiledLayout.prototype.add_main_window_count = function(i) {
     this.main_split.primary_windows += i;
     return this.layout();
   };
-  HorizontalTiledLayout.prototype.tile = function(win) {
+  BaseTiledLayout.prototype.tile = function(win) {
     return this.tile_for(win, __bind(function(tile) {
       tile.tile();
       return this.layout();
     }, this));
   };
-  HorizontalTiledLayout.prototype.select_cycle = function(offset) {
+  BaseTiledLayout.prototype.select_cycle = function(offset) {
     return this.tiles.select_cycle(offset);
   };
-  HorizontalTiledLayout.prototype.add = function(win, active_win) {
+  BaseTiledLayout.prototype.add = function(win, active_win) {
     var found, tile;
     if (this.contains(win)) {
       return;
@@ -598,18 +597,18 @@ HorizontalTiledLayout = (function() {
       return this.tiles.push(tile);
     }
   };
-  HorizontalTiledLayout.prototype.active_tile = function(fn) {
+  BaseTiledLayout.prototype.active_tile = function(fn) {
     return this.tiles.active(fn);
   };
-  HorizontalTiledLayout.prototype.cycle = function(diff) {
+  BaseTiledLayout.prototype.cycle = function(diff) {
     this.tiles.cycle(diff);
     return this.layout();
   };
-  HorizontalTiledLayout.prototype.adjust_main_window_area = function(diff) {
+  BaseTiledLayout.prototype.adjust_main_window_area = function(diff) {
     this.main_split.adjust_ratio(diff);
     return this.layout();
   };
-  HorizontalTiledLayout.prototype.adjust_current_window_size = function(diff) {
+  BaseTiledLayout.prototype.adjust_current_window_size = function(diff) {
     return this.active_tile(__bind(function(tile) {
       this.adjust_split_for_tile({
         tile: tile,
@@ -619,7 +618,7 @@ HorizontalTiledLayout = (function() {
       return this.layout();
     }, this));
   };
-  HorizontalTiledLayout.prototype.scale_current_window = function(amount, axis) {
+  BaseTiledLayout.prototype.scale_current_window = function(amount, axis) {
     return this.active_tile(__bind(function(tile) {
       tile.scale_by(amount, axis);
       tile.center_window();
@@ -627,14 +626,14 @@ HorizontalTiledLayout = (function() {
       return tile.layout();
     }, this));
   };
-  HorizontalTiledLayout.prototype.unminimize_last_window = function() {
+  BaseTiledLayout.prototype.unminimize_last_window = function() {
     return this.tiles.most_recently_minimized(__bind(function(win) {
       return TiledWindow.with_active_window(win, __bind(function() {
         return win.unminimize();
       }, this));
     }, this));
   };
-  HorizontalTiledLayout.prototype.adjust_split_for_tile = function(opts) {
+  BaseTiledLayout.prototype.adjust_split_for_tile = function(opts) {
     var adjust, axis, diff_px, diff_ratio, tile;
     axis = opts.axis, diff_px = opts.diff_px, diff_ratio = opts.diff_ratio, tile = opts.tile;
     adjust = function(split, inverted) {
@@ -654,12 +653,12 @@ HorizontalTiledLayout = (function() {
       }
     }
   };
-  HorizontalTiledLayout.prototype.activate_main_window = function() {
+  BaseTiledLayout.prototype.activate_main_window = function() {
     return this.tiles.main(__bind(function(win) {
       return win.activate();
     }, this));
   };
-  HorizontalTiledLayout.prototype.swap_active_with_main = function() {
+  BaseTiledLayout.prototype.swap_active_with_main = function() {
     return this.tiles.active(__bind(function(tile, idx) {
       return this.tiles.main(__bind(function(main_tile, main_idx) {
         this.tiles.swap_at(idx, main_idx);
@@ -667,19 +666,19 @@ HorizontalTiledLayout = (function() {
       }, this));
     }, this));
   };
-  HorizontalTiledLayout.prototype.untile = function(win) {
+  BaseTiledLayout.prototype.untile = function(win) {
     return this.tile_for(win, __bind(function(tile) {
       tile.release();
       return this.layout();
     }, this));
   };
-  HorizontalTiledLayout.prototype.on_window_killed = function(win) {
+  BaseTiledLayout.prototype.on_window_killed = function(win) {
     return this.tile_for(win, __bind(function(tile, idx) {
       this.tiles.remove_at(idx);
       return this.layout();
     }, this));
   };
-  HorizontalTiledLayout.prototype.on_window_moved = function(win) {
+  BaseTiledLayout.prototype.on_window_moved = function(win) {
     return this.managed_tile_for(win, __bind(function(tile, idx) {
       var moved;
       moved = this.swap_moved_tile_if_necessary(tile, idx);
@@ -689,11 +688,11 @@ HorizontalTiledLayout = (function() {
       return this.layout();
     }, this));
   };
-  HorizontalTiledLayout.prototype.on_split_resize_start = function(win) {
+  BaseTiledLayout.prototype.on_split_resize_start = function(win) {
     this.split_resize_start_rect = Tile.copy_rect(this.tiles[this.indexOf(win)].window_rect());
     return this.log.debug("starting resize of split.. " + (j(this.split_resize_start_rect)));
   };
-  HorizontalTiledLayout.prototype.on_window_resized = function(win) {
+  BaseTiledLayout.prototype.on_window_resized = function(win) {
     return this.managed_tile_for(win, __bind(function(tile, idx) {
       var diff;
       if (this.split_resize_start_rect != null) {
@@ -721,7 +720,7 @@ HorizontalTiledLayout = (function() {
       return true;
     }, this));
   };
-  HorizontalTiledLayout.prototype.adjust_splits_to_fit = function(win) {
+  BaseTiledLayout.prototype.adjust_splits_to_fit = function(win) {
     return this.managed_tile_for(win, __bind(function(tile, idx) {
       if (!this.tiles.is_tiled(tile)) {
         return;
@@ -729,7 +728,7 @@ HorizontalTiledLayout = (function() {
       return this.layout(tile);
     }, this));
   };
-  HorizontalTiledLayout.prototype._change_main_ratio_to_accommodate = function(tile, split) {
+  BaseTiledLayout.prototype._change_main_ratio_to_accommodate = function(tile, split) {
     var left, right, _ref;
     _ref = split.partition_windows(this.tiles.for_layout()), left = _ref[0], right = _ref[1];
     if (contains(left, tile)) {
@@ -744,7 +743,7 @@ HorizontalTiledLayout = (function() {
     }
     return this.log.debug("After main_split accommodation, tile offset = " + (j(tile.offset)));
   };
-  HorizontalTiledLayout.prototype._change_minor_ratios_to_accommodate = function(tile, above_splits, below_split) {
+  BaseTiledLayout.prototype._change_minor_ratios_to_accommodate = function(tile, above_splits, below_split) {
     var axis, bottom_offset, diff_px, diff_pxes, i, offset, proportion, size_taken, split, split_size, split_sizes, top_offset, total_size_above, _i, _len, _ref, _ref2;
     offset = tile.offset;
     axis = Axis.other(this.main_axis);
@@ -792,7 +791,7 @@ HorizontalTiledLayout = (function() {
     }
     return this.log.debug("After minor adjustments, offset = " + (j(tile.offset)));
   };
-  HorizontalTiledLayout.prototype.toggle_maximize = function() {
+  BaseTiledLayout.prototype.toggle_maximize = function() {
     var active;
     active = null;
     this.active_tile(__bind(function(tile, idx) {
@@ -813,7 +812,7 @@ HorizontalTiledLayout = (function() {
       }
     }, this));
   };
-  HorizontalTiledLayout.prototype.swap_moved_tile_if_necessary = function(tile, idx) {
+  BaseTiledLayout.prototype.swap_moved_tile_if_necessary = function(tile, idx) {
     var mouse_pos, moved;
     if (!this.tiles.is_tiled(tile)) {
       return;
@@ -835,7 +834,7 @@ HorizontalTiledLayout = (function() {
     }, this));
     return moved;
   };
-  HorizontalTiledLayout.prototype.log_state = function(lbl) {
+  BaseTiledLayout.prototype.log_state = function(lbl) {
     var dump_win;
     dump_win = function(w) {
       return this.log.debug("   - " + j(w.rect));
@@ -851,7 +850,23 @@ HorizontalTiledLayout = (function() {
     this.minor_windows().map(dump_win);
     return this.log.debug(" ----------------------------------- ");
   };
+  return BaseTiledLayout;
+})();
+HorizontalTiledLayout = (function() {
+  __extends(HorizontalTiledLayout, BaseTiledLayout);
+  function HorizontalTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
+    this.main_axis = 'x';
+    HorizontalTiledLayout.__super__.constructor.call(this, screen_offset_x, screen_offset_y, screen_width, screen_height);
+  }
   return HorizontalTiledLayout;
+})();
+VerticalTiledLayout = (function() {
+  __extends(VerticalTiledLayout, BaseTiledLayout);
+  function VerticalTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
+    this.main_axis = 'y';
+    VerticalTiledLayout.__super__.constructor.call(this, screen_offset_x, screen_offset_y, screen_width, screen_height);
+  }
+  return VerticalTiledLayout;
 })();
 TiledWindow = (function() {
   var active_window_override, minimized_counter;

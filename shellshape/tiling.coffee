@@ -349,8 +349,8 @@ class MultiSplit extends BaseSplit
 	in_primary_partition: (idx) ->
 		# @log.debug("on left? #{idx}, #{@primary_windows} == #{idx < @primary_windows}")
 		idx < @primary_windows
-	
-class HorizontalTiledLayout
+
+class BaseTiledLayout
 	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
 		@log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout")
 		@bounds = {
@@ -358,7 +358,6 @@ class HorizontalTiledLayout
 			size:{x:screen_width, y:screen_height}
 		}
 		@tiles = new TileCollection()
-		@main_axis = 'x'
 		@main_split = new MultiSplit(@main_axis, 1)
 		@splits = { left: [], right: []}
 
@@ -650,6 +649,17 @@ class HorizontalTiledLayout
 		@log.debug(" - minor windows: " + @tiles.length - this.mainsplit.primary_windows)
 		this.minor_windows().map(dump_win)
 		@log.debug(" ----------------------------------- ")
+
+
+class HorizontalTiledLayout extends BaseTiledLayout
+	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
+		@main_axis = 'x'
+		super(screen_offset_x, screen_offset_y, screen_width, screen_height)
+
+class VerticalTiledLayout extends BaseTiledLayout
+	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
+		@main_axis = 'y'
+		super(screen_offset_x, screen_offset_y, screen_width, screen_height)
 
 class TiledWindow
 	minimized_counter = 0
