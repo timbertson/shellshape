@@ -104,7 +104,6 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
-		
 	</group>
 	<group>
 		<command name="run">
@@ -124,5 +123,27 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-	<implementation id="." version="0.3-post"/></group>
+		
+	</group>
+	<group stability="developer">
+		<command name="run">
+			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
+				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
+				<arg>--plugin-command</arg>
+				<arg>run</arg>
+			</runner>
+			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
+				<version not-before="3.2"/>
+			</requires>
+		</command>
+		<command name="vanilla">
+			<runner interface="http://gfxmonk.net/dist/0install/gnome-shell.xml"/>
+		</command>
+		<requires interface="http://gfxmonk.net/dist/0install/mutter.xml">
+			<version not-before="3.2.2"/>
+		</requires>
+		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
+		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
+		
+	<implementation id="." version="0.4-pre1"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
