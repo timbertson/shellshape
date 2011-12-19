@@ -13,9 +13,15 @@ Workspace.prototype = {
 		this.meta_workspace = meta_workspace;
 		this.layout = layout;
 		this.extension = ext;
-		this.meta_workspace.connect('window-added', Lang.bind(this, this.on_window_create));
-		this.meta_workspace.connect('window-removed', Lang.bind(this, this.on_window_remove));
+		this.extension._connect(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
+		this.extension._connect(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
 		this.meta_windows().map(Lang.bind(this, this.on_window_create));
+	},
+	_disable: function() {
+		this.meta_windows().map(Lang.bind(this, this.on_window_remove));
+		this.extension._disconnect_signals(this);
+		this.meta_workspace = null;
+		this.extension = null;
 	},
 
 	tile_all : function(new_flag) {
@@ -33,7 +39,7 @@ Workspace.prototype = {
 		}));
 	},
 
-	on_window_create: function(workspace, meta_window) {
+	on_window_create: function(meta_window) {
 		var get_actor = Lang.bind(this, function() {
 			try {
 				return meta_window.get_compositor_private();
@@ -52,7 +58,7 @@ Workspace.prototype = {
 			// the compositor finds out about them...
 			Mainloop.idle_add(Lang.bind(this, function () {
 				if (get_actor() && meta_window.get_workspace() == this.meta_workspace) {
-					this.on_window_create(workspace, meta_window);
+					this.on_window_create(meta_window);
 				}
 				return false;
 			}));
@@ -114,12 +120,12 @@ Workspace.prototype = {
 		}
 	},
 
-	on_window_minimize_changed: function(workspace, meta_window) {
+	on_window_minimize_changed: function(meta_window) {
 		this.log.debug("window minimization state changed for window " + meta_window);
 		this.layout.layout();
 	},
 
-	on_window_remove: function(workspace, meta_window) {
+	on_window_remove: function(meta_window) {
 		let window = this.extension.get_window(meta_window);
 		this.log.debug("on_window_remove for " + window);
 		if(window.workspace_signals !== undefined) {

@@ -32,6 +32,9 @@ Window.prototype = {
 	,is_minimized: function() {
 		return this.meta_window.minimized;
 	}
+	,minimize: function() {
+		this.meta_window.minimize();
+	}
 	,unminimize: function() {
 		this.meta_window.unminimize();
 	}

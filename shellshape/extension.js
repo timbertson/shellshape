@@ -2,6 +2,7 @@
 
 const Lang = imports.lang;
 const Main = imports.ui.main;
+const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
 const St = imports.gi.St;
 const Mainloop = imports.mainloop;
@@ -15,6 +16,7 @@ const ShellshapeIndicator = Extension.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
 const Log = imports.log4javascript.log4javascript;
 const GLib = imports.gi.GLib;
+const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
 
 const Ext = function Ext() {
@@ -26,14 +28,22 @@ const Ext = function Ext() {
 			action();
 		} catch (e) {
 			self.log.error("ERROR in tiling (" + desc + "): ", e);
+			self.log.error(e.stack);
 		}
 	};
 
 	function handle(name, func) {
-		Main.wm.setKeybindingHandler('key_win_' + name, function() {
-			self.log.debug("handling trigger " + name);
-			self._do(func, "handler for binding " + name);
-		});
+		self._bound_keybindings[name] = true;
+		var added = self.current_display().add_keybinding(name,
+			KEYBINDING_BASE,
+			Meta.KeyBindingFlags.NONE,
+			function() {
+				self._do(func, "handler for binding " + name);
+			}
+		);
+		if(!added) {
+			throw("failed to add keybinding handler for: " + name);
+		}
 	}
 
 	self.get_workspace = function get_workspace(meta_workspace) {
@@ -105,47 +115,48 @@ const Ext = function Ext() {
 		self.log.debug("adding keyboard handlers for Shellshape");
 		var BORDER_RESIZE_INCREMENT = 0.05;
 		var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
-		handle('p',           function() { self.current_layout().tile(self.current_window())});
-		handle('y',           function() { self.current_layout().untile(self.current_window()); });
-		handle('shift_p',     function() { self.current_layout().adjust_splits_to_fit(self.current_window()); });
-		handle('comma',       function() { self.current_layout().add_main_window_count(1); });
-		handle('dot',         function() { self.current_layout().add_main_window_count(-1); });
+		handle('tile-current-window',           function() { self.current_layout().tile(self.current_window())});
+		handle('untile-current-window',         function() { self.current_layout().untile(self.current_window()); });
+		handle('adjust-splits-to-fit',          function() { self.current_layout().adjust_splits_to_fit(self.current_window()); });
+		handle('increase-main-window-count',    function() { self.current_layout().add_main_window_count(1); });
+		handle('decrease-main-window-count',    function() { self.current_layout().add_main_window_count(-1); });
 
-		handle('j',           function() { self.current_layout().select_cycle(1); });
-		handle('k',           function() { self.current_layout().select_cycle(-1); });
-		handle('tab',         function() { self.current_layout().select_cycle(1); });
-		handle('shift_tab',   function() { self.current_layout().select_cycle(-1); });
+		handle('next-window',                   function() { self.current_layout().select_cycle(1); });
+		handle('prev-window',                   function() { self.current_layout().select_cycle(-1); });
 
-		handle('shift_j',     function() { self.current_layout().cycle(1); });
-		handle('shift_k',     function() { self.current_layout().cycle(-1); });
+		handle('rotate-current-window',         function() { self.current_layout().cycle(1); });
+		handle('rotate-current-window-reverse', function() { self.current_layout().cycle(-1); });
 
-		handle('space',       function() { self.current_layout().activate_main_window(); });
-		handle('shift_space', function() { self.current_layout().swap_active_with_main(); });
+		handle('focus-main-window',             function() { self.current_layout().activate_main_window(); });
+		handle('swap-current-window-with-main', function() { self.current_layout().swap_active_with_main(); });
 
 		// layout changers
-		handle('d',           function() { self.change_layout(true); });
-		handle('f',           function() { self.change_layout(false); });
+		handle('set-layout-tiled-horizontal',   function() { self.change_layout(true); });
+		handle('set-layout-floating',           function() { self.change_layout(false); });
 
-		// move a window's borders to resize it
-		handle('h',           function() { self.current_layout().adjust_main_window_area(-BORDER_RESIZE_INCREMENT); });
-		handle('l',           function() { self.current_layout().adjust_main_window_area(+BORDER_RESIZE_INCREMENT); });
-		handle('u',           function() { self.current_layout().adjust_current_window_size(-BORDER_RESIZE_INCREMENT); });
-		handle('i',           function() { self.current_layout().adjust_current_window_size(+BORDER_RESIZE_INCREMENT); });
+		// move a window's borders
+		// to resize it
+		handle('increase-main-split',           function() { self.current_layout().adjust_main_window_area(+BORDER_RESIZE_INCREMENT); });
+		handle('decrease-main-split',           function() { self.current_layout().adjust_main_window_area(-BORDER_RESIZE_INCREMENT); });
+		handle('increase-minor-split',          function() { self.current_layout().adjust_current_window_size(+BORDER_RESIZE_INCREMENT); });
+		handle('decrease-minor-split',          function() { self.current_layout().adjust_current_window_size(-BORDER_RESIZE_INCREMENT); });
 
-		// resize a window without affecting others
-		handle('shift_h',     function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
-		handle('shift_l',     function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
-		handle('shift_u',     function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
-		handle('shift_i',     function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
-		handle('minus',       function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT); });
-		handle('plus',        function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT); });
+		// resize a window without
+		// affecting others
+		handle('decrease-main-size',            function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
+		handle('increase-main-size',            function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
+		handle('decrease-minor-size',           function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
+		handle('increase-minor-size',           function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
+		handle('decrease-size',                 function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT); });
+		handle('increase-size',                 function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT); });
 
-		handle('alt_j',       function() { self.switch_workspace(+1); });
-		handle('alt_k',       function() { self.switch_workspace(-1); });
-		handle('alt_shift_j', function() { self.switch_workspace(+1, self.current_window()); });
-		handle('alt_shift_k', function() { self.switch_workspace(-1, self.current_window()); });
-		handle('z',           function() { self.current_layout().toggle_maximize();});
-		handle('shift_m',     function() { self.current_layout().unminimize_last_window();});
+		handle('switch-workspace-down',         function() { self.switch_workspace(+1); });
+		handle('switch-workspace-up',           function() { self.switch_workspace(-1); });
+		handle('move-window-workspace-down',    function() { self.switch_workspace(+1, self.current_window()); });
+		handle('move-window-workspace-up',      function() { self.switch_workspace(-1, self.current_window()); });
+		handle('toggle-maximize',               function() { self.current_layout().toggle_maximize();});
+		handle('minimize-window',               function() { self.current_layout().minimize_window();});
+		handle('unminimize-last-window',        function() { self.current_layout().unminimize_last_window();});
 		self.log.debug("Done adding keyboard handlers for Shellshape");
 	};
 
@@ -155,12 +166,23 @@ const Ext = function Ext() {
 	};
 	
 	self.remove_workspace = function(meta_workspace) {
-		delete self.workspaces[meta_workspace];
-		//TODO: clean up windows in workspace? probably shouldn't happen given how GS works
+		self.log.debug("disabling workspace...");
+		var ws = self.workspaces[meta_workspace];
+		if(ws != null) {
+			self._do(function() {ws._disable();}, 'disable workspace');
+			delete self.workspaces[meta_workspace];
+		}
 	};
 
 	self.remove_window = function(meta_window) {
 		delete self.windows[meta_window];
+	};
+
+	self._connect = function(owner, subject, name, cb) {
+		if (!owner.hasOwnProperty('_bound_signals')) {
+			owner._bound_signals = [];
+		}
+		owner._bound_signals.push([subject, subject.connect(name, cb)]);
 	};
 
 	self._init_workspaces = function() {
@@ -168,8 +190,8 @@ const Ext = function Ext() {
 		function _init_workspace (i) {
 			self.get_workspace(self.screen.get_workspace_by_index(i));
 		};
-		self.screen.connect('workspace-added', function(screen, i) { _init_workspace(i); });
-		self.screen.connect('workspace-removed', self.remove_workspace);
+		self._connect(self, self.screen, 'workspace-added', function(screen, i) { _init_workspace(i); });
+		self._connect(self, self.screen, 'workspace-removed', self.remove_workspace);
 
 		// add existing workspaces
 		for (let i = 0; i < self.screen.n_workspaces; i++) {
@@ -179,9 +201,9 @@ const Ext = function Ext() {
 		var display = self.current_display();
 		//TODO: need to disconnect and reconnect when old display changes
 		//      (when does that happen?)
-		display.connect('notify::focus-window', function(display, meta_window) {
+		self._connect(self, display, 'notify::focus-window', function(display, meta_window) {
 			// DON'T update `focus_window` if this is a window we've never seen before
-			// (it's probbaly new, and we want to know what the *previous* focus_window
+			// (it's probably new, and we want to know what the *previous* focus_window
 			// was in order to place it appropriately)
 			var old_focused = self.focus_window;
 			var new_focused = self.get_window(display['focus-window'], false);
@@ -201,16 +223,22 @@ const Ext = function Ext() {
 
 	self.log.info("shellshape initialized!");
 
-	self.enable = function() {
-		self.log.info("shellshape enable() called");
+	self._reset_state = function() {
+		// reset stateful variables
 		self.workspaces = {};
 		self.windows = {};
+		self.screen_dimensions = {}
+		self._bound_keybindings = {};
+	};
+
+	self.enable = function() {
+		self.log.info("shellshape enable() called");
+		self._reset_state();
 		let screen = self.screen = global.screen;
 		//TODO: non-primaty monitor!
 		var monitorIdx = screen.get_primary_monitor();
 		self.monitor = screen.get_monitor_geometry(monitorIdx);
 
-		self.screen_dimensions = {}
 		self.screen_dimensions.width = self.monitor.width;
 		self.screen_dimensions.offset_x = 0;
 		self.screen_dimensions.offset_y = Main.panel.actor.height;
@@ -221,10 +249,44 @@ const Ext = function Ext() {
 		self.log.info("shellshape enabled");
 	};
 
+	self._unbind_keys = function() {
+		var display = self.current_display();
+		for (k in self._bound_keybindings) {
+			if(!self._bound_keybindings.hasOwnProperty(k)) continue;
+			var desc = "unbinding key " + k;
+			self._do(function() {
+				self.log.debug(desc);
+				display.remove_keybinding(k);
+			}, desc);
+		}
+	};
+
+	self._disconnect_signals = function(owner) {
+		if(owner._bound_signals == null) return;
+		for(var i=0; i<owner._bound_signals.length; i++) {
+			var sig = owner._bound_signals[i];
+			this._do(function() {
+				sig[0].disconnect(sig[1]);
+			}, "disconnecting signal " + i + " of " + owner._bound_signals.length + " (from object " + sig[0] + ")");
+		}
+		delete owner._bound_signals;
+	};
+
+	self._disconnect_workspaces = function() {
+		for (var k in self.workspaces) {
+			if (self.workspaces.hasOwnProperty(k)) {
+				self.remove_workspace(k);
+			}
+		}
+	};
+
 	self.disable = function() {
 		self.log.info("shellshape disable() called");
-		ShellshapeIndicator.disable();
-		//TODO: be a good citizen!
+		self._do(function() { ShellshapeIndicator.disable();}, "disable indicator");
+		self._do(self._disconnect_workspaces, "disable workspaces");
+		self._do(self._unbind_keys, "unbind keys");
+		self._do(function() { self._disconnect_signals(self); }, "disconnect signals");
+		self._reset_state();
 		self.log.info("shellshape disabled");
 	};
 };

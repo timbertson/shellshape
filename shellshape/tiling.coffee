@@ -473,6 +473,10 @@ class BaseTiledLayout
 			tile.layout()
 	
 	unminimize_last_window: ->
+		@active_tile (tile) =>
+			tile.minimize()
+
+	unminimize_last_window: ->
 		@tiles.most_recently_minimized (win) =>
 			#TODO: this is a little odd...
 			#      we do a relayout() as a result of the unminimize, and this
