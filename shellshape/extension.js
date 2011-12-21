@@ -26,6 +26,7 @@ const Ext = function Ext() {
 			action();
 		} catch (e) {
 			self.log.error("ERROR in tiling (" + desc + "): ", e);
+			self.log.error(e.stack);
 		}
 	};
 
@@ -39,12 +40,8 @@ const Ext = function Ext() {
 	self.get_workspace = function get_workspace(meta_workspace) {
 		let workspace = self.workspaces[meta_workspace];
 		if(typeof(workspace) == "undefined") {
-			var layout = new Tiling.HorizontalTiledLayout(
-					self.screen_dimensions.offset_x,
-					self.screen_dimensions.offset_y,
-					self.screen_dimensions.width,
-					self.screen_dimensions.height);
-			workspace = self.workspaces[meta_workspace] = new Workspace(meta_workspace, layout, self);;
+			var state = new Tiling.LayoutState(self.bounds);
+			workspace = self.workspaces[meta_workspace] = new Workspace(meta_workspace, state, self);
 		}
 		return workspace;
 	};
@@ -123,8 +120,8 @@ const Ext = function Ext() {
 		handle('shift_space', function() { self.current_layout().swap_active_with_main(); });
 
 		// layout changers
-		handle('d',           function() { self.change_layout(true); });
-		handle('f',           function() { self.change_layout(false); });
+		handle('d',           function() { self.change_layout(Tiling.HorizontalTiledLayout); });
+		handle('f',           function() { self.change_layout(Tiling.FloatingLayout); });
 
 		// move a window's borders to resize it
 		handle('h',           function() { self.current_layout().adjust_main_window_area(-BORDER_RESIZE_INCREMENT); });
@@ -149,8 +146,8 @@ const Ext = function Ext() {
 		self.log.debug("Done adding keyboard handlers for Shellshape");
 	};
 
-	self.change_layout = function(do_tile) {
-		self.current_workspace().tile_all(do_tile);
+	self.change_layout = function(cls) {
+		self.current_workspace().set_layout(cls);
 		self.emit('layout-changed');
 	};
 	
@@ -211,10 +208,9 @@ const Ext = function Ext() {
 		self.monitor = screen.get_monitor_geometry(monitorIdx);
 
 		self.screen_dimensions = {}
-		self.screen_dimensions.width = self.monitor.width;
-		self.screen_dimensions.offset_x = 0;
-		self.screen_dimensions.offset_y = Main.panel.actor.height;
-		self.screen_dimensions.height = self.monitor.height - self.screen_dimensions.offset_y;
+		self.bounds = {};
+		self.bounds.pos = { x: 0, y: Main.panel.actor.height }
+		self.bounds.size = {x: self.monitor.width, y: self.monitor.height - self.bounds.pos.y }
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_workspaces, "init workspaces");
 		self._do(self._init_indicator, "init indicator");

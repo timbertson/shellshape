@@ -324,6 +324,24 @@ class Split extends BaseSplit
 	
 	toString: -> "Split with ratio #{@ratio}"
 
+class LayoutState
+	# shared state for every layout type. Includes distinct @splits
+	# objects for both directions
+	constructor: (bounds, tiles) ->
+		@tiles = tiles || new TileCollection()
+		@splits = {
+			'x': {
+				main: new MultiSplit('x', 1),
+				minor: { left: [], right: []}
+			},
+			'y': {
+				main: new MultiSplit('y', 1),
+				minor: { left: [], right: []}
+			}
+		}
+		@bounds = bounds
+
+
 class MultiSplit extends BaseSplit
 	# a slpitter that contains multiple windows on either side,
 	# which is split along @axis (where 'x' is a split
@@ -350,25 +368,13 @@ class MultiSplit extends BaseSplit
 		# @log.debug("on left? #{idx}, #{@primary_windows} == #{idx < @primary_windows}")
 		idx < @primary_windows
 
-class BaseTiledLayout
-	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
-		@log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout")
-		@bounds = {
-			pos:{x:screen_offset_x, y:screen_offset_y},
-			size:{x:screen_width, y:screen_height}
-		}
-		@tiles = new TileCollection()
-		@main_split = new MultiSplit(@main_axis, 1)
-		@splits = { left: [], right: []}
-
-	each_tiled: (func) ->
-		@tiles.each_tiled(func)
-
-	each: (func) ->
-		@tiles.each(func)
-
-	contains: (win) ->
-		@tiles.contains(win)
+class BaseLayout
+	constructor: (state) ->
+		@state = state
+		@tiles = state.tiles
+	
+	each: (func) -> @tiles.each(func)
+	contains: (win) -> @tiles.contains(win)
 
 	tile_for: (win, func) ->
 		return false unless win
@@ -376,13 +382,113 @@ class BaseTiledLayout
 			if tile.window == win
 				func(tile, idx)
 				return STOP
-	
+
 	managed_tile_for: (win, func) ->
 		# like @tile_for, but ignore floating windows
 		return @tile_for win, (tile, idx) =>
 			if @tiles.is_tiled(tile)
 				func(tile, idx)
-	
+
+	tile: (win) ->
+		@tile_for win, (tile) =>
+			tile.tile()
+			@layout()
+
+	select_cycle: (offset) -> @tiles.select_cycle(offset)
+
+	add: (win, active_win) ->
+		return if @contains(win)
+		tile = new TiledWindow(win, @state)
+		found = @tile_for active_win, (active_tile, active_idx) =>
+			@tiles.insert_at(active_idx+1, tile)
+			@log.debug("spliced #{tile} into tiles at idx #{active_idx + 1}")
+		if not found
+			# no active tile, just add the new window at the end
+			@tiles.push(tile)
+
+	active_tile: (fn) -> return @tiles.active(fn)
+	cycle: (diff) ->
+		@tiles.cycle(diff)
+		@layout()
+
+	unminimize_last_window: ->
+		@tiles.most_recently_minimized (win) =>
+			#TODO: this is a little odd...
+			#      we do a relayout() as a result of the unminimize, and this
+			#      is the only way to make sure we don't activate the previously
+			#      active window.
+			TiledWindow.with_active_window win, =>
+				win.unminimize()
+
+	untile: (win) ->
+		@tile_for win, (tile) =>
+			tile.release()
+			@layout()
+
+	on_window_killed: (win) ->
+		@tile_for win, (tile, idx) =>
+			@tiles.remove_at(idx)
+			@layout()
+
+	toggle_maximize: ->
+		active = null
+		@active_tile (tile, idx) =>
+			active = tile
+		@log.debug("active == null") if active == null
+		return if active == null
+		@each (tile) =>
+			if tile == active
+				@log.debug("toggling maximize for #{tile}")
+				tile.toggle_maximize()
+			else
+				tile.unmaximize()
+
+	# all the actions that are specific to an actual tiling layout are NOOP'd here, 
+	# so the keyboard handlers don't have to worry whether it's a valid thing to call
+	on_window_moved: (win) -> null
+	on_window_resized: (win) -> null
+	on_split_resize_start: (win) -> null
+	adjust_splits_to_fit: (win) -> null
+
+	add_main_window_count: (i) -> null
+
+	adjust_main_window_area: (diff) -> null
+	adjust_current_window_size: (diff) -> null
+	scale_current_window: (amount, axis) -> null
+
+	adjust_split_for_tile: (opts) -> null
+	activate_main_window: () -> null
+	swap_active_with_main: () -> null
+
+class FloatingLayout extends BaseLayout
+	constructor: (a...) ->
+		@log = Log.getLogger("shellshape.tiling.FloatingLayout")
+		super(a...)
+
+	layout: (accommodate_window) ->
+		@each (tile) =>
+			@log.debug("resetting window state...")
+			tile.resume_original_state()
+			tile.layout()
+		# now don't bother laying out anything again!
+		@layout = (accommodate_window) -> null
+
+	on_window_resized: (win) -> @on_window_moved(win)
+	on_window_moved: (win) ->
+		@tile_for win, (tile, idx) =>
+			tile.update_original_rect()
+
+class BaseTiledLayout extends BaseLayout
+	constructor: (state) ->
+		super(state)
+		#TODO: remove need for these instance vars
+		@bounds = state.bounds
+		@main_split = state.splits[@main_axis].main
+		@splits = state.splits[@main_axis].minor
+
+	_each_tiled: (func) ->
+		@tiles.each_tiled(func)
+
 	layout: (accommodate_window) ->
 		layout_windows = @tiles.for_layout()
 		# @log.debug("laying out #{layout_windows.length} windows")
@@ -390,10 +496,10 @@ class BaseTiledLayout
 			@_change_main_ratio_to_accommodate(accommodate_window, @main_split)
 		[left, right] = @main_split.split(@bounds, layout_windows)
 		# @log.debug("split screen into rect #{j left[0]} | #{j right[0]}")
-		@layout_side(left..., @splits.left, accommodate_window)
-		@layout_side(right..., @splits.right, accommodate_window)
+		@_layout_side(left..., @splits.left, accommodate_window)
+		@_layout_side(right..., @splits.right, accommodate_window)
 	
-	layout_side: (rect, windows, splits, accommodate_window) ->
+	_layout_side: (rect, windows, splits, accommodate_window) ->
 		axis = Axis.other(@main_axis)
 
 		extend_to = (size, array, generator) ->
@@ -428,31 +534,6 @@ class BaseTiledLayout
 		@main_split.primary_windows += i
 		@layout()
 	
-	tile: (win) ->
-		@tile_for win, (tile) =>
-			tile.tile()
-			@layout()
-
-	select_cycle: (offset) ->
-		@tiles.select_cycle(offset)
-	
-	add: (win, active_win) ->
-		return if @contains(win)
-		tile = new TiledWindow(win, this)
-		found = @tile_for active_win, (active_tile, active_idx) =>
-			@tiles.insert_at(active_idx+1, tile)
-			@log.debug("spliced #{tile} into tiles at idx #{active_idx + 1}")
-		if not found
-			# no active tile, just add the new window at the end
-			@tiles.push(tile)
-	
-	active_tile: (fn) ->
-		return @tiles.active(fn)
-
-	cycle: (diff) ->
-		@tiles.cycle(diff)
-		@layout()
-	
 	adjust_main_window_area: (diff) ->
 		@main_split.adjust_ratio(diff)
 		@layout()
@@ -470,16 +551,7 @@ class BaseTiledLayout
 			tile.scale_by(amount, axis)
 			tile.center_window()
 			tile.ensure_within(@bounds)
-			tile.layout()
-	
-	unminimize_last_window: ->
-		@tiles.most_recently_minimized (win) =>
-			#TODO: this is a little odd...
-			#      we do a relayout() as a result of the unminimize, and this
-			#      is the only way to make sure we don't activate the previously
-			#      active window.
-			TiledWindow.with_active_window win, =>
-				win.unminimize()
+			tile.layout(@state)
 	
 	adjust_split_for_tile: (opts) ->
 		{axis, diff_px, diff_ratio, tile} = opts
@@ -507,19 +579,9 @@ class BaseTiledLayout
 				@tiles.swap_at(idx, main_idx)
 				@layout()
 	
-	untile: (win) ->
-		@tile_for win, (tile) =>
-			tile.release()
-			@layout()
-
-	on_window_killed: (win) ->
-		@tile_for win, (tile, idx) =>
-			@tiles.remove_at(idx)
-			@layout()
-
 	on_window_moved: (win) ->
 		@managed_tile_for win, (tile, idx) =>
-			moved = @swap_moved_tile_if_necessary(tile, idx)
+			moved = @_swap_moved_tile_if_necessary(tile, idx)
 			tile.update_offset() unless moved
 			@layout()
 
@@ -607,24 +669,11 @@ class BaseTiledLayout
 			tile.offset.size[axis] -= bottom_offset
 		@log.debug("After minor adjustments, offset = #{j tile.offset}")
 	
-	toggle_maximize: ->
-		active = null
-		@active_tile (tile, idx) =>
-			active = tile
-		@log.debug("active == null") if active == null
-		return if active == null
-		@each (tile) =>
-			if tile == active
-				@log.debug("toggling maximize for #{tile}")
-				tile.toggle_maximize()
-			else
-				tile.unmaximize()
-	
-	swap_moved_tile_if_necessary: (tile, idx) ->
+	_swap_moved_tile_if_necessary: (tile, idx) ->
 		return unless @tiles.is_tiled(tile)
 		mouse_pos = get_mouse_position()
 		moved = false
-		@each_tiled (swap_candidate, swap_idx) =>
+		@_each_tiled (swap_candidate, swap_idx) =>
 			target_rect = Tile.shrink(swap_candidate.rect, 20)
 			return if swap_idx == idx
 			if Tile.point_is_within(mouse_pos, target_rect)
@@ -634,7 +683,7 @@ class BaseTiledLayout
 				return STOP
 		return moved
 	
-	log_state: (lbl) ->
+	_log_state: (lbl) ->
 		dump_win = (w) ->
 			@log.debug("   - " + j(w.rect))
 
@@ -652,14 +701,16 @@ class BaseTiledLayout
 
 
 class HorizontalTiledLayout extends BaseTiledLayout
-	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
+	constructor: (state) ->
+		@log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout")
 		@main_axis = 'x'
-		super(screen_offset_x, screen_offset_y, screen_width, screen_height)
+		super(state)
 
 class VerticalTiledLayout extends BaseTiledLayout
-	constructor: (screen_offset_x, screen_offset_y, screen_width, screen_height) ->
+	constructor: (state) ->
+		@log = Log.getLogger("shellshape.tiling.VerticalTiledLayout")
 		@main_axis = 'y'
-		super(screen_offset_x, screen_offset_y, screen_width, screen_height)
+		super(state)
 
 class TiledWindow
 	minimized_counter = 0
@@ -667,22 +718,32 @@ class TiledWindow
 	@with_active_window: (win, f) ->
 		_old = active_window_override
 		active_window_override = win
-		f()
-		active_window_override = _old
+		try
+			f()
+		finally
+			active_window_override = _old
 
-	constructor: (win, layout) ->
+	constructor: (win, state) ->
 		@log = Log.getLogger("shellshape.tiling.TiledWindow")
 		@window = win
-		@original_rect = @window_rect()
-		@rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
-		@reset_offset()
+		@bounds = state.bounds
 		@maximized = false
 		@managed = false
-		@_layout = layout
 		@_was_minimized = false
 		@minimized_order = 0
+		@rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
+		@update_original_rect()
+	
+	update_original_rect: () ->
+		@original_rect = @window_rect()
+		@log.debug("window #{@} remembering new rect of #{JSON.stringify(@original_rect)}")
+	
+	resume_original_state: () ->
+		@reset_offset()
+		@rect = Tile.copy_rect(@original_rect)
+		@log.debug("window #{@} resuming old rect of #{JSON.stringify(@rect)}")
 
-	tile: (layout) ->
+	tile: () ->
 		if @managed
 			@log.debug("resetting offset for window #{this}")
 			@reset_offset()
@@ -766,7 +827,7 @@ class TiledWindow
 		movement_required = Tile.point_diff(window_center, tile_center)
 		@offset.pos = Tile.point_add(@offset.pos, movement_required)
 	
-	layout: ->
+	layout: () ->
 		if active_window_override
 			is_active = active_window_override == this
 		else
@@ -777,9 +838,9 @@ class TiledWindow
 		if is_active
 			@activate_before_redraw("@layout")
 
-	maximized_rect: ->
+	maximized_rect: () ->
 		return null unless @maximized
-		bounds = @_layout.bounds
+		bounds = @bounds
 		border = 20
 		return {
 			pos: {
@@ -851,6 +912,7 @@ unless Log?
 
 export_to = (dest) ->
 	dest.HorizontalTiledLayout = HorizontalTiledLayout
+	dest.FloatingLayout = FloatingLayout
 	dest.TileCollection = TileCollection
 	dest.Axis = Axis
 	dest.Tile = Tile

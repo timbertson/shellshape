@@ -4,6 +4,8 @@ const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
 const Log = imports.log4javascript.log4javascript;
 const Main = imports.ui.main;
+const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
+const Tiling = Extension.tiling;
 
 let _indicator;
 
@@ -48,36 +50,30 @@ ShellshapeIndicator.prototype = {
 		this.menu_entries = [
 			{
 				label: 'Floating',
-				action: this._untile_all,
+				layout: Tiling.FloatingLayout,
 				icon: 'window-tile-floating-symbolic'
-				// activeText: 'X'
 			},
 			{
 				label: 'Horizontal',
-				action: this._tile_all,
+				layout: Tiling.HorizontalTiledLayout,
 				icon: 'window-tile-horizontal-symbolic'
-				// activeText: 'Tiled'
+			},
+			{
+				label: 'Vertical',
+				layout: Tiling.VerticalTiledLayout,
+				icon: 'window-tile-vertical-symbolic'
 			}
-			// ,{
-			// 	label: 'Vertical',
-			// 	action: this._tile_all,
-			// 	icon: 'window-tile-vertical-symbolic'
-			// }
 		];
-		this.menu_indexes = {
-			floating: 0,
-			horizontal: 1
-		};
 
 		var items = new PopupMenu.PopupMenuSection();
-		for(i in this.menu_entries) {
+		for(var i=0; i<this.menu_entries.length; i++) {
 			let item_props = this.menu_entries[i];
 			let item = new PopupImageMenuItem(item_props.label, item_props.icon);
 			items.addMenuItem(item);
 			item.connect('activate', Lang.bind(this, function() {
 				this.log.debug("callback for [" + item_props.label + "] received by " + this);
 				this._set_active_item(item_props);
-				item_props.action.call(this);
+				this._current_workspace().set_layout(item_props.layout);
 			}));
 		}
 		this.menu.addMenuItem(items);
@@ -98,8 +94,7 @@ ShellshapeIndicator.prototype = {
 		this.actor.get_children().forEach(function(c) { c.destroy() });
 		this.actor.add_actor(this.box);
 
-		this.meta_workspace = global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
-		this._update_indicator()
+		this._workspaceChanged(null, null, global.screen.get_active_workspace_index());
 
 		global.screen.connect_after('workspace-switched', Lang.bind(this,this._workspaceChanged));
 		this.ext.connect('layout-changed', Lang.bind(this, this._update_indicator));
@@ -120,23 +115,22 @@ ShellshapeIndicator.prototype = {
 		this._update_indicator();
 	},
 	_update_indicator: function() {
-		//TODO: extend this when we have multiple tiling layouts
 		var item_props = null;
-		if(this.ext.get_workspace(this.meta_workspace).auto_tile) {
-			item_props = this.menu_entries[this.menu_indexes.horizontal];
-		} else {
-			item_props = this.menu_entries[this.menu_indexes.floating];
+		var layout_cls = this._current_workspace().active_layout;
+		for(var i=0; i<this.menu_entries.length; i++) {
+			var entry = this.menu_entries[i];
+			if(entry.layout == layout_cls) {
+				item_props = entry;
+				break;
+			}
+		}
+		if(item_props == null) {
+			throw("Couldn't find indicator entry for layout class: " + layout_cls);
 		}
 		this._set_active_item(item_props);
 	},
 
-	_tile_all: function() {
-		this.ext.current_workspace().tile_all(true);
-	},
-
-	_untile_all: function() {
-		this.ext.current_workspace().tile_all(false);
-	},
+	_current_workspace: function() { return this.ext.current_workspace(); },
 
 };
 ShellshapeIndicator.enable = function(ext) {

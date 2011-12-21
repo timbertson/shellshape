@@ -1,12 +1,6 @@
-var ArrayUtil, Axis, BaseSplit, BaseTiledLayout, HALF, HorizontalTiledLayout, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, VerticalTiledLayout, contains, export_to, get_mouse_position, j;
-var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
-  for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; }
-  function ctor() { this.constructor = child; }
-  ctor.prototype = parent.prototype;
-  child.prototype = new ctor;
-  child.__super__ = parent.prototype;
-  return child;
-}, __slice = Array.prototype.slice;
+var ArrayUtil, Axis, BaseLayout, BaseSplit, BaseTiledLayout, FloatingLayout, HALF, HorizontalTiledLayout, LayoutState, MultiSplit, STOP, Split, Tile, TileCollection, TiledWindow, VerticalTiledLayout, contains, export_to, get_mouse_position, j;
+var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; }, __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; }, __slice = Array.prototype.slice;
+
 Axis = {
   other: function(axis) {
     if (axis === 'y') {
@@ -16,11 +10,15 @@ Axis = {
     }
   }
 };
+
 j = function(s) {
   return JSON.stringify(s);
 };
+
 HALF = 0.5;
+
 STOP = '_stop_iter';
+
 ArrayUtil = {
   divide_after: function(num, items) {
     return [items.slice(0, num), items.slice(num)];
@@ -32,12 +30,15 @@ ArrayUtil = {
     return array;
   }
 };
+
 contains = function(arr, item) {
   return arr.indexOf(item) !== -1;
 };
+
 get_mouse_position = function() {
   throw "override get_mouse_position()";
 };
+
 Tile = {
   copy_rect: function(rect) {
     return {
@@ -162,31 +163,39 @@ Tile = {
     };
   }
 };
+
 TileCollection = (function() {
+
   function TileCollection() {
-    this.sort_order = __bind(this.sort_order, this);;
-    this.is_active = __bind(this.is_active, this);;
-    this.is_tiled = __bind(this.is_tiled, this);;
-    this.is_visible_and_untiled = __bind(this.is_visible_and_untiled, this);;
-    this.is_minimized = __bind(this.is_minimized, this);;
-    this.is_visible = __bind(this.is_visible, this);;    this.log = Log.getLogger("shellshape.tiling.TileCollection");
+    this.sort_order = __bind(this.sort_order, this);
+    this.is_active = __bind(this.is_active, this);
+    this.is_tiled = __bind(this.is_tiled, this);
+    this.is_visible_and_untiled = __bind(this.is_visible_and_untiled, this);
+    this.is_minimized = __bind(this.is_minimized, this);
+    this.is_visible = __bind(this.is_visible, this);    this.log = Log.getLogger("shellshape.tiling.TileCollection");
     this.items = [];
   }
+
   TileCollection.prototype.is_visible = function(item) {
     return !item.is_minimized();
   };
+
   TileCollection.prototype.is_minimized = function(item) {
     return item.is_minimized();
   };
+
   TileCollection.prototype.is_visible_and_untiled = function(item) {
     return (!this.is_tiled(item)) && this.is_visible(item);
   };
+
   TileCollection.prototype.is_tiled = function(item) {
     return item.managed && this.is_visible(item);
   };
+
   TileCollection.prototype.is_active = function(item) {
     return item.is_active();
   };
+
   TileCollection.prototype.sort_order = function(item) {
     if (this.is_tiled(item)) {
       return 0;
@@ -196,31 +205,34 @@ TileCollection = (function() {
       return 2;
     }
   };
+
   TileCollection.prototype.sorted_with_indexes = function() {
     var index, items_and_indexes, sorted, ts, _ref;
+    var _this = this;
     items_and_indexes = [];
     ts = function() {
       return "" + this.item + "@" + this.index;
     };
-    for (index = 0, _ref = this.items.length; (0 <= _ref ? index < _ref : index > _ref); (0 <= _ref ? index += 1 : index -= 1)) {
+    for (index = 0, _ref = this.items.length; 0 <= _ref ? index < _ref : index > _ref; 0 <= _ref ? index++ : index--) {
       items_and_indexes.push({
         item: this.items[index],
         index: index,
         toString: ts
       });
     }
-    sorted = items_and_indexes.slice().sort(__bind(function(a, b) {
+    sorted = items_and_indexes.slice().sort(function(a, b) {
       var ordera, orderb;
-      ordera = this.sort_order(a.item);
-      orderb = this.sort_order(b.item);
+      ordera = _this.sort_order(a.item);
+      orderb = _this.sort_order(b.item);
       if (ordera === orderb) {
         return a.index - b.index;
       } else {
         return ordera - orderb;
       }
-    }, this));
+    });
     return sorted;
   };
+
   TileCollection.prototype._wrap_index = function(idx, length) {
     while (idx < 0) {
       idx += length;
@@ -230,49 +242,51 @@ TileCollection = (function() {
     }
     return idx;
   };
+
   TileCollection.prototype.filter = function(f, items) {
     var item, _i, _len, _results;
     _results = [];
     for (_i = 0, _len = items.length; _i < _len; _i++) {
       item = items[_i];
-      if (f(item)) {
-        _results.push(item);
-      }
+      if (f(item)) _results.push(item);
     }
     return _results;
   };
+
   TileCollection.prototype.select_cycle = function(diff) {
     var cycled, filtered;
-    cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, __bind(function(active, neighbor) {
+    var _this = this;
+    cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, function(active, neighbor) {
       return neighbor.item.activate();
-    }, this));
+    });
     if (!cycled) {
       filtered = this.filter(this.is_visible, this.items);
-      if (filtered.length > 0) {
-        return filtered[0].activate();
-      }
+      if (filtered.length > 0) return filtered[0].activate();
     }
   };
+
   TileCollection.prototype.sorted_view = function(filter) {
     var f;
-    f = __bind(function(obj) {
+    var _this = this;
+    f = function(obj) {
       return filter(obj.item);
-    }, this);
+    };
     return this.filter(f, this.sorted_with_indexes());
   };
+
   TileCollection.prototype._with_active_and_neighbor_when_filtered = function(filter, diff, cb) {
     var filtered, filtered_active_idx, new_idx;
+    var _this = this;
     filtered = this.sorted_view(filter);
-    filtered_active_idx = this._index_where(filtered, __bind(function(obj) {
-      return this.is_active(obj.item);
-    }, this));
-    if (filtered_active_idx === null) {
-      return false;
-    }
+    filtered_active_idx = this._index_where(filtered, function(obj) {
+      return _this.is_active(obj.item);
+    });
+    if (filtered_active_idx === null) return false;
     new_idx = this._wrap_index(filtered_active_idx + diff, filtered.length);
     cb(filtered[filtered_active_idx], filtered[new_idx]);
     return true;
   };
+
   TileCollection.prototype.most_recently_minimized = function(f) {
     var filtered, sorted;
     filtered = this.filter(this.is_minimized, this.items);
@@ -283,24 +297,26 @@ TileCollection = (function() {
       return f(sorted[0]);
     }
   };
+
   TileCollection.prototype.cycle = function(diff) {
     var done;
-    done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, __bind(function(active, neighbor) {
-      return this.swap_at(active.index, neighbor.index);
-    }, this));
-    return done || this._with_active_and_neighbor_when_filtered(this.is_visible_and_untiled, diff, __bind(function(active, neighbor) {
-      return this.swap_at(active.index, neighbor.index);
-    }, this));
+    var _this = this;
+    done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, function(active, neighbor) {
+      return _this.swap_at(active.index, neighbor.index);
+    });
+    return done || this._with_active_and_neighbor_when_filtered(this.is_visible_and_untiled, diff, function(active, neighbor) {
+      return _this.swap_at(active.index, neighbor.index);
+    });
   };
+
   TileCollection.prototype._index_where = function(elems, cond) {
     var i, _ref;
-    for (i = 0, _ref = elems.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
-      if (cond(elems[i])) {
-        return i;
-      }
+    for (i = 0, _ref = elems.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+      if (cond(elems[i])) return i;
     }
     return null;
   };
+
   TileCollection.prototype._wrap_index_until = function(initial, offset, length, condition) {
     var index, _results;
     index = initial;
@@ -311,87 +327,105 @@ TileCollection = (function() {
         return initial;
       } else if (condition(index)) {
         return index;
+      } else {
+        _results.push(void 0);
       }
     }
     return _results;
   };
+
   TileCollection.prototype.swap_at = function(idx1, idx2) {
     var _orig;
     _orig = this.items[idx2];
     this.items[idx2] = this.items[idx1];
     return this.items[idx1] = _orig;
   };
+
   TileCollection.prototype.contains = function(item) {
     return this.indexOf(item) !== -1;
   };
+
   TileCollection.prototype.indexOf = function(item) {
     return this.items.indexOf(item);
   };
+
   TileCollection.prototype.push = function(item) {
-    if (this.contains(item)) {
-      return;
-    }
+    if (this.contains(item)) return;
     return this.items.push(item);
   };
+
   TileCollection.prototype.each = function(f) {
     var i, ret, _ref;
-    for (i = 0, _ref = this.items.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
+    for (i = 0, _ref = this.items.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
       ret = f(this.items[i], i);
-      if (ret === STOP) {
-        return true;
-      }
+      if (ret === STOP) return true;
     }
     return false;
   };
+
   TileCollection.prototype.each_tiled = function(f) {
     return this._filtered_each(this.is_tiled, f);
   };
+
   TileCollection.prototype._filtered_each = function(filter, f) {
-    return this.each(__bind(function(tile, idx) {
-      if (filter(tile)) {
-        return f(tile, idx);
-      }
-    }, this));
+    var _this = this;
+    return this.each(function(tile, idx) {
+      if (filter(tile)) return f(tile, idx);
+    });
   };
+
   TileCollection.prototype.active = function(f) {
-    return this.each(__bind(function(item, idx) {
-      if (this.is_active(item)) {
+    var _this = this;
+    return this.each(function(item, idx) {
+      if (_this.is_active(item)) {
         f(item, idx);
         return STOP;
       }
-    }, this));
+    });
   };
+
   TileCollection.prototype.for_layout = function() {
     return this.filter(this.is_tiled, this.items);
   };
+
   TileCollection.prototype.remove_at = function(idx) {
     return this.items.splice(idx, 1);
   };
+
   TileCollection.prototype.insert_at = function(idx, item) {
     return this.items.splice(idx, 0, item);
   };
+
   TileCollection.prototype.main = function(f) {
-    return this.each(__bind(function(tile, idx) {
-      if (this.is_tiled(tile)) {
+    var _this = this;
+    return this.each(function(tile, idx) {
+      if (_this.is_tiled(tile)) {
         f(tile, idx);
         return STOP;
       }
-    }, this));
+    });
   };
+
   return TileCollection;
+
 })();
+
 BaseSplit = (function() {
+
   function BaseSplit(axis) {
     this.axis = axis;
     this.log = Log.getLogger("shellshape.tiling.BaseSplit");
     this.ratio = HALF;
   }
+
   BaseSplit.prototype.adjust_ratio = function(diff) {
     return this.ratio = Math.min(1, Math.max(0, this.ratio + diff));
   };
+
   BaseSplit.prototype.save_last_rect = function(rect) {
     return this.last_size = rect.size[this.axis];
   };
+
   BaseSplit.prototype.maintain_split_position_with_rect_difference = function(diff) {
     var unwanted_addition;
     unwanted_addition = this.ratio * diff;
@@ -399,30 +433,33 @@ BaseSplit = (function() {
     this.log.debug("adjusting by " + (-unwanted_addition) + " to accommodate for rect size change from " + (this.last_size - diff) + " to " + this.last_size);
     return this.adjust_ratio_px(-unwanted_addition);
   };
+
   BaseSplit.prototype.adjust_ratio_px = function(diff) {
     var current_px, new_px, new_ratio;
     this.log.debug("adjusting ratio " + this.ratio + " by " + diff + " px");
-    if (diff === 0) {
-      return;
-    }
+    if (diff === 0) return;
     current_px = this.ratio * this.last_size;
     this.log.debug("current ratio makes for " + current_px + " px (assuming last size of " + this.last_size);
     new_px = current_px + diff;
     this.log.debug("but we want " + new_px);
     new_ratio = new_px / this.last_size;
-    if (!Tile.within(new_ratio, 0, 1)) {
-      throw "failed ratio: " + new_ratio;
-    }
+    if (!Tile.within(new_ratio, 0, 1)) throw "failed ratio: " + new_ratio;
     this.log.debug("which makes a new ratio of " + new_ratio);
     return this.ratio = new_ratio;
   };
+
   return BaseSplit;
+
 })();
+
 Split = (function() {
+
+  __extends(Split, BaseSplit);
+
   function Split() {
     Split.__super__.constructor.apply(this, arguments);
   }
-  __extends(Split, BaseSplit);
+
   Split.prototype.layout_one = function(rect, windows) {
     var first_window, remaining, window_rect, _ref;
     this.save_last_rect(rect);
@@ -435,18 +472,52 @@ Split = (function() {
     first_window.set_rect(window_rect);
     return [remaining, windows];
   };
+
   Split.prototype.toString = function() {
     return "Split with ratio " + this.ratio;
   };
+
   return Split;
+
 })();
+
+LayoutState = (function() {
+
+  function LayoutState(bounds, tiles) {
+    this.tiles = tiles || new TileCollection();
+    this.splits = {
+      'x': {
+        main: new MultiSplit('x', 1),
+        minor: {
+          left: [],
+          right: []
+        }
+      },
+      'y': {
+        main: new MultiSplit('y', 1),
+        minor: {
+          left: [],
+          right: []
+        }
+      }
+    };
+    this.bounds = bounds;
+  }
+
+  return LayoutState;
+
+})();
+
 MultiSplit = (function() {
+
   __extends(MultiSplit, BaseSplit);
+
   function MultiSplit(axis, primary_windows) {
     this.primary_windows = primary_windows;
     this.log = Log.getLogger("shellshape.tiling.MultiSplit");
     MultiSplit.__super__.constructor.call(this, axis);
   }
+
   MultiSplit.prototype.split = function(bounds, windows) {
     var left_rect, left_windows, right_rect, right_windows, _ref, _ref2, _ref3;
     this.save_last_rect(bounds);
@@ -458,47 +529,36 @@ MultiSplit = (function() {
     }
     return [[left_rect, left_windows], [right_rect, right_windows]];
   };
+
   MultiSplit.prototype.partition_windows = function(windows) {
     return ArrayUtil.divide_after(this.primary_windows, windows);
   };
+
   MultiSplit.prototype.in_primary_partition = function(idx) {
     return idx < this.primary_windows;
   };
+
   return MultiSplit;
+
 })();
-BaseTiledLayout = (function() {
-  function BaseTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
-    this.log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout");
-    this.bounds = {
-      pos: {
-        x: screen_offset_x,
-        y: screen_offset_y
-      },
-      size: {
-        x: screen_width,
-        y: screen_height
-      }
-    };
-    this.tiles = new TileCollection();
-    this.main_split = new MultiSplit(this.main_axis, 1);
-    this.splits = {
-      left: [],
-      right: []
-    };
+
+BaseLayout = (function() {
+
+  function BaseLayout(state) {
+    this.state = state;
+    this.tiles = state.tiles;
   }
-  BaseTiledLayout.prototype.each_tiled = function(func) {
-    return this.tiles.each_tiled(func);
-  };
-  BaseTiledLayout.prototype.each = function(func) {
+
+  BaseLayout.prototype.each = function(func) {
     return this.tiles.each(func);
   };
-  BaseTiledLayout.prototype.contains = function(win) {
+
+  BaseLayout.prototype.contains = function(win) {
     return this.tiles.contains(win);
   };
-  BaseTiledLayout.prototype.tile_for = function(win, func) {
-    if (!win) {
-      return false;
-    }
+
+  BaseLayout.prototype.tile_for = function(win, func) {
+    if (!win) return false;
     return this.tiles.each(function(tile, idx) {
       if (tile.window === win) {
         func(tile, idx);
@@ -506,13 +566,192 @@ BaseTiledLayout = (function() {
       }
     });
   };
-  BaseTiledLayout.prototype.managed_tile_for = function(win, func) {
-    return this.tile_for(win, __bind(function(tile, idx) {
-      if (this.tiles.is_tiled(tile)) {
-        return func(tile, idx);
-      }
-    }, this));
+
+  BaseLayout.prototype.managed_tile_for = function(win, func) {
+    var _this = this;
+    return this.tile_for(win, function(tile, idx) {
+      if (_this.tiles.is_tiled(tile)) return func(tile, idx);
+    });
   };
+
+  BaseLayout.prototype.tile = function(win) {
+    var _this = this;
+    return this.tile_for(win, function(tile) {
+      tile.tile();
+      return _this.layout();
+    });
+  };
+
+  BaseLayout.prototype.select_cycle = function(offset) {
+    return this.tiles.select_cycle(offset);
+  };
+
+  BaseLayout.prototype.add = function(win, active_win) {
+    var found, tile;
+    var _this = this;
+    if (this.contains(win)) return;
+    tile = new TiledWindow(win, this.state);
+    found = this.tile_for(active_win, function(active_tile, active_idx) {
+      _this.tiles.insert_at(active_idx + 1, tile);
+      return _this.log.debug("spliced " + tile + " into tiles at idx " + (active_idx + 1));
+    });
+    if (!found) return this.tiles.push(tile);
+  };
+
+  BaseLayout.prototype.active_tile = function(fn) {
+    return this.tiles.active(fn);
+  };
+
+  BaseLayout.prototype.cycle = function(diff) {
+    this.tiles.cycle(diff);
+    return this.layout();
+  };
+
+  BaseLayout.prototype.unminimize_last_window = function() {
+    var _this = this;
+    return this.tiles.most_recently_minimized(function(win) {
+      return TiledWindow.with_active_window(win, function() {
+        return win.unminimize();
+      });
+    });
+  };
+
+  BaseLayout.prototype.untile = function(win) {
+    var _this = this;
+    return this.tile_for(win, function(tile) {
+      tile.release();
+      return _this.layout();
+    });
+  };
+
+  BaseLayout.prototype.on_window_killed = function(win) {
+    var _this = this;
+    return this.tile_for(win, function(tile, idx) {
+      _this.tiles.remove_at(idx);
+      return _this.layout();
+    });
+  };
+
+  BaseLayout.prototype.toggle_maximize = function() {
+    var active;
+    var _this = this;
+    active = null;
+    this.active_tile(function(tile, idx) {
+      return active = tile;
+    });
+    if (active === null) this.log.debug("active == null");
+    if (active === null) return;
+    return this.each(function(tile) {
+      if (tile === active) {
+        _this.log.debug("toggling maximize for " + tile);
+        return tile.toggle_maximize();
+      } else {
+        return tile.unmaximize();
+      }
+    });
+  };
+
+  BaseLayout.prototype.on_window_moved = function(win) {
+    return null;
+  };
+
+  BaseLayout.prototype.on_window_resized = function(win) {
+    return null;
+  };
+
+  BaseLayout.prototype.on_split_resize_start = function(win) {
+    return null;
+  };
+
+  BaseLayout.prototype.adjust_splits_to_fit = function(win) {
+    return null;
+  };
+
+  BaseLayout.prototype.add_main_window_count = function(i) {
+    return null;
+  };
+
+  BaseLayout.prototype.adjust_main_window_area = function(diff) {
+    return null;
+  };
+
+  BaseLayout.prototype.adjust_current_window_size = function(diff) {
+    return null;
+  };
+
+  BaseLayout.prototype.scale_current_window = function(amount, axis) {
+    return null;
+  };
+
+  BaseLayout.prototype.adjust_split_for_tile = function(opts) {
+    return null;
+  };
+
+  BaseLayout.prototype.activate_main_window = function() {
+    return null;
+  };
+
+  BaseLayout.prototype.swap_active_with_main = function() {
+    return null;
+  };
+
+  return BaseLayout;
+
+})();
+
+FloatingLayout = (function() {
+
+  __extends(FloatingLayout, BaseLayout);
+
+  function FloatingLayout() {
+    var a;
+    a = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+    this.log = Log.getLogger("shellshape.tiling.FloatingLayout");
+    FloatingLayout.__super__.constructor.apply(this, a);
+  }
+
+  FloatingLayout.prototype.layout = function(accommodate_window) {
+    var _this = this;
+    this.each(function(tile) {
+      _this.log.debug("resetting window state...");
+      tile.resume_original_state();
+      return tile.layout();
+    });
+    return this.layout = function(accommodate_window) {
+      return null;
+    };
+  };
+
+  FloatingLayout.prototype.on_window_resized = function(win) {
+    return this.on_window_moved(win);
+  };
+
+  FloatingLayout.prototype.on_window_moved = function(win) {
+    var _this = this;
+    return this.tile_for(win, function(tile, idx) {
+      return tile.update_original_rect();
+    });
+  };
+
+  return FloatingLayout;
+
+})();
+
+BaseTiledLayout = (function() {
+
+  __extends(BaseTiledLayout, BaseLayout);
+
+  function BaseTiledLayout(state) {
+    BaseTiledLayout.__super__.constructor.call(this, state);
+    this.bounds = state.bounds;
+    this.main_split = state.splits[this.main_axis].main;
+    this.splits = state.splits[this.main_axis].minor;
+  }
+
+  BaseTiledLayout.prototype._each_tiled = function(func) {
+    return this.tiles.each_tiled(func);
+  };
+
   BaseTiledLayout.prototype.layout = function(accommodate_window) {
     var layout_windows, left, right, _ref;
     layout_windows = this.tiles.for_layout();
@@ -520,10 +759,11 @@ BaseTiledLayout = (function() {
       this._change_main_ratio_to_accommodate(accommodate_window, this.main_split);
     }
     _ref = this.main_split.split(this.bounds, layout_windows), left = _ref[0], right = _ref[1];
-    this.layout_side.apply(this, __slice.call(left).concat([this.splits.left], [accommodate_window]));
-    return this.layout_side.apply(this, __slice.call(right).concat([this.splits.right], [accommodate_window]));
+    this._layout_side.apply(this, __slice.call(left).concat([this.splits.left], [accommodate_window]));
+    return this._layout_side.apply(this, __slice.call(right).concat([this.splits.right], [accommodate_window]));
   };
-  BaseTiledLayout.prototype.layout_side = function(rect, windows, splits, accommodate_window) {
+
+  BaseTiledLayout.prototype._layout_side = function(rect, windows, splits, accommodate_window) {
     var accommodate_idx, axis, bottom_split, extend_to, other_axis, previous_split, split, top_splits, window, zip, _i, _len, _ref, _ref2, _ref3, _results;
     axis = Axis.other(this.main_axis);
     extend_to = function(size, array, generator) {
@@ -535,12 +775,15 @@ BaseTiledLayout = (function() {
       return _results;
     };
     zip = function(a, b) {
-      var i, _ref, _results;
-      _results = [];
-      for (i = 0, _ref = Math.min(a.length, b.length); (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
-        _results.push([a[i], b[i]]);
-      }
-      return _results;
+      var i;
+      return (function() {
+        var _ref, _results;
+        _results = [];
+        for (i = 0, _ref = Math.min(a.length, b.length); 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
+          _results.push([a[i], b[i]]);
+        }
+        return _results;
+      })();
     };
     extend_to(windows.length, splits, function() {
       return new Split(axis);
@@ -550,9 +793,7 @@ BaseTiledLayout = (function() {
       if (accommodate_idx !== -1) {
         top_splits = splits.slice(0, accommodate_idx);
         bottom_split = splits[accommodate_idx];
-        if (accommodate_idx === windows.length - 1) {
-          bottom_split = void 0;
-        }
+        if (accommodate_idx === windows.length - 1) bottom_split = void 0;
         other_axis = Axis.other(this.main_axis);
         this._change_minor_ratios_to_accommodate(accommodate_window, top_splits, bottom_split);
       }
@@ -570,69 +811,39 @@ BaseTiledLayout = (function() {
     }
     return _results;
   };
+
   BaseTiledLayout.prototype.add_main_window_count = function(i) {
     this.main_split.primary_windows += i;
     return this.layout();
   };
-  BaseTiledLayout.prototype.tile = function(win) {
-    return this.tile_for(win, __bind(function(tile) {
-      tile.tile();
-      return this.layout();
-    }, this));
-  };
-  BaseTiledLayout.prototype.select_cycle = function(offset) {
-    return this.tiles.select_cycle(offset);
-  };
-  BaseTiledLayout.prototype.add = function(win, active_win) {
-    var found, tile;
-    if (this.contains(win)) {
-      return;
-    }
-    tile = new TiledWindow(win, this);
-    found = this.tile_for(active_win, __bind(function(active_tile, active_idx) {
-      this.tiles.insert_at(active_idx + 1, tile);
-      return this.log.debug("spliced " + tile + " into tiles at idx " + (active_idx + 1));
-    }, this));
-    if (!found) {
-      return this.tiles.push(tile);
-    }
-  };
-  BaseTiledLayout.prototype.active_tile = function(fn) {
-    return this.tiles.active(fn);
-  };
-  BaseTiledLayout.prototype.cycle = function(diff) {
-    this.tiles.cycle(diff);
-    return this.layout();
-  };
+
   BaseTiledLayout.prototype.adjust_main_window_area = function(diff) {
     this.main_split.adjust_ratio(diff);
     return this.layout();
   };
+
   BaseTiledLayout.prototype.adjust_current_window_size = function(diff) {
-    return this.active_tile(__bind(function(tile) {
-      this.adjust_split_for_tile({
+    var _this = this;
+    return this.active_tile(function(tile) {
+      _this.adjust_split_for_tile({
         tile: tile,
         diff_ratio: diff,
-        axis: Axis.other(this.main_axis)
+        axis: Axis.other(_this.main_axis)
       });
-      return this.layout();
-    }, this));
+      return _this.layout();
+    });
   };
+
   BaseTiledLayout.prototype.scale_current_window = function(amount, axis) {
-    return this.active_tile(__bind(function(tile) {
+    var _this = this;
+    return this.active_tile(function(tile) {
       tile.scale_by(amount, axis);
       tile.center_window();
-      tile.ensure_within(this.bounds);
-      return tile.layout();
-    }, this));
+      tile.ensure_within(_this.bounds);
+      return tile.layout(_this.state);
+    });
   };
-  BaseTiledLayout.prototype.unminimize_last_window = function() {
-    return this.tiles.most_recently_minimized(__bind(function(win) {
-      return TiledWindow.with_active_window(win, __bind(function() {
-        return win.unminimize();
-      }, this));
-    }, this));
-  };
+
   BaseTiledLayout.prototype.adjust_split_for_tile = function(opts) {
     var adjust, axis, diff_px, diff_ratio, tile;
     axis = opts.axis, diff_px = opts.diff_px, diff_ratio = opts.diff_ratio, tile = opts.tile;
@@ -653,81 +864,77 @@ BaseTiledLayout = (function() {
       }
     }
   };
+
   BaseTiledLayout.prototype.activate_main_window = function() {
-    return this.tiles.main(__bind(function(win) {
+    var _this = this;
+    return this.tiles.main(function(win) {
       return win.activate();
-    }, this));
+    });
   };
+
   BaseTiledLayout.prototype.swap_active_with_main = function() {
-    return this.tiles.active(__bind(function(tile, idx) {
-      return this.tiles.main(__bind(function(main_tile, main_idx) {
-        this.tiles.swap_at(idx, main_idx);
-        return this.layout();
-      }, this));
-    }, this));
+    var _this = this;
+    return this.tiles.active(function(tile, idx) {
+      return _this.tiles.main(function(main_tile, main_idx) {
+        _this.tiles.swap_at(idx, main_idx);
+        return _this.layout();
+      });
+    });
   };
-  BaseTiledLayout.prototype.untile = function(win) {
-    return this.tile_for(win, __bind(function(tile) {
-      tile.release();
-      return this.layout();
-    }, this));
-  };
-  BaseTiledLayout.prototype.on_window_killed = function(win) {
-    return this.tile_for(win, __bind(function(tile, idx) {
-      this.tiles.remove_at(idx);
-      return this.layout();
-    }, this));
-  };
+
   BaseTiledLayout.prototype.on_window_moved = function(win) {
-    return this.managed_tile_for(win, __bind(function(tile, idx) {
+    var _this = this;
+    return this.managed_tile_for(win, function(tile, idx) {
       var moved;
-      moved = this.swap_moved_tile_if_necessary(tile, idx);
-      if (!moved) {
-        tile.update_offset();
-      }
-      return this.layout();
-    }, this));
+      moved = _this._swap_moved_tile_if_necessary(tile, idx);
+      if (!moved) tile.update_offset();
+      return _this.layout();
+    });
   };
+
   BaseTiledLayout.prototype.on_split_resize_start = function(win) {
     this.split_resize_start_rect = Tile.copy_rect(this.tiles[this.indexOf(win)].window_rect());
     return this.log.debug("starting resize of split.. " + (j(this.split_resize_start_rect)));
   };
+
   BaseTiledLayout.prototype.on_window_resized = function(win) {
-    return this.managed_tile_for(win, __bind(function(tile, idx) {
+    var _this = this;
+    return this.managed_tile_for(win, function(tile, idx) {
       var diff;
-      if (this.split_resize_start_rect != null) {
-        diff = Tile.point_diff(this.split_resize_start_rect.size, tile.window_rect().size);
-        this.log.debug("split resized! diff = " + (j(diff)));
+      if (_this.split_resize_start_rect != null) {
+        diff = Tile.point_diff(_this.split_resize_start_rect.size, tile.window_rect().size);
+        _this.log.debug("split resized! diff = " + (j(diff)));
         if (diff.x !== 0) {
-          this.adjust_split_for_tile({
+          _this.adjust_split_for_tile({
             tile: tile,
             diff_px: diff.x,
             axis: 'x'
           });
         }
         if (diff.y !== 0) {
-          this.adjust_split_for_tile({
+          _this.adjust_split_for_tile({
             tile: tile,
             diff_px: diff.y,
             axis: 'y'
           });
         }
-        this.split_resize_start_rect = null;
+        _this.split_resize_start_rect = null;
       } else {
         tile.update_offset();
       }
-      this.layout();
+      _this.layout();
       return true;
-    }, this));
+    });
   };
+
   BaseTiledLayout.prototype.adjust_splits_to_fit = function(win) {
-    return this.managed_tile_for(win, __bind(function(tile, idx) {
-      if (!this.tiles.is_tiled(tile)) {
-        return;
-      }
-      return this.layout(tile);
-    }, this));
+    var _this = this;
+    return this.managed_tile_for(win, function(tile, idx) {
+      if (!_this.tiles.is_tiled(tile)) return;
+      return _this.layout(tile);
+    });
   };
+
   BaseTiledLayout.prototype._change_main_ratio_to_accommodate = function(tile, split) {
     var left, right, _ref;
     _ref = split.partition_windows(this.tiles.for_layout()), left = _ref[0], right = _ref[1];
@@ -743,6 +950,7 @@ BaseTiledLayout = (function() {
     }
     return this.log.debug("After main_split accommodation, tile offset = " + (j(tile.offset)));
   };
+
   BaseTiledLayout.prototype._change_minor_ratios_to_accommodate = function(tile, above_splits, below_split) {
     var axis, bottom_offset, diff_px, diff_pxes, i, offset, proportion, size_taken, split, split_size, split_sizes, top_offset, total_size_above, _i, _len, _ref, _ref2;
     offset = tile.offset;
@@ -760,13 +968,13 @@ BaseTiledLayout = (function() {
         split_sizes.push(split_size);
         total_size_above += split_size;
       }
-      for (i = 0, _ref = above_splits.length; (0 <= _ref ? i < _ref : i > _ref); (0 <= _ref ? i += 1 : i -= 1)) {
+      for (i = 0, _ref = above_splits.length; 0 <= _ref ? i < _ref : i > _ref; 0 <= _ref ? i++ : i--) {
         proportion = split_sizes[i] / total_size_above;
         diff_pxes.push(proportion * top_offset);
       }
       this.log.debug("diff pxes for above splits are: " + (j(diff_pxes)));
       size_taken = 0;
-      for (i = 0, _ref2 = above_splits.length; (0 <= _ref2 ? i < _ref2 : i > _ref2); (0 <= _ref2 ? i += 1 : i -= 1)) {
+      for (i = 0, _ref2 = above_splits.length; 0 <= _ref2 ? i < _ref2 : i > _ref2; 0 <= _ref2 ? i++ : i--) {
         split = above_splits[i];
         diff_px = diff_pxes[i];
         split.maintain_split_position_with_rect_difference(-size_taken);
@@ -791,50 +999,28 @@ BaseTiledLayout = (function() {
     }
     return this.log.debug("After minor adjustments, offset = " + (j(tile.offset)));
   };
-  BaseTiledLayout.prototype.toggle_maximize = function() {
-    var active;
-    active = null;
-    this.active_tile(__bind(function(tile, idx) {
-      return active = tile;
-    }, this));
-    if (active === null) {
-      this.log.debug("active == null");
-    }
-    if (active === null) {
-      return;
-    }
-    return this.each(__bind(function(tile) {
-      if (tile === active) {
-        this.log.debug("toggling maximize for " + tile);
-        return tile.toggle_maximize();
-      } else {
-        return tile.unmaximize();
-      }
-    }, this));
-  };
-  BaseTiledLayout.prototype.swap_moved_tile_if_necessary = function(tile, idx) {
+
+  BaseTiledLayout.prototype._swap_moved_tile_if_necessary = function(tile, idx) {
     var mouse_pos, moved;
-    if (!this.tiles.is_tiled(tile)) {
-      return;
-    }
+    var _this = this;
+    if (!this.tiles.is_tiled(tile)) return;
     mouse_pos = get_mouse_position();
     moved = false;
-    this.each_tiled(__bind(function(swap_candidate, swap_idx) {
+    this._each_tiled(function(swap_candidate, swap_idx) {
       var target_rect;
       target_rect = Tile.shrink(swap_candidate.rect, 20);
-      if (swap_idx === idx) {
-        return;
-      }
+      if (swap_idx === idx) return;
       if (Tile.point_is_within(mouse_pos, target_rect)) {
-        this.log.debug("swapping idx " + idx + " and " + swap_idx);
-        this.tiles.swap_at(idx, swap_idx);
+        _this.log.debug("swapping idx " + idx + " and " + swap_idx);
+        _this.tiles.swap_at(idx, swap_idx);
         moved = true;
         return STOP;
       }
-    }, this));
+    });
     return moved;
   };
-  BaseTiledLayout.prototype.log_state = function(lbl) {
+
+  BaseTiledLayout.prototype._log_state = function(lbl) {
     var dump_win;
     dump_win = function(w) {
       return this.log.debug("   - " + j(w.rect));
@@ -850,39 +1036,65 @@ BaseTiledLayout = (function() {
     this.minor_windows().map(dump_win);
     return this.log.debug(" ----------------------------------- ");
   };
+
   return BaseTiledLayout;
+
 })();
+
 HorizontalTiledLayout = (function() {
+
   __extends(HorizontalTiledLayout, BaseTiledLayout);
-  function HorizontalTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
+
+  function HorizontalTiledLayout(state) {
+    this.log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout");
     this.main_axis = 'x';
-    HorizontalTiledLayout.__super__.constructor.call(this, screen_offset_x, screen_offset_y, screen_width, screen_height);
+    HorizontalTiledLayout.__super__.constructor.call(this, state);
   }
+
   return HorizontalTiledLayout;
+
 })();
+
 VerticalTiledLayout = (function() {
+
   __extends(VerticalTiledLayout, BaseTiledLayout);
-  function VerticalTiledLayout(screen_offset_x, screen_offset_y, screen_width, screen_height) {
+
+  function VerticalTiledLayout(state) {
+    this.log = Log.getLogger("shellshape.tiling.VerticalTiledLayout");
     this.main_axis = 'y';
-    VerticalTiledLayout.__super__.constructor.call(this, screen_offset_x, screen_offset_y, screen_width, screen_height);
+    VerticalTiledLayout.__super__.constructor.call(this, state);
   }
+
   return VerticalTiledLayout;
+
 })();
+
 TiledWindow = (function() {
   var active_window_override, minimized_counter;
+
   minimized_counter = 0;
+
   active_window_override = null;
+
   TiledWindow.with_active_window = function(win, f) {
     var _old;
     _old = active_window_override;
     active_window_override = win;
-    f();
-    return active_window_override = _old;
+    try {
+      return f();
+    } finally {
+      active_window_override = _old;
+    }
   };
-  function TiledWindow(win, layout) {
+
+  function TiledWindow(win, state) {
     this.log = Log.getLogger("shellshape.tiling.TiledWindow");
     this.window = win;
-    this.original_rect = this.window_rect();
+    this.bounds = state.bounds;
+    this.maximized = false;
+    this.managed = false;
+    this._was_minimized = false;
+    this.minimized_order = 0;
     this.rect = {
       pos: {
         x: 0,
@@ -893,14 +1105,21 @@ TiledWindow = (function() {
         y: 0
       }
     };
-    this.reset_offset();
-    this.maximized = false;
-    this.managed = false;
-    this._layout = layout;
-    this._was_minimized = false;
-    this.minimized_order = 0;
+    this.update_original_rect();
   }
-  TiledWindow.prototype.tile = function(layout) {
+
+  TiledWindow.prototype.update_original_rect = function() {
+    this.original_rect = this.window_rect();
+    return this.log.debug("window " + this + " remembering new rect of " + (JSON.stringify(this.original_rect)));
+  };
+
+  TiledWindow.prototype.resume_original_state = function() {
+    this.reset_offset();
+    this.rect = Tile.copy_rect(this.original_rect);
+    return this.log.debug("window " + this + " resuming old rect of " + (JSON.stringify(this.rect)));
+  };
+
+  TiledWindow.prototype.tile = function() {
     if (this.managed) {
       this.log.debug("resetting offset for window " + this);
       this.reset_offset();
@@ -910,6 +1129,7 @@ TiledWindow = (function() {
     }
     return this.reset_offset();
   };
+
   TiledWindow.prototype.reset_offset = function() {
     return this.offset = {
       pos: {
@@ -922,9 +1142,11 @@ TiledWindow = (function() {
       }
     };
   };
+
   TiledWindow.prototype.toString = function() {
     return "<\#TiledWindow of " + this.window.toString() + ">";
   };
+
   TiledWindow.prototype.update_offset = function() {
     var rect, win;
     rect = this.rect;
@@ -935,6 +1157,7 @@ TiledWindow = (function() {
     };
     return this.log.debug("updated tile offset to " + (j(this.offset)));
   };
+
   TiledWindow.prototype.window_rect = function() {
     return {
       pos: {
@@ -947,6 +1170,7 @@ TiledWindow = (function() {
       }
     };
   };
+
   TiledWindow.prototype.toggle_maximize = function() {
     if (this.maximized) {
       return this.unmaximize();
@@ -954,15 +1178,15 @@ TiledWindow = (function() {
       return this.maximize();
     }
   };
+
   TiledWindow.prototype.is_minimized = function() {
     var min;
     min = this.window.is_minimized();
-    if (min && !this._was_minimized) {
-      this.minimized_order = minimized_counter++;
-    }
+    if (min && !this._was_minimized) this.minimized_order = minimized_counter++;
     this._was_minimized = min;
     return min;
   };
+
   TiledWindow.prototype.maximize = function() {
     if (!this.maximized) {
       this.maximized = true;
@@ -970,35 +1194,39 @@ TiledWindow = (function() {
       return this.layout();
     }
   };
+
   TiledWindow.prototype.unmaximize = function() {
     if (this.maximized) {
       this.maximized = false;
-      if (!this.managed) {
-        this.log.debug("unmaximize caused layout()");
-      }
+      if (!this.managed) this.log.debug("unmaximize caused layout()");
       return this.layout();
     }
   };
+
   TiledWindow.prototype.unminimize = function() {
     return this.window.unminimize();
   };
+
   TiledWindow.prototype._resize = function(size) {
     return this.rect.size = {
       x: size.x,
       y: size.y
     };
   };
+
   TiledWindow.prototype._move = function(pos) {
     return this.rect.pos = {
       x: pos.x,
       y: pos.y
     };
   };
+
   TiledWindow.prototype.set_rect = function(r) {
     this._resize(r.size);
     this._move(r.pos);
     return this.layout();
   };
+
   TiledWindow.prototype.ensure_within = function(screen_rect) {
     var change_required, combined_rect;
     combined_rect = Tile.add_diff_to_rect(this.rect, this.offset);
@@ -1009,6 +1237,7 @@ TiledWindow = (function() {
       return this.layout();
     }
   };
+
   TiledWindow.prototype.center_window = function() {
     var movement_required, tile_center, window_center, window_rect;
     window_rect = this.window_rect();
@@ -1017,6 +1246,7 @@ TiledWindow = (function() {
     movement_required = Tile.point_diff(window_center, tile_center);
     return this.offset.pos = Tile.point_add(this.offset.pos, movement_required);
   };
+
   TiledWindow.prototype.layout = function() {
     var is_active, pos, rect, size, _ref;
     if (active_window_override) {
@@ -1027,16 +1257,13 @@ TiledWindow = (function() {
     rect = this.maximized_rect() || Tile.add_diff_to_rect(this.rect, this.offset);
     _ref = Tile.ensure_rect_exists(rect), pos = _ref.pos, size = _ref.size;
     this.window.move_resize(pos.x, pos.y, size.x, size.y);
-    if (is_active) {
-      return this.activate_before_redraw("@layout");
-    }
+    if (is_active) return this.activate_before_redraw("@layout");
   };
+
   TiledWindow.prototype.maximized_rect = function() {
     var border, bounds;
-    if (!this.maximized) {
-      return null;
-    }
-    bounds = this._layout.bounds;
+    if (!this.maximized) return null;
+    bounds = this.bounds;
     border = 20;
     return {
       pos: {
@@ -1049,6 +1276,7 @@ TiledWindow = (function() {
       }
     };
   };
+
   TiledWindow.prototype.scale_by = function(amount, axis) {
     var window_rect;
     window_rect = this.window_rect();
@@ -1059,6 +1287,7 @@ TiledWindow = (function() {
       return this._scale_by(amount, 'y', window_rect);
     }
   };
+
   TiledWindow.prototype._scale_by = function(amount, axis, window_rect) {
     var current_dim, diff_px, new_dim;
     current_dim = window_rect.size[axis];
@@ -1067,37 +1296,46 @@ TiledWindow = (function() {
     this.offset.size[axis] += diff_px;
     return this.offset.pos[axis] -= diff_px / 2;
   };
+
   TiledWindow.prototype.release = function() {
     this.set_rect(this.original_rect);
     return this.managed = false;
   };
+
   TiledWindow.prototype.activate = function() {
     this.window.activate();
     return this.window.bring_to_front();
   };
+
   TiledWindow.prototype.activate_before_redraw = function(reason) {
-    return this.window.before_redraw(__bind(function() {
-      return this.activate();
-    }, this));
+    var _this = this;
+    return this.window.before_redraw(function() {
+      return _this.activate();
+    });
   };
+
   TiledWindow.prototype.is_active = function() {
     return this.window.is_active();
   };
+
   return TiledWindow;
+
 })();
-if (typeof log == "undefined" || log === null) {
-  if (typeof reqire != "undefined" && reqire !== null) {
+
+if (typeof log === "undefined" || log === null) {
+  if (typeof reqire !== "undefined" && reqire !== null) {
     log = require('util').log;
   } else {
-    if (typeof console != "undefined" && console !== null) {
+    if (typeof console !== "undefined" && console !== null) {
       log = function(s) { console.log(s); };
     } else {
       log = function(s) { };
     }
   }
 }
-if (typeof Log == "undefined" || Log === null) {
-  if (typeof require != "undefined" && require !== null) {
+
+if (typeof Log === "undefined" || Log === null) {
+  if (typeof require !== "undefined" && require !== null) {
     Log = {
 			getLogger: function() { return Log; },
 			error: function() { log.apply(null, arguments) },
@@ -1105,14 +1343,16 @@ if (typeof Log == "undefined" || Log === null) {
 			info:  function() { log.apply(null, arguments) },
 			debug: function() { log.apply(null, arguments) }
 		};
-  } else if (typeof imports != "undefined" && imports !== null) {
+  } else if (typeof imports !== "undefined" && imports !== null) {
     var Log = imports.log4javascript.log4javascript;
   } else {
     Log = log4javascript;
   }
 }
+
 export_to = function(dest) {
   dest.HorizontalTiledLayout = HorizontalTiledLayout;
+  dest.FloatingLayout = FloatingLayout;
   dest.TileCollection = TileCollection;
   dest.Axis = Axis;
   dest.Tile = Tile;
@@ -1124,7 +1364,8 @@ export_to = function(dest) {
     return get_mouse_position = f;
   };
 };
-if (typeof exports != "undefined" && exports !== null) {
+
+if (typeof exports !== "undefined" && exports !== null) {
   log("EXPORTS");
   export_to(exports);
 }
