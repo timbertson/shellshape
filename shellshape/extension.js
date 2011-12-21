@@ -128,6 +128,7 @@ const Ext = function Ext() {
 
 		// layout changers
 		handle('set-layout-tiled-horizontal',   function() { self.change_layout(Tiling.HorizontalTiledLayout); });
+		handle('set-layout-tiled-vertical',     function() { self.change_layout(Tiling.VerticalTiledLayout); });
 		handle('set-layout-floating',           function() { self.change_layout(Tiling.FloatingLayout); });
 
 		// move a window's borders

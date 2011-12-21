@@ -99,18 +99,26 @@ GPLv3
 			</runner>
 			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
 				<version not-before="3.0.2"/>
-				<version before="3.0.3"/>
+				<version before="3.3"/>
 			</requires>
 		</command>
 		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
 			<version not-before="0.2"/>
-			<version before="0.3"/>
+			<version before="0.4"/>
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		<implementation id="sha1new=f9a5118aae1af805a88430956880046733ab2723" released="2011-07-17" version="0.2">
 			<manifest-digest sha256="1ddd07270621510b0146d878663cb658a82c551d85ae8b7c8340792f1a77adbf"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.2.tgz" size="52106"/>
+		</implementation>
+		<implementation id="sha1new=5911b1408350157fe60331346296c32e3f579857" released="2011-11-06" version="0.3">
+			<manifest-digest sha256="74ad0de60e71ac63577e37e9c7c277fc15eb6622b2a1905f473c86e2d007d2ba"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.tgz" size="52270"/>
+		</implementation>
+		<implementation id="sha1new=d833b17b5152812a8f7e58ab2848154402b17c46" released="2011-12-21" version="0.3.1">
+			<manifest-digest sha256="2437376cd245ee4f09b0738e1cc7392a04750a9cec4b0875bf71606703d9ee01"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.1.tgz" size="66650"/>
 		</implementation>
 	</group>
 	<group>
@@ -121,14 +129,10 @@ GPLv3
 				<arg>run</arg>
 			</runner>
 			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.2"/>
-				<version before="3.3"/>
+				<version not-before="3.3.2"/>
+				<version before="3.5"/>
 			</requires>
 		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
-			<version not-before="0.3-pre"/>
-			<version before="0.4"/>
-		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		<implementation id="sha1new=5911b1408350157fe60331346296c32e3f579857" released="2011-11-06" version="0.3">
@@ -144,12 +148,9 @@ GPLv3
 				<arg>run</arg>
 			</runner>
 			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.2"/>
+				<version not-before="3.3.2"/>
 			</requires>
 		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/mutter.xml">
-			<version not-before="3.2.2"/>
-		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		<implementation id="." version="0.4-pre">
