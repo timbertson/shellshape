@@ -1,4 +1,4 @@
-# Note: not running on gnome-shell 3.3+
+# Note: now running on gnome-shell 3.3+
 It's still in development, but much easier since it requires no modifications to `mutter`. After cloning the `master` branch, `0launch shellshape-local.xml --replace` should work if you have gnome-shell 3.3+ installed.
 
 # shellshape
