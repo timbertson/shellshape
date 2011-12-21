@@ -1,3 +1,6 @@
+# Note: not running on gnome-shell 3.3+
+It's still in development, but much easier since it requires no modifications to `mutter`. After cloning the `master` branch, `0launch shellshape-local.xml --replace` should work if you have gnome-shell 3.3+ installed.
+
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
 
@@ -5,7 +8,7 @@ This software is in-development. I use it daily, but it might break stuff. Use a
 
 I must thank [bluetile][bluetile], for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).
 
-## Running it
+## Running it on gnome-shell 3.2*
 Please see instructions on <http://gfxmonk.net/shellshape/>
 
 To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`.
