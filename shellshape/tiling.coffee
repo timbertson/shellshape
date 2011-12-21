@@ -551,7 +551,7 @@ class BaseTiledLayout extends BaseLayout
 			tile.scale_by(amount, axis)
 			tile.center_window()
 			tile.ensure_within(@bounds)
-			tile.layout(@state)
+			tile.layout()
 	
 	adjust_split_for_tile: (opts) ->
 		{axis, diff_px, diff_ratio, tile} = opts

@@ -223,7 +223,7 @@ const Ext = function Ext() {
 		// reset stateful variables
 		self.workspaces = {};
 		self.windows = {};
-		self.screen_dimensions = {}
+		self.bounds = {};
 		self._bound_keybindings = {};
 	};
 
@@ -235,8 +235,6 @@ const Ext = function Ext() {
 		var monitorIdx = screen.get_primary_monitor();
 		self.monitor = screen.get_monitor_geometry(monitorIdx);
 
-		self.screen_dimensions = {}
-		self.bounds = {};
 		self.bounds.pos = { x: 0, y: Main.panel.actor.height }
 		self.bounds.size = {x: self.monitor.width, y: self.monitor.height - self.bounds.pos.y }
 		self._do(self._init_keybindings, "init keybindings");
