@@ -840,7 +840,7 @@ BaseTiledLayout = (function() {
       tile.scale_by(amount, axis);
       tile.center_window();
       tile.ensure_within(_this.bounds);
-      return tile.layout(_this.state);
+      return tile.layout();
     });
   };
 
