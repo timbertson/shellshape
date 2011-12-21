@@ -2,8 +2,11 @@ const Lang = imports.lang;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
+const Clutter = imports.gi.Clutter
 const Log = imports.log4javascript.log4javascript;
 const Main = imports.ui.main;
+const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
+const Tiling = Extension.tiling;
 
 let _indicator;
 
@@ -48,36 +51,30 @@ ShellshapeIndicator.prototype = {
 		this.menu_entries = [
 			{
 				label: 'Floating',
-				action: this._untile_all,
+				layout: Tiling.FloatingLayout,
 				icon: 'window-tile-floating-symbolic'
-				// activeText: 'X'
 			},
 			{
 				label: 'Horizontal',
-				action: this._tile_all,
+				layout: Tiling.HorizontalTiledLayout,
 				icon: 'window-tile-horizontal-symbolic'
-				// activeText: 'Tiled'
+			},
+			{
+				label: 'Vertical',
+				layout: Tiling.VerticalTiledLayout,
+				icon: 'window-tile-vertical-symbolic'
 			}
-			// ,{
-			// 	label: 'Vertical',
-			// 	action: this._tile_all,
-			// 	icon: 'window-tile-vertical-symbolic'
-			// }
 		];
-		this.menu_indexes = {
-			floating: 0,
-			horizontal: 1
-		};
 
 		var items = new PopupMenu.PopupMenuSection();
-		for(i in this.menu_entries) {
+		for(var i=0; i<this.menu_entries.length; i++) {
 			let item_props = this.menu_entries[i];
 			let item = new PopupImageMenuItem(item_props.label, item_props.icon);
 			items.addMenuItem(item);
 			item.connect('activate', Lang.bind(this, function() {
 				this.log.debug("callback for [" + item_props.label + "] received by " + this);
 				this._set_active_item(item_props);
-				item_props.action.call(this);
+				this._current_workspace().set_layout(item_props.layout);
 			}));
 		}
 		this.menu.addMenuItem(items);
@@ -97,9 +94,9 @@ ShellshapeIndicator.prototype = {
 		this.box.add_actor(this.status_label);
 		this.actor.get_children().forEach(function(c) { c.destroy() });
 		this.actor.add_actor(this.box);
+		this.actor.connect('scroll-event', Lang.bind(this, this._scroll_event));
 
-		this.meta_workspace = global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
-		this._update_indicator()
+		this._workspaceChanged(null, null, global.screen.get_active_workspace_index());
 
 		global.screen.connect_after('workspace-switched', Lang.bind(this,this._workspaceChanged));
 		this.ext.connect('layout-changed', Lang.bind(this, this._update_indicator));
@@ -107,6 +104,25 @@ ShellshapeIndicator.prototype = {
 
 	toString: function() {
 		return "<ShellshapeIndicator>";
+	},
+
+	_scroll_event: function(actor, event) {
+		let direction = event.get_scroll_direction();
+		let diff = 0;
+		if (direction == Clutter.ScrollDirection.DOWN) {
+			diff = 1;
+		} else if (direction == Clutter.ScrollDirection.UP) {
+			diff = -1;
+		} else {
+			return;
+		}
+
+		this._active_item(function(item, idx) {
+			let new_item = this.menu_entries[idx + diff];
+			if(new_item == null) return;
+			this._set_active_item(new_item);
+			this._current_workspace().set_layout(new_item.layout);
+		});
 	},
 
 	_set_active_item: function(item) {
@@ -119,24 +135,27 @@ ShellshapeIndicator.prototype = {
 		// this.log.debug("indicator saw switch to new workspace: " + this.meta_workspace);
 		this._update_indicator();
 	},
-	_update_indicator: function() {
-		//TODO: extend this when we have multiple tiling layouts
-		var item_props = null;
-		if(this.ext.get_workspace(this.meta_workspace).auto_tile) {
-			item_props = this.menu_entries[this.menu_indexes.horizontal];
-		} else {
-			item_props = this.menu_entries[this.menu_indexes.floating];
+
+	_active_item: function(cb) {
+		// find the active menu item for the current layout on the current workspace
+		var layout_cls = this._current_workspace().active_layout;
+		for(var i=0; i<this.menu_entries.length; i++) {
+			var entry = this.menu_entries[i];
+			if(entry.layout == layout_cls) {
+				cb.call(this, entry, i);
+				break;
+			}
 		}
-		this._set_active_item(item_props);
 	},
 
-	_tile_all: function() {
-		this.ext.current_workspace().tile_all(true);
+	_update_indicator: function() {
+		var item_props = null;
+		this._active_item(function(item) {
+			this._set_active_item(item);
+		});
 	},
 
-	_untile_all: function() {
-		this.ext.current_workspace().tile_all(false);
-	},
+	_current_workspace: function() { return this.ext.current_workspace(); },
 
 };
 ShellshapeIndicator.enable = function(ext) {

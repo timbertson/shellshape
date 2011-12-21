@@ -2,20 +2,23 @@ const Mainloop = imports.mainloop;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
 const Log = imports.log4javascript.log4javascript;
+const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
+const Tiling = Extension.tiling;
 
 function Workspace() {
 	this._init.apply(this, arguments)
 }
 Workspace.prototype = {
-	_init : function(meta_workspace, layout, ext) {
+	_default_layout: Tiling.FloatingLayout,
+
+	_init : function(meta_workspace, layout_state, ext) {
 		this.log = Log.getLogger("shellshape.workspace");
-		this.auto_tile = false;
+		this.layout_state = layout_state;
 		this.meta_workspace = meta_workspace;
-		this.layout = layout;
 		this.extension = ext;
+		this.set_layout(this._default_layout);
 		this.extension._connect(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 		this.extension._connect(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
-		this.meta_windows().map(Lang.bind(this, this.on_window_create));
 	},
 	_disable: function() {
 		this.meta_windows().map(Lang.bind(this, this.on_window_remove));
@@ -24,26 +27,21 @@ Workspace.prototype = {
 		this.extension = null;
 	},
 
-	tile_all : function(new_flag) {
-		if(typeof(new_flag) === 'undefined') {
-			new_flag = !this.auto_tile;
-		}
-		this.auto_tile = new_flag;
-		this.meta_windows().map(Lang.bind(this, function(meta_window) {
-			var win = this.extension.get_window(meta_window);
-			if(this.auto_tile && win.should_auto_tile()) {
-				this.layout.tile(win);
-			} else {
-				this.layout.untile(win);
-			}
-		}));
+	set_layout: function(cls) {
+		this.log.debug("Instantiating new layout class");
+		this.active_layout = cls;
+		this.layout = new cls(this.layout_state);
+		this.log.debug("laying out according to new layout");
+		this.layout.layout();
 	},
 
 	on_window_create: function(meta_window) {
 		var get_actor = Lang.bind(this, function() {
 			try {
+				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
 				return meta_window.get_compositor_private();
 			} catch (e) {
+				// not implemented for some special windows - ignore them
 				this.log.warn("couldn't call get_compositor_private for window " + meta_window, e);
 				if(meta_window.get_compositor_private) {
 					this.log.error("But the function exists! aborting...");
@@ -71,7 +69,6 @@ Workspace.prototype = {
 		}
 		this.log.debug("on_window_create for " + win);
 		this.layout.add(win, this.extension.focus_window);
-		// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
 		win.workspace_signals = [];
 
 		let bind_to_window_change = Lang.bind(this, function(event_name, relevant_grabs, cb) {
@@ -111,14 +108,19 @@ Workspace.prototype = {
 				Meta.GrabOp.RESIZING_W,
 				Meta.GrabOp.RESIZING_E
 		];
-		bind_to_window_change('position', move_ops,     Lang.bind(this.layout, this.layout.on_window_moved));
-		bind_to_window_change('size',     resize_ops,   Lang.bind(this.layout, this.layout.on_window_resized));
+		bind_to_window_change('position', move_ops,     Lang.bind(this, this.on_window_moved));
+		bind_to_window_change('size',     resize_ops,   Lang.bind(this, this.on_window_resized));
 		win.workspace_signals.push([meta_window, meta_window.connect('notify::minimized', Lang.bind(this, this.on_window_minimize_changed))]);
 
-		if(this.auto_tile && win.should_auto_tile()) {
+		if(win.should_auto_tile()) {
 			this.layout.tile(win);
 		}
 	},
+
+	// These functions are bound to the workspace and not the layout directly, since
+	// the layout may change at any moment
+	on_window_moved: function() { this.layout.on_window_moved.apply(this.layout, arguments); },
+	on_window_resized: function() { this.layout.on_window_resized.apply(this.layout, arguments); },
 
 	on_window_minimize_changed: function(meta_window) {
 		this.log.debug("window minimization state changed for window " + meta_window);
