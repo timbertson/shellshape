@@ -4,16 +4,16 @@
 		<key type="as" name="tile-current-window">             <default>["&lt;Mod4&gt;p"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="untile-current-window">           <default>["&lt;Mod4&gt;y"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="adjust-splits-to-fit">            <default>["&lt;Mod4&gt;&lt;Shift&gt;p"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="increase-main-window-count">      <default>["&lt;Mod4&gt;."]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-main-window-count">      <default>["&lt;Mod4&gt;,"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="increase-main-window-count">      <default>["&lt;Mod4&gt;period"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="decrease-main-window-count">      <default>["&lt;Mod4&gt;comma"]</default><summary>(TODO...)</summary><description></description></key>
 
 		<key type="as" name="next-window">                     <default>["&lt;Mod4&gt;j", "&lt;Mod4&gt;&lt;Tab&gt;"]</default><summary>Change focus to the next window</summary><description></description></key>
 		<key type="as" name="prev-window">                     <default>["&lt;Mod4&gt;k", "&lt;Mod4&gt;&lt;Shift&gt;&lt;Tab&gt;"]</default><summary>(TODO...)</summary><description></description></key>
 
 		<key type="as" name="rotate-current-window">           <default>["&lt;Mod4&gt;&lt;Shift&gt;j"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="rotate-current-window-reverse">   <default>["&lt;Mod4&gt;&lt;Shift&gt;k"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="focus-main-window">               <default>["&lt;Mod4&gt;&lt;Space&gt;"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="swap-current-window-with-main">   <default>["&lt;Mod4&gt;&lt;Shift&gt;&lt;Space&gt;"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="focus-main-window">               <default>["&lt;Mod4&gt;space"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="swap-current-window-with-main">   <default>["&lt;Mod4&gt;&lt;Shift&gt;space"]</default><summary>(TODO...)</summary><description></description></key>
 
 		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;d"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="set-layout-floating">             <default>["&lt;Mod4&gt;f"]</default><summary>(TODO...)</summary><description></description></key>
@@ -28,8 +28,8 @@
 		<key type="as" name="decrease-main-size">              <default>["&lt;Mod4&gt;&lt;Shift&gt;h"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="increase-minor-size">             <default>["&lt;Mod4&gt;&lt;Shift&gt;i"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="decrease-minor-size">             <default>["&lt;Mod4&gt;&lt;Shift&gt;u"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="increase-size">                   <default>["&lt;Mod4&gt;="]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-size">                   <default>["&lt;Mod4&gt;-"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="increase-size">                   <default>["&lt;Mod4&gt;equal"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="decrease-size">                   <default>["&lt;Mod4&gt;minus"]</default><summary>(TODO...)</summary><description></description></key>
 
 		<key type="as" name="switch-workspace-up">             <default>["&lt;Mod4&gt;&lt;Alt&gt;j"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="switch-workspace-down">           <default>["&lt;Mod4&gt;&lt;Alt&gt;k"]</default><summary>(TODO...)</summary><description></description></key>
