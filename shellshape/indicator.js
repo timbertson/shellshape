@@ -2,6 +2,7 @@ const Lang = imports.lang;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
+const Clutter = imports.gi.Clutter
 const Log = imports.log4javascript.log4javascript;
 const Main = imports.ui.main;
 const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
@@ -93,6 +94,7 @@ ShellshapeIndicator.prototype = {
 		this.box.add_actor(this.status_label);
 		this.actor.get_children().forEach(function(c) { c.destroy() });
 		this.actor.add_actor(this.box);
+		this.actor.connect('scroll-event', Lang.bind(this, this._scroll_event));
 
 		this._workspaceChanged(null, null, global.screen.get_active_workspace_index());
 
@@ -102,6 +104,25 @@ ShellshapeIndicator.prototype = {
 
 	toString: function() {
 		return "<ShellshapeIndicator>";
+	},
+
+	_scroll_event: function(actor, event) {
+		let direction = event.get_scroll_direction();
+		let diff = 0;
+		if (direction == Clutter.ScrollDirection.DOWN) {
+			diff = 1;
+		} else if (direction == Clutter.ScrollDirection.UP) {
+			diff = -1;
+		} else {
+			return;
+		}
+
+		this._active_item(function(item, idx) {
+			let new_item = this.menu_entries[idx + diff];
+			if(new_item == null) return;
+			this._set_active_item(new_item);
+			this._current_workspace().set_layout(new_item.layout);
+		});
 	},
 
 	_set_active_item: function(item) {
@@ -114,20 +135,24 @@ ShellshapeIndicator.prototype = {
 		// this.log.debug("indicator saw switch to new workspace: " + this.meta_workspace);
 		this._update_indicator();
 	},
-	_update_indicator: function() {
-		var item_props = null;
+
+	_active_item: function(cb) {
+		// find the active menu item for the current layout on the current workspace
 		var layout_cls = this._current_workspace().active_layout;
 		for(var i=0; i<this.menu_entries.length; i++) {
 			var entry = this.menu_entries[i];
 			if(entry.layout == layout_cls) {
-				item_props = entry;
+				cb.call(this, entry, i);
 				break;
 			}
 		}
-		if(item_props == null) {
-			throw("Couldn't find indicator entry for layout class: " + layout_cls);
-		}
-		this._set_active_item(item_props);
+	},
+
+	_update_indicator: function() {
+		var item_props = null;
+		this._active_item(function(item) {
+			this._set_active_item(item);
+		});
 	},
 
 	_current_workspace: function() { return this.ext.current_workspace(); },
