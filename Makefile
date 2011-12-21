@@ -20,6 +20,7 @@ auto: phony js
 		-p shellshape \
 		-p xdg \
 		-p lib \
+		-p icons \
 		shellshape.xml
 
 .PHONY: phony
