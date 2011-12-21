@@ -121,6 +121,7 @@ const Ext = function Ext() {
 
 		// layout changers
 		handle('d',           function() { self.change_layout(Tiling.HorizontalTiledLayout); });
+		handle('shift_d',     function() { self.change_layout(Tiling.VerticalTiledLayout); });
 		handle('f',           function() { self.change_layout(Tiling.FloatingLayout); });
 
 		// move a window's borders to resize it
