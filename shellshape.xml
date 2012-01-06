@@ -121,25 +121,6 @@ GPLv3
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.1.tgz" size="66650"/>
 		</implementation>
 	</group>
-	<group>
-		<command name="run">
-			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
-				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
-				<arg>--plugin-command</arg>
-				<arg>run</arg>
-			</runner>
-			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.3.2"/>
-				<version before="3.5"/>
-			</requires>
-		</command>
-		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="sha1new=5911b1408350157fe60331346296c32e3f579857" released="2011-11-06" version="0.3">
-			<manifest-digest sha256="74ad0de60e71ac63577e37e9c7c277fc15eb6622b2a1905f473c86e2d007d2ba"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.tgz" size="52270"/>
-		</implementation>
-	</group>
 	<group stability="developer">
 		<command name="run">
 			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
