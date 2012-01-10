@@ -108,11 +108,9 @@ GPLv3
 		
 	</group>
 	<group stability="developer">
-		<command name="run">
-			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
-				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
-				<arg>--plugin-command</arg>
-				<arg>run</arg>
+		<command name="run" path="run-shellshape">
+			<runner interface="http://repo.roscidus.com/python/python">
+				<version before="3.0"/>
 			</runner>
 			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
 				<version not-before="3.3.2"/>

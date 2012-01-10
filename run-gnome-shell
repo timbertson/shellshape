@@ -1,6 +1,0 @@
-#!/bin/bash
-
-export DISPLAY=:0
-set -e
-echo "running gnome shell..."
-gnome-shell "$@"

@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+import os, sys
+from gi.repository import Gio
+
+plugins = Gio.Settings.new('org.gnome.shell')['enabled-extensions']
+shellshape = 'shellshape@gfxmonk.net'
+if shellshape not in plugins:
+	print >> sys.stderr, "Note: appending shellshape to the list of enabled plugins automatically"
+	plugins.append(shellshape)
+
+launch_cmd = ['0launch',
+	'http://gfxmonk.net/dist/0install/gnome-shell.xml',
+	'--plugin-command', 'run'] + sys.argv[1:]
+os.execvp(launch_cmd)
