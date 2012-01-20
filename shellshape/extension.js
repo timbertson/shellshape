@@ -41,8 +41,6 @@ const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybi
 //	 create_if_necessary argument and the other does not.  Even if the
 //	 other one never needs it, this should be standardized to reduce
 //	 confusion.
-//	- get_XXX and remove_XXX are related, and should appear next to one
-//	 another in the source.
 
 // Primary 'extension' object.  This is instantiated and enabled by the
 // main() function declared at the bottom of this file.
@@ -110,6 +108,16 @@ const Ext = function Ext() {
 		return workspace;
 	};
 
+    // Remove a workspace from the extension's cache.  Disable it first.
+	self.remove_workspace = function(meta_workspace) {
+		self.log.debug("disabling workspace...");
+		var ws = self.workspaces[meta_workspace];
+		if(ws != null) {
+			self._do(function() {ws._disable();}, 'disable workspace');
+			delete self.workspaces[meta_workspace];
+		}
+	};
+
 	// Much the same as .get_workspace(...) above.  Given a gome-shell
 	// meta window, return a shellshape Window object and cache the result
 	// if its newly created.
@@ -126,6 +134,11 @@ const Ext = function Ext() {
 			win = self.windows[meta_window] = new Window(meta_window, self);
 		}
 		return win;
+	};
+
+	// Remove a window from the extension's cache.
+	self.remove_window = function(meta_window) {
+		delete self.windows[meta_window];
 	};
 
 	// Returns a Workspace (shellshape/workspace.js) representing the
@@ -232,21 +245,6 @@ const Ext = function Ext() {
 		self.current_workspace().set_layout(cls);
 		// TODO -- what does this next line do?  It needs to be documented.
 		self.emit('layout-changed');
-	};
-
-	// Remove a workspace from the extension's cache.  Disable it first.
-	self.remove_workspace = function(meta_workspace) {
-		self.log.debug("disabling workspace...");
-		var ws = self.workspaces[meta_workspace];
-		if(ws != null) {
-			self._do(function() {ws._disable();}, 'disable workspace');
-			delete self.workspaces[meta_workspace];
-		}
-	};
-
-	// Remove a window from the extension's cache.
-	self.remove_window = function(meta_window) {
-		delete self.windows[meta_window];
 	};
 
 	// Connects gnome-shell messaging (signalling) between other objects and
