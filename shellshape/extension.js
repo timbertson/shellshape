@@ -18,29 +18,6 @@ const Log = imports.log4javascript.log4javascript;
 const GLib = imports.gi.GLib;
 const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
-//////////////////////////////////////////////////////////////////////
-// TODO -- there deserves to be some kind of introduction comment here
-// that briefly explains some terminology.
-//	- What is the relationship between meta and non-meta objects?
-//	- What are the definitions of various terms and what are their
-//	 relationships?
-//
-//	 - Window
-//	 - Workspace
-//	 - Screen
-//	 - Display
-
-///////////////////////////////////////////////////////////
-// Some code style TODO items for review and consideration.
-//	- The ._do method and the .handle method both take a callback and a
-//	 string, but they do so in different orders.  One is (str, callback)
-//	 and the other is (callback, str).  This is just a little confusing;
-//	 It should be standardized one way or the other.
-//	- The get_widow and get_workspace methods both cache their returned
-//	 objects in a singleton-type pattern, but one takes a
-//	 create_if_necessary argument and the other does not.  Even if the
-//	 other one never needs it, this should be standardized to reduce
-//	 confusion.
 
 // Primary 'extension' object.  This is instantiated and enabled by the
 // main() function declared at the bottom of this file.
