@@ -249,7 +249,9 @@ const Ext = function Ext() {
 		delete self.windows[meta_window];
 	};
 
-	// TODO - document this
+	// Connects gnome-shell messaging (signalling) between other objects and
+	// this extension.  Keeps a list of bound objects so we can later
+	// disconnect ourselves from them one by one or en masse.k
 	self._connect = function(owner, subject, name, cb) {
 		if (!owner.hasOwnProperty('_bound_signals')) {
 			owner._bound_signals = [];
@@ -257,12 +259,15 @@ const Ext = function Ext() {
 		owner._bound_signals.push([subject, subject.connect(name, cb)]);
 	};
 
-	// TODO -- document this
+
+	// Connect callbacks to all workspaces
 	self._init_workspaces = function() {
 		self.screen = global.screen;
 		function _init_workspace (i) {
 			self.get_workspace(self.screen.get_workspace_by_index(i));
 		};
+
+		// TODO - how will this play into multiple monitors
 		self._connect(self, self.screen, 'workspace-added', function(screen, i) { _init_workspace(i); });
 		self._connect(self, self.screen, 'workspace-removed', self.remove_workspace);
 
@@ -286,7 +291,7 @@ const Ext = function Ext() {
 		});
 	};
 
-	// TODO -- document this.
+	// Simply enable ShellshapeIndicator
 	self._init_indicator = function() {
 		ShellshapeIndicator.enable(self);
 	};
@@ -340,7 +345,8 @@ const Ext = function Ext() {
 		}
 	};
 
-	// TODO -- document this
+	// Disconnect from all other objects to which we have bound
+	// callbacks to signals.
 	self._disconnect_signals = function(owner) {
 		if(owner._bound_signals == null) return;
 		for(var i=0; i<owner._bound_signals.length; i++) {
@@ -352,7 +358,8 @@ const Ext = function Ext() {
 		delete owner._bound_signals;
 	};
 
-	// TODO -- document this
+	// Disconnects from *all* workspaces.  Disables and removes
+	// them from our cache
 	self._disconnect_workspaces = function() {
 		for (var k in self.workspaces) {
 			if (self.workspaces.hasOwnProperty(k)) {
