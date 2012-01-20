@@ -299,10 +299,6 @@ const Ext = function Ext() {
 		return "<Shellshape Extension>";
 	};
 
-	// TODO -- this should be moved to somewhere other than
-	// smack in the middle of the class.  Beginning or end.
-	self.log.info("shellshape initialized!");
-
 	// Resets the workspaces, windows, bounds, and keybindings state
 	self._reset_state = function() {
 		// reset stateful variables
@@ -376,6 +372,9 @@ const Ext = function Ext() {
 		self._reset_state();
 		self.log.info("shellshape disabled");
 	};
+
+	// If we got here, then nothing exploded while defining the extension.
+	self.log.info("shellshape initialized!");
 };
 
 Signals.addSignalMethods(Ext.prototype);
