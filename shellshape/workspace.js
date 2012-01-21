@@ -17,12 +17,12 @@ Workspace.prototype = {
 		this.meta_workspace = meta_workspace;
 		this.extension = ext;
 		this.set_layout(this._default_layout);
-		this.extension._connect(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
-		this.extension._connect(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
+		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
 	},
 	_disable: function() {
 		this.meta_windows().map(Lang.bind(this, this.on_window_remove));
-		this.extension._disconnect_signals(this);
+		this.extension.disconnect_tracked_signals(this);
 		this.meta_workspace = null;
 		this.extension = null;
 	},
