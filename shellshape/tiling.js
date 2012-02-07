@@ -1351,6 +1351,7 @@ if (typeof Log === "undefined" || Log === null) {
 }
 
 export_to = function(dest) {
+  dest.LayoutState = LayoutState;
   dest.HorizontalTiledLayout = HorizontalTiledLayout;
   dest.FloatingLayout = FloatingLayout;
   dest.TileCollection = TileCollection;

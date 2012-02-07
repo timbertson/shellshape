@@ -230,6 +230,10 @@ describe 'HorizontalTiledLayout', ->
 	_tiled_windows = (layout) ->
 		tiles = layout.tiles.filter(layout.tiles.is_tiled, layout.tiles.items)
 		(tile.window for tile in tiles)
+	_new_layout = (w, h) ->
+		bounds = {pos: {x: 0, y:0}, size: {x:w, y:h}}
+		state = new tiling.LayoutState(bounds)
+		layout = new tiling.HorizontalTiledLayout(state)
 
 	with_active = (win, f) ->
 		win.active = true
@@ -241,7 +245,7 @@ describe 'HorizontalTiledLayout', ->
 	describe 'big ol\' layout scenario', ->
 		#TODO: These tests are completely order-dependant.
 		#      That should be fixed.
-		layout = new tiling.HorizontalTiledLayout(0, 0, 800, 600)
+		layout = _new_layout(800, 600)
 		num_tiles =  -> _num_tiles(layout)
 		tiled_windows = -> _tiled_windows(layout)
 		tile = (w) -> _tile(layout, w)
@@ -337,7 +341,7 @@ describe 'HorizontalTiledLayout', ->
 		window4 = new MockWindow('window4')
 
 		reset = ->
-			layout = new tiling.HorizontalTiledLayout(0, 0, 800, 600)
+			layout = _new_layout(800, 600)
 			tile(window1)
 			tile(window2)
 			tile(window3)

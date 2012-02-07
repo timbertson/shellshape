@@ -911,6 +911,7 @@ unless Log?
 		`Log = log4javascript`
 
 export_to = (dest) ->
+	dest.LayoutState = LayoutState
 	dest.HorizontalTiledLayout = HorizontalTiledLayout
 	dest.FloatingLayout = FloatingLayout
 	dest.TileCollection = TileCollection
