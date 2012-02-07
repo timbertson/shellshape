@@ -1,8 +1,7 @@
-#require("sys").puts("??")
 tiling = require('../shellshape/tiling')
 window = {}
 puts = require('sys').puts
-require('helpers').extend(global, tiling)
+require('coffee-script/helpers').extend(global, tiling)
 j = JSON.stringify
 
 util = require('util')

@@ -1,6 +1,6 @@
 watchdog=0launch http://gfxmonk.net/dist/0install/watchdog.xml
 coffee=0launch http://gfxmonk.net/dist/0install/coffee-script.xml
-spec=0launch http://gfxmonk.net/dist/0install/coffee-spec.xml
+spec=0launch --not-before=0.4 http://gfxmonk.net/dist/0install/coffee-spec.xml
 markdown=0launch http://gfxmonk.net/dist/0install/markdown.xml
 template=0launch http://gfxmonk.net/dist/0install/template.xml
 
