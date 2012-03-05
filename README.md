@@ -1,7 +1,7 @@
 # Note: now running on gnome-shell 3.3+
 It's still in development, but much easier since it requires no modifications to `mutter`. After cloning the `master` branch, you can run it with:
 
-	0launch --not-before=0.4-pre shellshape-local.xml --plugin-exec-uri=`pwd`/shellshape-local.xml --replace
+	0launch --not-before=0.4-pre shellshape-local.xml --replace
 
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.

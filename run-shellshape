@@ -10,6 +10,7 @@ if shellshape not in plugins:
 	plugins.append(shellshape)
 
 launch_cmd = ['0launch',
+	'http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml'
 	'http://gfxmonk.net/dist/0install/gnome-shell.xml',
 	'--plugin-command', 'run'] + sys.argv[1:]
 os.execvp('0launch', launch_cmd)
