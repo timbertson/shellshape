@@ -9,5 +9,5 @@ if shellshape not in plugins:
 	print >> sys.stderr, "Note: appending shellshape to the list of enabled plugins automatically"
 	plugins.append(shellshape)
 
-launch_cmd = sys.argv[1:]
+launch_cmd = ['0launch'] + sys.argv[1:]
 os.execvp('0launch', launch_cmd)
