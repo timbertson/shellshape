@@ -8,11 +8,11 @@ const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
-const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
-const Tiling = Extension.tiling;
-const Window = Extension.mutter_window.Window;
-const Workspace = Extension.workspace.Workspace;
-const ShellshapeIndicator = Extension.indicator.ShellshapeIndicator;
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Tiling = Extension.imports.tiling;
+const Window = Extension.imports.mutter_window.Window;
+const Workspace = Extension.imports.workspace.Workspace;
+const ShellshapeIndicator = Extension.imports.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
 const Log = imports.log4javascript.log4javascript;
 const GLib = imports.gi.GLib;

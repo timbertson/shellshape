@@ -2,8 +2,8 @@ const Mainloop = imports.mainloop;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
 const Log = imports.log4javascript.log4javascript;
-const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
-const Tiling = Extension.tiling;
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Tiling = Extension.imports.tiling;
 
 function Workspace() {
 	this._init.apply(this, arguments)

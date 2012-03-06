@@ -5,8 +5,8 @@ const St = imports.gi.St;
 const Clutter = imports.gi.Clutter
 const Log = imports.log4javascript.log4javascript;
 const Main = imports.ui.main;
-const Extension = imports.ui.extensionSystem.extensions['shellshape@gfxmonk.net'];
-const Tiling = Extension.tiling;
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Tiling = Extension.imports.tiling;
 
 let _indicator;
 
