@@ -353,6 +353,9 @@ const Ext = function Ext() {
 		self._reset_state();
 		self.log.info("shellshape disabled");
 	};
+
+	// If we got here, then nothing exploded while initializing the extension.
+	self.log.info("shellshape initialized!");
 };
 
 Signals.addSignalMethods(Ext.prototype);
@@ -411,8 +414,6 @@ function init() {
 	St.set_slow_down_factor(0.75);
 
 	let ext = new Ext();
-	// If we got here, then nothing exploded while initializing the extension.
-	self.log.info("shellshape initialized!");
 	return ext;
 }
 

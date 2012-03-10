@@ -8,6 +8,7 @@ shellshape = 'shellshape@gfxmonk.net'
 if shellshape not in plugins:
 	print >> sys.stderr, "Note: appending shellshape to the list of enabled plugins automatically"
 	plugins.append(shellshape)
+	settings['enabled-extensions'] = plugins #NOTE: race condition; unlikely to do harm though
 
 launch_cmd = ['0launch',
 	'http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml',

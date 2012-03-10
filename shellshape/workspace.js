@@ -35,7 +35,7 @@ Workspace.prototype = {
 		this.layout.layout();
 	},
 
-	on_window_create: function(meta_window) {
+	on_window_create: function(workspace, meta_window) {
 		var get_actor = Lang.bind(this, function() {
 			try {
 				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
@@ -56,7 +56,7 @@ Workspace.prototype = {
 			// the compositor finds out about them...
 			Mainloop.idle_add(Lang.bind(this, function () {
 				if (get_actor() && meta_window.get_workspace() == this.meta_workspace) {
-					this.on_window_create(meta_window);
+					this.on_window_create(workspace, meta_window);
 				}
 				return false;
 			}));
@@ -119,15 +119,15 @@ Workspace.prototype = {
 
 	// These functions are bound to the workspace and not the layout directly, since
 	// the layout may change at any moment
-	on_window_moved: function() { this.layout.on_window_moved.apply(this.layout, arguments); },
-	on_window_resized: function() { this.layout.on_window_resized.apply(this.layout, arguments); },
+	on_window_moved: function(ws, win)   { this.layout.on_window_moved(  this.extension.get_window(win)); },
+	on_window_resized: function(ws, win) { this.layout.on_window_resized(this.extension.get_window(win)); },
 
-	on_window_minimize_changed: function(meta_window) {
+	on_window_minimize_changed: function(workspace, meta_window) {
 		this.log.debug("window minimization state changed for window " + meta_window);
 		this.layout.layout();
 	},
 
-	on_window_remove: function(meta_window) {
+	on_window_remove: function(workspace, meta_window) {
 		let window = this.extension.get_window(meta_window);
 		this.log.debug("on_window_remove for " + window);
 		if(window.workspace_signals !== undefined) {
