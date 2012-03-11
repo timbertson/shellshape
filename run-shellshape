@@ -3,12 +3,15 @@
 import os, sys
 from gi.repository import Gio
 
-plugins = Gio.Settings.new('org.gnome.shell')['enabled-extensions']
+settings = Gio.Settings.new('org.gnome.shell')
+enabled_extensions = 'enabled-extensions'
+plugins = settings[enabled_extensions]
 shellshape = 'shellshape@gfxmonk.net'
 if shellshape not in plugins:
 	print >> sys.stderr, "Note: appending shellshape to the list of enabled plugins automatically"
 	plugins.append(shellshape)
-	settings['enabled-extensions'] = plugins #NOTE: race condition; unlikely to do harm though
+	# would be much better if we could append to a list atomically here:
+	settings[enabled_extensions] = plugins
 
 launch_cmd = ['0launch',
 	'http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml',
