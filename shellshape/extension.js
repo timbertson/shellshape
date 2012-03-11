@@ -8,7 +8,8 @@ const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const ExtensionUtils = imports.misc.extensionUtils;
+const Extension = ExtensionUtils.getCurrentExtension();
 const Tiling = Extension.imports.tiling;
 const Window = Extension.imports.mutter_window.Window;
 const Workspace = Extension.imports.workspace.Workspace;
@@ -16,6 +17,7 @@ const ShellshapeIndicator = Extension.imports.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
 const Log = imports.log4javascript.log4javascript;
 const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
 
@@ -28,15 +30,40 @@ const Ext = function Ext() {
 	// Utility method that safely executes a callback by catching any
 	// exceptions and logging the traceback and a caller-provided
 	// description of the action.
-	self._do = function _do(action, desc) {
+	self._do = function _do(action, desc, fail) {
 		try {
 			action();
 		} catch (e) {
 			self.log.error("ERROR in tiling (" + desc + "): ", e);
 			self.log.error(e.stack);
+			if(fail) throw e;
+			return e;
 		}
 	};
 
+	var _init_schemas = function(schema) {
+		self.log.info("initting schemas");
+		let extension = ExtensionUtils.getCurrentExtension();
+		const GioSSS = Gio.SettingsSchemaSource;
+
+		// check if this extension was built with "make zip-file", and thus
+		// has the schema files in a subfolder
+		// otherwise assume that extension has been installed in the
+		// same prefix as gnome-shell (and therefore schemas are available
+		// in the standard folders)
+		let schemaDir = extension.dir.get_child('schemas');
+		let schemaSource = GioSSS.new_from_directory(
+			schemaDir.get_path(),
+			GioSSS.get_default(),
+			false);
+
+		let schemaObj = schemaSource.lookup(schema, true);
+		self.log.info("schemaObj returned: " + schemaObj);
+		if (!schemaObj)
+				throw new Error('Schema ' + schema + ' could not be found for extension '
+												+ extension.metadata.uuid + '. Please check your installation.');
+	};
+	self._do(function() { _init_schemas(KEYBINDING_BASE); }, "init schemas", true);
 
 	// Given a `proxy GIName:Meta.Workspace`, return a corresponding
 	// shellshape Workspace (as defined in shellshape/workspace.js).
