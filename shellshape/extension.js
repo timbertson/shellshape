@@ -43,7 +43,6 @@ const Ext = function Ext() {
 
 	var get_local_gsettings = function(schema) {
 		self.log.info("initting schemas");
-		let extension = ExtensionUtils.getCurrentExtension();
 		const GioSSS = Gio.SettingsSchemaSource;
 
 		//TODO:
@@ -52,7 +51,7 @@ const Ext = function Ext() {
 		// otherwise assume that extension has been installed in the
 		// same prefix as gnome-shell (and therefore schemas are available
 		// in the standard folders)
-		let schemaDir = extension.dir.get_child('schemas');
+		let schemaDir = Extension.dir.get_child('schemas');
 		let schemaSource = GioSSS.new_from_directory(
 			schemaDir.get_path(),
 			GioSSS.get_default(),
@@ -63,7 +62,7 @@ const Ext = function Ext() {
 			throw new Error(
 				'Schema ' + schema +
 				' could not be found for extension ' +
-				extension.metadata.uuid
+				Extension.metadata.uuid
 			);
 		}
 		return new Gio.Settings({ settings_schema: schemaObj });
