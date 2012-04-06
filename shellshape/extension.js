@@ -41,11 +41,12 @@ const Ext = function Ext() {
 		}
 	};
 
-	var _init_schemas = function(schema) {
+	var get_local_gsettings = function(schema) {
 		self.log.info("initting schemas");
 		let extension = ExtensionUtils.getCurrentExtension();
 		const GioSSS = Gio.SettingsSchemaSource;
 
+		//TODO:
 		// check if this extension was built with "make zip-file", and thus
 		// has the schema files in a subfolder
 		// otherwise assume that extension has been installed in the
@@ -59,11 +60,15 @@ const Ext = function Ext() {
 
 		let schemaObj = schemaSource.lookup(schema, true);
 		self.log.info("schemaObj returned: " + schemaObj);
-		if (!schemaObj)
-				throw new Error('Schema ' + schema + ' could not be found for extension '
-												+ extension.metadata.uuid + '. Please check your installation.');
+		if (!schemaObj) {
+			throw new Error(
+				'Schema ' + schema +
+				' could not be found for extension ' +
+				extension.metadata.uuid
+			);
+		}
+		return new Gio.Settings({ settings_schema: schemaObj });
 	};
-	self._do(function() { _init_schemas(KEYBINDING_BASE); }, "init schemas", true);
 
 	// Given a `proxy GIName:Meta.Workspace`, return a corresponding
 	// shellshape Workspace (as defined in shellshape/workspace.js).
@@ -175,24 +180,26 @@ const Ext = function Ext() {
 	};
 
 
-	// Utility method that binds a callback to a named keypress-action.
-	// Called exclusively from _init_keybindings.
-	function handle(name, func) {
-		self._bound_keybindings[name] = true;
-		var added = self.current_display().add_keybinding(name,
-			KEYBINDING_BASE,
-			Meta.KeyBindingFlags.NONE,
-			function() {
-				self._do(func, "handler for binding " + name);
-			}
-		);
-		if(!added) {
-			throw("failed to add keybinding handler for: " + name);
-		}
-	}
 
 	// Bind keys to callbacks.
 	self._init_keybindings = function _init_keybindings() {
+		var gsettings = get_local_gsettings(KEYBINDING_BASE);
+
+		// Utility method that binds a callback to a named keypress-action.
+		function handle(name, func) {
+			self._bound_keybindings[name] = true;
+			var added = self.current_display().add_keybinding(name,
+				gsettings,
+				Meta.KeyBindingFlags.NONE,
+				function() {
+					self._do(func, "handler for binding " + name);
+				}
+			);
+			if(!added) {
+				throw("failed to add keybinding handler for: " + name);
+			}
+		}
+
 		self.log.debug("adding keyboard handlers for Shellshape");
 		var BORDER_RESIZE_INCREMENT = 0.05;
 		var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
