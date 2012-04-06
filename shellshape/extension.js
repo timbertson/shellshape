@@ -59,7 +59,6 @@ const Ext = function Ext() {
 			false);
 
 		let schemaObj = schemaSource.lookup(schema, true);
-		self.log.info("schemaObj returned: " + schemaObj);
 		if (!schemaObj) {
 			throw new Error(
 				'Schema ' + schema +
