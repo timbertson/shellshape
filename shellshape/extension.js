@@ -275,9 +275,6 @@ function init() {
 		return {x: pointerX, y: pointerY};
 	};
 
-	//TODO: move into separate extension
-	St.set_slow_down_factor(0.75);
-
 	let ext = new Ext();
 	return ext;
 }
