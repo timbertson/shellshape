@@ -120,6 +120,10 @@ GPLv3
 			<manifest-digest sha256="2437376cd245ee4f09b0738e1cc7392a04750a9cec4b0875bf71606703d9ee01"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.1.tgz" size="66650"/>
 		</implementation>
+		<implementation id="sha1new=89200d31d32d2a7702fa2e6bd753dbd30c2fb69a" released="2012-04-08" version="0.3.2">
+			<manifest-digest sha256="ed3a600dd0002c492be3250235429822b2668244af49567eeb3b6524ff78c63c"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.2.tgz" size="55007"/>
+		</implementation>
 	</group>
 	<group stability="developer">
 		<command name="run" path="run-shellshape">
