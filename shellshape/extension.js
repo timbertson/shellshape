@@ -292,7 +292,7 @@ const Ext = function Ext() {
 		self.log.info("shellshape enable() called");
 		self._reset_state();
 		let screen = self.screen = global.screen;
-		//TODO: multuple monitor support
+		//TODO: multiple monitor support
 		var monitorIdx = screen.get_primary_monitor();
 		self.monitor = screen.get_monitor_geometry(monitorIdx);
 
