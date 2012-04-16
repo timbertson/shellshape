@@ -292,12 +292,17 @@ const Ext = function Ext() {
 		self.log.info("shellshape enable() called");
 		self._reset_state();
 		let screen = self.screen = global.screen;
-		//TODO: multuple monitor support
+		//TODO: multiple monitor support
 		var monitorIdx = screen.get_primary_monitor();
 		self.monitor = screen.get_monitor_geometry(monitorIdx);
-
-		self.bounds.pos = { x: 0, y: Main.panel.actor.height }
-		self.bounds.size = {x: self.monitor.width, y: self.monitor.height - self.bounds.pos.y }
+		self.bounds.pos = {
+			x: self.monitor.x,
+			y: self.monitor.y + Main.panel.actor.height,
+		};
+		self.bounds.size = {
+			x: self.monitor.width,
+            y: self.monitor.height - Main.panel.actor.height,
+		};
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_workspaces, "init workspaces");
 		self._do(self._init_indicator, "init indicator");
