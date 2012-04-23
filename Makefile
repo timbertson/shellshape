@@ -4,10 +4,10 @@ spec=0launch --not-before=0.4 http://gfxmonk.net/dist/0install/coffee-spec.xml
 markdown=0launch http://gfxmonk.net/dist/0install/markdown.xml
 template=0launch http://gfxmonk.net/dist/0install/template.xml
 
-all: js schemas
+all: js shellshape/schemas
 
-schemas: phony
-	make -C schemas
+shellshape/schemas: phony
+	make -C shellshape/schemas
 
 js: phony
 	${coffee} --bare -c shellshape/tiling.coffee
@@ -25,7 +25,6 @@ auto: phony js
 		-p shellshape \
 		-p xdg \
 		-p lib \
-		-p icons \
 		shellshape.xml
 
 .PHONY: phony

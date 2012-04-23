@@ -8,7 +8,8 @@ const St = imports.gi.St;
 const Mainloop = imports.mainloop;
 const Signals = imports.signals;
 
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const ExtensionUtils = imports.misc.extensionUtils;
+const Extension = ExtensionUtils.getCurrentExtension();
 const Tiling = Extension.imports.tiling;
 const Window = Extension.imports.mutter_window.Window;
 const Workspace = Extension.imports.workspace.Workspace;
@@ -16,6 +17,7 @@ const ShellshapeIndicator = Extension.imports.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
 const Log = imports.log4javascript.log4javascript;
 const GLib = imports.gi.GLib;
+const Gio = imports.gi.Gio;
 const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
 
@@ -28,15 +30,43 @@ const Ext = function Ext() {
 	// Utility method that safely executes a callback by catching any
 	// exceptions and logging the traceback and a caller-provided
 	// description of the action.
-	self._do = function _do(action, desc) {
+	self._do = function _do(action, desc, fail) {
 		try {
 			action();
 		} catch (e) {
 			self.log.error("ERROR in tiling (" + desc + "): ", e);
 			self.log.error(e.stack);
+			if(fail) throw e;
+			return e;
 		}
 	};
 
+	var get_local_gsettings = function(schema) {
+		self.log.info("initting schemas");
+		const GioSSS = Gio.SettingsSchemaSource;
+
+		//TODO:
+		// check if this extension was built with "make zip-file", and thus
+		// has the schema files in a subfolder
+		// otherwise assume that extension has been installed in the
+		// same prefix as gnome-shell (and therefore schemas are available
+		// in the standard folders)
+		let schemaDir = Extension.dir.get_child('schemas');
+		let schemaSource = GioSSS.new_from_directory(
+			schemaDir.get_path(),
+			GioSSS.get_default(),
+			false);
+
+		let schemaObj = schemaSource.lookup(schema, true);
+		if (!schemaObj) {
+			throw new Error(
+				'Schema ' + schema +
+				' could not be found for extension ' +
+				Extension.metadata.uuid
+			);
+		}
+		return new Gio.Settings({ settings_schema: schemaObj });
+	};
 
 	// Given a `proxy GIName:Meta.Workspace`, return a corresponding
 	// shellshape Workspace (as defined in shellshape/workspace.js).
@@ -148,24 +178,26 @@ const Ext = function Ext() {
 	};
 
 
-	// Utility method that binds a callback to a named keypress-action.
-	// Called exclusively from _init_keybindings.
-	function handle(name, func) {
-		self._bound_keybindings[name] = true;
-		var added = self.current_display().add_keybinding(name,
-			KEYBINDING_BASE,
-			Meta.KeyBindingFlags.NONE,
-			function() {
-				self._do(func, "handler for binding " + name);
-			}
-		);
-		if(!added) {
-			throw("failed to add keybinding handler for: " + name);
-		}
-	}
 
 	// Bind keys to callbacks.
 	self._init_keybindings = function _init_keybindings() {
+		var gsettings = get_local_gsettings(KEYBINDING_BASE);
+
+		// Utility method that binds a callback to a named keypress-action.
+		function handle(name, func) {
+			self._bound_keybindings[name] = true;
+			var added = self.current_display().add_keybinding(name,
+				gsettings,
+				Meta.KeyBindingFlags.NONE,
+				function() {
+					self._do(func, "handler for binding " + name);
+				}
+			);
+			if(!added) {
+				throw("failed to add keybinding handler for: " + name);
+			}
+		}
+
 		self.log.debug("adding keyboard handlers for Shellshape");
 		var BORDER_RESIZE_INCREMENT = 0.05;
 		var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
