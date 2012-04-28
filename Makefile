@@ -21,10 +21,15 @@ auto: phony js
 0: phony js
 	mkzero-gfxmonk \
 		-p gnome-shell.desktop \
-		-p run-gnome-shell \
 		-p shellshape \
 		-p xdg \
 		-p lib \
 		shellshape.xml
+
+zip: phony
+	rm -f 0inst/shellshape.zip
+	(cd shellshape && \
+		zip -r ../0inst/shellshape.zip *)
+
 
 .PHONY: phony

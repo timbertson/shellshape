@@ -1,19 +1,22 @@
-# Note: now running on gnome-shell 3.3+
-It's still in development, but much easier since it requires no modifications to `mutter`. After cloning the `master` branch, you can run it with:
-
-	0launch --not-before=0.4-pre shellshape-local.xml --replace
-
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
 
-This software is in-development. I use it daily, but it might break stuff. Use at your own risk.
+This software is in-development. I use it daily, but it might break stuff. Use at your own risk. Multiple monitor support is not really present, and doing fancy things like "always on top" windows may or may not break it.
 
 I must thank [bluetile][bluetile], for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).
 
-## Running it on gnome-shell 3.2*
-Please see instructions on <http://gfxmonk.net/shellshape/>
+## Running it on gnome-shell 3.4*
 
-To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`.
+Briefly, `0launch http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0launch`, you should install the `zeroinstall-injector` package first.
+For more details, please see instructions on <http://gfxmonk.net/shellshape/>
+
+To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:
+
+	ln -s "$PWD/shellshape" "~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"
+
+## Running it on gnome-shell 3.2*
+
+Is hard, error-prone, and no longer supported. Sorry!
 
 ## running on arch linux
 
@@ -49,6 +52,8 @@ The core layout stuff is in `tiling.coffee`. This should run in both the shell a
 
 ## Debugging
 If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/shellshape.log`. You can set values other than `all` if you want to debug on specific topics (available topics include `extension`, `indicator`, `tiling`, `workspace` and `window`) - they should be set as a comma-delimited string, e.g `SHELLSHAPE_DEBUG=workspace,tiling`.
+
+**Note** debugging like this won't work unless you run using `0launch`.
 
 ## Licence
 GPLv3
