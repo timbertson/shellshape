@@ -1,7 +1,8 @@
 const Main = imports.ui.main;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
-const Log = imports.log4javascript.log4javascript;
+const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Log = Extension.imports.log4javascript.log4javascript;
 
 function Window(meta_window, ext) { this._init(meta_window, ext); }
 

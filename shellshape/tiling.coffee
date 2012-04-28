@@ -411,6 +411,10 @@ class BaseLayout
 		@tiles.cycle(diff)
 		@layout()
 
+	minimize_window: ->
+		@active_tile (tile, idx) =>
+			tile.minimize()
+
 	unminimize_last_window: ->
 		@tiles.most_recently_minimized (win) =>
 			#TODO: this is a little odd...
@@ -800,6 +804,9 @@ class TiledWindow
 	unminimize: () ->
 		@window.unminimize()
 
+	minimize: () ->
+		@window.minimize()
+
 	_resize: (size) ->
 		@rect.size = {x:size.x, y:size.y}
 
@@ -906,7 +913,8 @@ unless Log?
 			debug: function() { log.apply(null, arguments) }
 		}`
 	else if imports?
-		`var Log = imports.log4javascript.log4javascript`
+		`var Extension = imports.misc.extensionUtils.getCurrentExtension()`
+		`var Log = Extension.imports.log4javascript.log4javascript`
 	else
 		`Log = log4javascript`
 

@@ -1,8 +1,8 @@
 const Mainloop = imports.mainloop;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
-const Log = imports.log4javascript.log4javascript;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Log = Extension.imports.log4javascript.log4javascript;
 const Tiling = Extension.imports.tiling;
 
 function Workspace() {

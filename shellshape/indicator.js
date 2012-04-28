@@ -3,9 +3,9 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
 const Clutter = imports.gi.Clutter
-const Log = imports.log4javascript.log4javascript;
 const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Log = Extension.imports.log4javascript.log4javascript;
 const Tiling = Extension.imports.tiling;
 const Gio = imports.gi.Gio;
 

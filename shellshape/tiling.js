@@ -607,6 +607,13 @@ BaseLayout = (function() {
     return this.layout();
   };
 
+  BaseLayout.prototype.minimize_window = function() {
+    var _this = this;
+    return this.active_tile(function(tile, idx) {
+      return tile.minimize();
+    });
+  };
+
   BaseLayout.prototype.unminimize_last_window = function() {
     var _this = this;
     return this.tiles.most_recently_minimized(function(win) {
@@ -1207,6 +1214,10 @@ TiledWindow = (function() {
     return this.window.unminimize();
   };
 
+  TiledWindow.prototype.minimize = function() {
+    return this.window.minimize();
+  };
+
   TiledWindow.prototype._resize = function(size) {
     return this.rect.size = {
       x: size.x,
@@ -1344,7 +1355,8 @@ if (typeof Log === "undefined" || Log === null) {
 			debug: function() { log.apply(null, arguments) }
 		};
   } else if (typeof imports !== "undefined" && imports !== null) {
-    var Log = imports.log4javascript.log4javascript;
+    var Extension = imports.misc.extensionUtils.getCurrentExtension();
+    var Log = Extension.imports.log4javascript.log4javascript;
   } else {
     Log = log4javascript;
   }
