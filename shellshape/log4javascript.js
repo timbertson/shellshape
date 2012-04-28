@@ -1,5 +1,6 @@
 // shim that loads the real log4javascript
 // if possible, otherwise uses a stub
+const GLib = imports.gi.GLib;
 
 var log4javascript;
 

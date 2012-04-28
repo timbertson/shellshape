@@ -19,9 +19,12 @@ Workspace.prototype = {
 		this.set_layout(this._default_layout);
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+		// add all initial windows
+		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 	},
 	_disable: function() {
-		this.meta_windows().map(Lang.bind(this, this.on_window_remove));
+		var self = this;
+		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_remove(null, win); }));
 		this.extension.disconnect_tracked_signals(this);
 		this.meta_workspace = null;
 		this.extension = null;

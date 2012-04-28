@@ -106,18 +106,22 @@ GPLv3
 		
 		
 		
+		
 	</group>
-	<group stability="developer">
-		<command name="run" path="run-shellshape">
-			<runner interface="http://repo.roscidus.com/python/python">
-				<version before="3.0"/>
+	<group>
+		<command name="run">
+			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
+				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
+				<arg>--plugin-command</arg>
+				<arg>run</arg>
 			</runner>
-			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.3.2"/>
-			</requires>
 		</command>
+		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
+			<version not-before="3.4"/>
+			<version before="3.5"/>
+		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		
-	<implementation id="." version="0.4-pre1"/></group>
+		<!-- no implementations yet... -->
+	<implementation id="." version="0.4-pre"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
