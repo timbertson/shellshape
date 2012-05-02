@@ -94,7 +94,10 @@ ShellshapeIndicator.prototype = {
 		});
 		this.box.add_actor(this.icon);
 		this.box.add_actor(this.status_label);
+
+		// TODO: what is this for? a GC bug?
 		this.actor.get_children().forEach(function(c) { c.destroy() });
+
 		this.actor.add_actor(this.box);
 		this.actor.connect('scroll-event', Lang.bind(this, this._scroll_event));
 
