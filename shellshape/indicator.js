@@ -11,6 +11,19 @@ const Gio = imports.gi.Gio;
 
 let _indicator;
 
+// A BIT HACKY: add the shellshape icon directory to the current theme's search path,
+// as this seems to be the only way to get symbolic icons loading properly.
+(function() {
+	var theme = imports.gi.Gtk.IconTheme.get_default();
+	let icon_dir = Extension.dir.get_child('xdg').get_child('data').get_child('icons');
+	if(icon_dir.query_exists(null)) {
+		global.log("adding icon dir: " + icon_dir.get_path());
+		theme.append_search_path(icon_dir.get_path());
+	} else {
+		global.log("no icon dir found at " + icon_dir.get_path() + " - assuming globally installed");
+	}
+})();
+
 function ShellshapeIndicator() {
 	this._init.apply(this, arguments);
 }
@@ -23,19 +36,23 @@ function PopupImageMenuItem() {
 PopupImageMenuItem.prototype = {
 	__proto__: PopupMenu.PopupBaseMenuItem.prototype,
 
-	_init: function (text, gicon, params) {
+	_init: function (text, iconName, params) {
 		PopupMenu.PopupBaseMenuItem.prototype._init.call(this, params);
 
 		this.label = new St.Label({
 			text: text
 		});
 		this._icon = new St.Icon({
-			icon_type: (St.IconType.SYMBOLIC),
-			style_class: 'system-status-icon'
-			gicon: gicon
+			icon_type: (St.IconType.SYMBOLIC)
+			,style_class: 'system-status-icon'
 		});
 		this.addActor(this._icon, { align: St.Align.START });
 		this.addActor(this.label);
+		this.setIcon(iconName);
+	},
+
+	setIcon: function(name) {
+		this._icon.icon_name = name;
 	}
 };
 
@@ -46,27 +63,22 @@ ShellshapeIndicator.prototype = {
 		this.ext = ext;
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
 
-		var makeGIcon = function(name) {
-			let fullpath = Extension.dir.get_child('icons').get_child('status').get_child(name + '.svg');
-			return new Gio.FileIcon({file: fullpath});
-		};
-
 		// create menu
 		this.menu_entries = [
 			{
 				label: 'Floating',
 				layout: Tiling.FloatingLayout,
-				icon: makeGIcon('window-tile-floating-symbolic')
+				icon: 'window-tile-floating-symbolic'
 			},
 			{
 				label: 'Horizontal',
 				layout: Tiling.HorizontalTiledLayout,
-				icon: makeGIcon('window-tile-horizontal-symbolic')
+				icon: 'window-tile-horizontal-symbolic'
 			},
 			{
 				label: 'Vertical',
 				layout: Tiling.VerticalTiledLayout,
-				icon: makeGIcon('window-tile-vertical-symbolic')
+				icon: 'window-tile-vertical-symbolic'
 			}
 		];
 
@@ -85,10 +97,9 @@ ShellshapeIndicator.prototype = {
 
 		var default_entry = this.menu_entries[0];
 		this.icon = new St.Icon({
-			icon_type: (St.IconType.SYMBOLIC),
-			// icon_name: default_entry.icon,
-			gicon: default_entry.icon,
-			style_class: 'system-status-icon'
+			icon_type: (St.IconType.SYMBOLIC)
+			,icon_name: default_entry.icon
+			,style_class: 'system-status-icon'
 		});
 		this.actor.get_children().forEach(function(c) { c.destroy() });
 		this.actor.add_actor(this.icon);
@@ -124,8 +135,7 @@ ShellshapeIndicator.prototype = {
 	},
 
 	_set_active_item: function(item) {
-		// this.icon.set_icon_name(item.icon);
-		this.icon.set_gicon(item.icon);
+		this.icon.set_icon_name(item.icon);
 	},
 
 	_workspaceChanged: function(meta_screen, old_index, new_index) {

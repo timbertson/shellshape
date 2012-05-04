@@ -45,17 +45,19 @@ const Ext = function Ext() {
 		self.log.info("initting schemas");
 		const GioSSS = Gio.SettingsSchemaSource;
 
-		//TODO:
-		// check if this extension was built with "make zip-file", and thus
-		// has the schema files in a subfolder
-		// otherwise assume that extension has been installed in the
-		// same prefix as gnome-shell (and therefore schemas are available
-		// in the standard folders)
-		let schemaDir = Extension.dir.get_child('schemas');
-		let schemaSource = GioSSS.new_from_directory(
-			schemaDir.get_path(),
-			GioSSS.get_default(),
-			false);
+		let schemaDir = Extension.dir.get_child('xdg').get_child('data').get_child('glib-2.0').get_child('schemas');
+		var schemaSource;
+
+		if(!(schemaDir.query_exists(null))) {
+			global.log("no directory at: " + schemaDir.get_path() + " - assuming schemas globally installed");
+			schemaSource = GioSSS.get_default();
+		} else {
+			global.log("loading schema from: " + schemaDir.get_path());
+			schemaSource = GioSSS.new_from_directory(
+				schemaDir.get_path(),
+				GioSSS.get_default(),
+				false);
+		}
 
 		let schemaObj = schemaSource.lookup(schema, true);
 		if (!schemaObj) {

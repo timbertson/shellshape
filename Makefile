@@ -29,7 +29,11 @@ auto: phony js
 zip: phony
 	rm -f 0inst/shellshape.zip
 	(cd shellshape && \
-		zip -r ../0inst/shellshape.zip *)
+		zip -r ../0inst/shellshape.zip * && \
+		cd .. && \
+		zip -gr 0inst/shellshape.zip xdg/data/glib-2.0 && \
+		zip -gr 0inst/shellshape.zip xdg/data/icons \
+	)
 
 
 .PHONY: phony
