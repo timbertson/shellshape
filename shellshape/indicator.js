@@ -3,10 +3,11 @@ const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
 const Clutter = imports.gi.Clutter
-const Log = imports.log4javascript.log4javascript;
 const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
+const Log = Extension.imports.log4javascript.log4javascript;
 const Tiling = Extension.imports.tiling;
+const Gio = imports.gi.Gio;
 
 let _indicator;
 
@@ -22,7 +23,7 @@ function PopupImageMenuItem() {
 PopupImageMenuItem.prototype = {
 	__proto__: PopupMenu.PopupBaseMenuItem.prototype,
 
-	_init: function (text, iconName, params) {
+	_init: function (text, gicon, params) {
 		PopupMenu.PopupBaseMenuItem.prototype._init.call(this, params);
 
 		this.label = new St.Label({
@@ -31,14 +32,10 @@ PopupImageMenuItem.prototype = {
 		this._icon = new St.Icon({
 			icon_type: (St.IconType.SYMBOLIC),
 			style_class: 'system-status-icon'
+			gicon: gicon
 		});
 		this.addActor(this._icon, { align: St.Align.START });
 		this.addActor(this.label);
-		this.setIcon(iconName);
-	},
-
-	setIcon: function(name) {
-		this._icon.icon_name = name;
 	}
 };
 
@@ -49,22 +46,27 @@ ShellshapeIndicator.prototype = {
 		this.ext = ext;
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
 
+		var makeGIcon = function(name) {
+			let fullpath = Extension.dir.get_child('icons').get_child('status').get_child(name + '.svg');
+			return new Gio.FileIcon({file: fullpath});
+		};
+
 		// create menu
 		this.menu_entries = [
 			{
 				label: 'Floating',
 				layout: Tiling.FloatingLayout,
-				icon: 'window-tile-floating-symbolic'
+				icon: makeGIcon('window-tile-floating-symbolic')
 			},
 			{
 				label: 'Horizontal',
 				layout: Tiling.HorizontalTiledLayout,
-				icon: 'window-tile-horizontal-symbolic'
+				icon: makeGIcon('window-tile-horizontal-symbolic')
 			},
 			{
 				label: 'Vertical',
 				layout: Tiling.VerticalTiledLayout,
-				icon: 'window-tile-vertical-symbolic'
+				icon: makeGIcon('window-tile-vertical-symbolic')
 			}
 		];
 
@@ -84,7 +86,8 @@ ShellshapeIndicator.prototype = {
 		var default_entry = this.menu_entries[0];
 		this.icon = new St.Icon({
 			icon_type: (St.IconType.SYMBOLIC),
-			icon_name: default_entry.icon,
+			// icon_name: default_entry.icon,
+			gicon: default_entry.icon,
 			style_class: 'system-status-icon'
 		});
 		this.actor.get_children().forEach(function(c) { c.destroy() });
@@ -121,7 +124,8 @@ ShellshapeIndicator.prototype = {
 	},
 
 	_set_active_item: function(item) {
-		this.icon.set_icon_name(item.icon);
+		// this.icon.set_icon_name(item.icon);
+		this.icon.set_gicon(item.icon);
 	},
 
 	_workspaceChanged: function(meta_screen, old_index, new_index) {

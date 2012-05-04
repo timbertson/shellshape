@@ -15,7 +15,7 @@ const Window = Extension.imports.mutter_window.Window;
 const Workspace = Extension.imports.workspace.Workspace;
 const ShellshapeIndicator = Extension.imports.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
-const Log = imports.log4javascript.log4javascript;
+const Log = Extension.imports.log4javascript.log4javascript;
 const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
 const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
@@ -43,7 +43,6 @@ const Ext = function Ext() {
 
 	var get_local_gsettings = function(schema) {
 		self.log.info("initting schemas");
-		let extension = ExtensionUtils.getCurrentExtension();
 		const GioSSS = Gio.SettingsSchemaSource;
 
 		//TODO:
@@ -52,7 +51,7 @@ const Ext = function Ext() {
 		// otherwise assume that extension has been installed in the
 		// same prefix as gnome-shell (and therefore schemas are available
 		// in the standard folders)
-		let schemaDir = extension.dir.get_child('schemas');
+		let schemaDir = Extension.dir.get_child('schemas');
 		let schemaSource = GioSSS.new_from_directory(
 			schemaDir.get_path(),
 			GioSSS.get_default(),
@@ -63,7 +62,7 @@ const Ext = function Ext() {
 			throw new Error(
 				'Schema ' + schema +
 				' could not be found for extension ' +
-				extension.metadata.uuid
+				Extension.metadata.uuid
 			);
 		}
 		return new Gio.Settings({ settings_schema: schemaObj });
@@ -325,12 +324,17 @@ const Ext = function Ext() {
 		self.log.info("shellshape enable() called");
 		self._reset_state();
 		let screen = self.screen = global.screen;
-		//TODO: multuple monitor support
+		//TODO: multiple monitor support
 		var monitorIdx = screen.get_primary_monitor();
 		self.monitor = screen.get_monitor_geometry(monitorIdx);
-
-		self.bounds.pos = { x: 0, y: Main.panel.actor.height }
-		self.bounds.size = {x: self.monitor.width, y: self.monitor.height - self.bounds.pos.y }
+		self.bounds.pos = {
+			x: self.monitor.x,
+			y: self.monitor.y + Main.panel.actor.height,
+		};
+		self.bounds.size = {
+			x: self.monitor.width,
+            y: self.monitor.height - Main.panel.actor.height,
+		};
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_workspaces, "init workspaces");
 		self._do(self._init_indicator, "init indicator");
@@ -393,47 +397,8 @@ const Ext = function Ext() {
 
 Signals.addSignalMethods(Ext.prototype);
 
-// Initializes logging.
-// TODO -- should this be moved to its own .js file?
-function _init_logging() {
-	let root_logger = Log.getLogger("shellshape");
-	let GjsAppender = imports.log4javascript_gjs_appender.GjsAppender;
-	let appender = new GjsAppender();
-	appender.setLayout(new Log.PatternLayout("%-5p: %m"));
-	let shellshape_debug = GLib.getenv("SHELLSHAPE_DEBUG");
-	let root_level = Log.Level.INFO;
-	root_logger.addAppender(appender);
-
-	if(shellshape_debug) {
-		var FileAppender = imports.log4javascript_file_appender.FileAppender;
-		let fileAppender = new FileAppender("/tmp/shellshape.log");
-		fileAppender.setLayout(new Log.PatternLayout("%d{HH:mm:ss,SSS} %-5p [%c]: %m"));
-		root_logger.addAppender(fileAppender);
-
-		if(shellshape_debug == "true" || shellshape_debug == "all" || shellshape_debug == "1") {
-			root_level = Log.Level.DEBUG;
-			root_logger.info("set log level DEBUG for shellshape.*");
-		} else {
-			let debug_topics = shellshape_debug.split(",");
-			debug_topics.map(function(topic) {
-				let log_name = "shellshape." + topic;
-				let logger = Log.getLogger(log_name);
-				logger.setLevel(Log.Level.DEBUG);
-				root_logger.info("set log level DEBUG for " + log_name);
-			});
-		}
-		root_logger.info(" ---- Shellshape starting ---- ");
-	}
-	root_logger.setLevel(root_level);
-}
-
 // initialization
 function init() {
-	try {
-		_init_logging();
-	} catch (e) {
-		print("ERROR in log initialization: " + e);
-	}
 	// inject the get_mouse_position function
 	Tiling.get_mouse_position = function() {
 		let display = Gdk.Display.get_default();
@@ -442,9 +407,6 @@ function init() {
 		let [screen, pointerX, pointerY] = pointer.get_position();
 		return {x: pointerX, y: pointerY};
 	};
-
-	//TODO: move into separate extension
-	St.set_slow_down_factor(0.75);
 
 	let ext = new Ext();
 	return ext;

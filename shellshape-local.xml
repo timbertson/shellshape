@@ -6,14 +6,37 @@
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
 
-This software is in-development. I use it daily, but it might break stuff. Use at your own risk.
+This software is in-development. I use it daily, but it might break stuff. Use at your own risk. Multiple monitor support is not really present, and doing fancy things like &quot;always on top&quot; windows may or may not break it.
 
 I must thank [bluetile][bluetile], for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).
 
-## Running it
-Please see instructions on &lt;http://gfxmonk.net/shellshape/&gt;
+## Running it on gnome-shell 3.4*
 
-To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`.
+Briefly, `0launch http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0launch`, you should install the `zeroinstall-injector` package first.
+For more details, please see instructions on &lt;http://gfxmonk.net/shellshape/&gt;
+
+To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:
+
+	ln -s &quot;$PWD/shellshape&quot; &quot;~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net&quot;
+
+## Running it on gnome-shell 3.2*
+
+Is hard, error-prone, and no longer supported. Sorry!
+
+## running on arch linux
+
+You may want to try [this user-maintained package](https://aur.archlinux.org/packages.php?ID=50257) if the normal method doesn't work for you, but I have no idea what it will do to your system.
+
+## &quot;It doesn't work&quot;
+
+If you don't know why, here's some things to check:
+
+	- Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of `gnome-tweak-tool`)
+	- See if there are any errors in looking glass that mention shellshape (press alt-F2, type &quot;`lg`&quot; and then click the &quot;Errors&quot; tab)
+	- Check the console output (if running in a console) for any messages that mention shellshape
+	- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all
+
+To report a bug or crash, please see the [github issues page](https://github.com/gfxmonk/shellshape/issues).
 
 ## Replace gnome-shell
 
@@ -32,10 +55,10 @@ All of these should be available from your package manager, or [the gnome shell 
 ## Hacking
 The core layout stuff is in `tiling.coffee`. This should run in both the shell and in the web browser (see `interactive/index.html`; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for `tiling.js`, it is generated from `tiling.coffee`).
 
-To report a bug or crash, please see the [github issues page](https://github.com/gfxmonk/shellshape/issues).
-
 ## Debugging
 If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/shellshape.log`. You can set values other than `all` if you want to debug on specific topics (available topics include `extension`, `indicator`, `tiling`, `workspace` and `window`) - they should be set as a comma-delimited string, e.g `SHELLSHAPE_DEBUG=workspace,tiling`.
+
+**Note** debugging like this won't work unless you run using `0launch`.
 
 ## Licence
 GPLv3
@@ -47,11 +70,29 @@ GPLv3
 		<div xmlns="http://www.w3.org/1999/xhtml">
 			<h1 id="shellshape">shellshape</h1>
 			<p>A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.</p>
-			<p>This software is in-development. I use it daily, but it might break stuff. Use at your own risk.</p>
+			<p>This software is in-development. I use it daily, but it might break stuff. Use at your own risk. Multiple monitor support is not really present, and doing fancy things like &quot;always on top&quot; windows may or may not break it.</p>
 			<p>I must thank <a href="http://bluetile.org/">bluetile</a>, for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).</p>
-			<h2 id="running-it">Running it</h2>
-			<p>Please see instructions on <a href="http://gfxmonk.net/shellshape/"><code class="url">http://gfxmonk.net/shellshape/</code></a></p>
-			<p>To run your own checkout, you should be able to clone this repo and run <code>0launch shellshape-local.xml</code>.</p>
+			<h2 id="running-it-on-gnome-shell-3.4">Running it on gnome-shell 3.4*</h2>
+			<p>Briefly, <code>0launch http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0launch</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/"><code class="url">http://gfxmonk.net/shellshape/</code></a></p>
+			<p>To run your own checkout, you should be able to clone this repo and run <code>0launch shellshape-local.xml</code>. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:</p>
+			<pre>
+				<code>ln -s &quot;$PWD/shellshape&quot; &quot;~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net&quot;
+</code>
+			</pre>
+			<h2 id="running-it-on-gnome-shell-3.2">Running it on gnome-shell 3.2*</h2>
+			<p>Is hard, error-prone, and no longer supported. Sorry!</p>
+			<h2 id="running-on-arch-linux">running on arch linux</h2>
+			<p>You may want to try <a href="https://aur.archlinux.org/packages.php?ID=50257">this user-maintained package</a> if the normal method doesn't work for you, but I have no idea what it will do to your system.</p>
+			<h2 id="it-doesnt-work">&quot;It doesn't work&quot;</h2>
+			<p>If you don't know why, here's some things to check:</p>
+			<pre>
+				<code>- Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of `gnome-tweak-tool`)
+- See if there are any errors in looking glass that mention shellshape (press alt-F2, type &quot;`lg`&quot; and then click the &quot;Errors&quot; tab)
+- Check the console output (if running in a console) for any messages that mention shellshape
+- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all
+</code>
+			</pre>
+			<p>To report a bug or crash, please see the <a href="https://github.com/gfxmonk/shellshape/issues">github issues page</a>.</p>
 			<h2 id="replace-gnome-shell">Replace gnome-shell</h2>
 			<p>If you symlink the provided <code>gnome-shell.desktop</code> file to <code>~/.local/share/applications/</code>, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.</p>
 			<h2 id="friends">Friends</h2>
@@ -64,9 +105,9 @@ GPLv3
 			<p>All of these should be available from your package manager, or <a href="https://live.gnome.org/GnomeShell/Extensions">the gnome shell extensions page</a></p>
 			<h2 id="hacking">Hacking</h2>
 			<p>The core layout stuff is in <code>tiling.coffee</code>. This should run in both the shell and in the web browser (see <code>interactive/index.html</code>; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for <code>tiling.js</code>, it is generated from <code>tiling.coffee</code>).</p>
-			<p>To report a bug or crash, please see the <a href="https://github.com/gfxmonk/shellshape/issues">github issues page</a>.</p>
 			<h2 id="debugging">Debugging</h2>
 			<p>If you export <code>SHELLSHAPE_DEBUG=all</code>, you will get a debug log written to <code>/tmp/shellshape.log</code>. You can set values other than <code>all</code> if you want to debug on specific topics (available topics include <code>extension</code>, <code>indicator</code>, <code>tiling</code>, <code>workspace</code> and <code>window</code>) - they should be set as a comma-delimited string, e.g <code>SHELLSHAPE_DEBUG=workspace,tiling</code>.</p>
+			<p><strong>Note</strong> debugging like this won't work unless you run using <code>0launch</code>.</p>
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 		</div>
@@ -106,18 +147,22 @@ GPLv3
 		
 		
 		
+		
 	</group>
-	<group stability="developer">
-		<command name="run" path="run-shellshape">
-			<runner interface="http://repo.roscidus.com/python/python">
-				<version before="3.0"/>
+	<group>
+		<command name="run">
+			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
+				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
+				<arg>--plugin-command</arg>
+				<arg>run</arg>
 			</runner>
-			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.3.2"/>
-			</requires>
 		</command>
+		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
+			<version not-before="3.4"/>
+			<version before="3.5"/>
+		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
-	<implementation id="." version="0.4-pre1"/></group>
+	<implementation id="." version="0.4-post"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
