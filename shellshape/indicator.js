@@ -25,10 +25,12 @@ PopupImageMenuItem.prototype = {
 	_init: function (text, iconName, params) {
 		PopupMenu.PopupBaseMenuItem.prototype._init.call(this, params);
 
-		this.label = new St.Label({ text: text });
+		this.label = new St.Label({
+			text: text
+		});
 		this._icon = new St.Icon({
-			icon_type: (St.IconType.FULLCOLOR), // TODO: shouldn't be necessary
-			style_class: 'popup-menu-icon'
+			icon_type: (St.IconType.SYMBOLIC),
+			style_class: 'system-status-icon'
 		});
 		this.addActor(this._icon, { align: St.Align.START });
 		this.addActor(this.label);
@@ -80,20 +82,13 @@ ShellshapeIndicator.prototype = {
 		this.menu.addMenuItem(items);
 
 		var default_entry = this.menu_entries[0];
-		this.box = new St.BoxLayout({});
 		this.icon = new St.Icon({
-			icon_type: (St.IconType.FULLCOLOR), // TODO: use proper symbolic icons
+			icon_type: (St.IconType.SYMBOLIC),
 			icon_name: default_entry.icon,
 			style_class: 'system-status-icon'
 		});
-		this.status_label = new St.Label({
-			text: default_entry.label,
-			style: "padding-left: 0.5em; min-width:5.5em;" // TODO: externalize style?
-		});
-		this.box.add_actor(this.icon);
-		this.box.add_actor(this.status_label);
 		this.actor.get_children().forEach(function(c) { c.destroy() });
-		this.actor.add_actor(this.box);
+		this.actor.add_actor(this.icon);
 		this.actor.connect('scroll-event', Lang.bind(this, this._scroll_event));
 
 		this._workspaceChanged(null, null, global.screen.get_active_workspace_index());
@@ -126,7 +121,6 @@ ShellshapeIndicator.prototype = {
 	},
 
 	_set_active_item: function(item) {
-		this.status_label.set_text(item.label);
 		this.icon.set_icon_name(item.icon);
 	},
 
