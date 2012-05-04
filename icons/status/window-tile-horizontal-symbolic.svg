@@ -1,132 +1,35 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   version="1.1"
-   width="128"
-   height="128"
-   id="svg2">
-  <defs
-     id="defs4" />
-  <metadata
-     id="metadata7">
+<svg xmlns:cc='http://creativecommons.org/ns#' xmlns:dc='http://purl.org/dc/elements/1.1/' sodipodi:docname='window-tile-horizontal-symbolic.svg' height='16' id='svg7384' xmlns:inkscape='http://www.inkscape.org/namespaces/inkscape' xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns:sodipodi='http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd' xmlns:svg='http://www.w3.org/2000/svg' inkscape:version='0.48.2 r9819' version='1.1' width='16.015625' xmlns='http://www.w3.org/2000/svg'>
+  <metadata id='metadata90'>
     <rdf:RDF>
-      <cc:Work
-         rdf:about="">
+      <cc:Work rdf:about=''>
         <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:type rdf:resource='http://purl.org/dc/dcmitype/StillImage'/>
+        <dc:title>Gnome Symbolic Icon Theme</dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <g
-     transform="translate(1.25,-105.61217)"
-     id="layer1"
-     style="display:none">
-    <rect
-       width="129.19682"
-       height="84.719223"
-       x="-1.7462369"
-       y="125.90714"
-       id="rect3770"
-       style="color:#000000;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:5.29495144;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
+  <sodipodi:namedview inkscape:bbox-paths='false' bordercolor='#666666' borderopacity='1' inkscape:current-layer='layer16' inkscape:cx='-19.507676' inkscape:cy='35.206402' gridtolerance='10' inkscape:guide-bbox='true' guidetolerance='10' id='namedview88' inkscape:object-nodes='true' inkscape:object-paths='true' objecttolerance='10' pagecolor='#555753' inkscape:pageopacity='1' inkscape:pageshadow='2' showborder='false' showgrid='true' showguides='true' inkscape:snap-bbox='true' inkscape:snap-bbox-midpoints='false' inkscape:snap-global='false' inkscape:snap-grids='true' inkscape:snap-nodes='false' inkscape:snap-to-guides='true' inkscape:window-height='405' inkscape:window-maximized='0' inkscape:window-width='505' inkscape:window-x='17' inkscape:window-y='27' inkscape:zoom='7.9999996'>
+    <inkscape:grid empspacing='2' enabled='true' id='grid4866' snapvisiblegridlinesonly='true' spacingx='1px' spacingy='1px' type='xygrid' visible='true'/>
+  </sodipodi:namedview>
+  <title id='title9167'>Gnome Symbolic Icon Theme</title>
+  <defs id='defs7386'/>
+  <g inkscape:groupmode='layer' id='layer9' inkscape:label='status' style='display:inline' transform='translate(-279.01582,-301)'/>
+  <g inkscape:groupmode='layer' id='layer16' inkscape:label='shellshape' transform='translate(-38.015625,-84)'>
+    <g id='g4111-2-8' inkscape:label='weather-storm' style='stroke:#bebebe;stroke-opacity:1;display:inline' transform='translate(-202.98197,-193)'>
+      
+    </g>
+    <rect height='10.969559' id='rect3772' rx='0.5' ry='0.5' style='color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:2.40000033;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate' width='7.9891243' x='38.015625' y='87.015038'/>
+    <path inkscape:connector-curvature='0' d='m 48,87 c -0.545351,0 -1,0.454649 -1,1 l 0,3 c 0,0.545351 0.454649,1 1,1 l 4.96875,0 c 0.545351,0 1,-0.454649 1,-1 l 0,-3 c 0,-0.545351 -0.454649,-1 -1,-1 L 48,87 z m 0,1 4.96875,0 0,3 L 48,91 48,88 z' id='rect3774' style='font-size:medium;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:normal;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans'/>
+    <path inkscape:connector-curvature='0' d='m 48,93 c -0.545351,0 -1,0.454649 -1,1 l 0,3 c 0,0.545351 0.454649,1 1,1 l 5.03125,0 c 0.545351,0 1,-0.454649 1,-1 l 0,-3 c 0,-0.545351 -0.454649,-1 -1,-1 L 48,93 z m 0,1 5.03125,0 0,3 L 48,97 48,94 z' id='rect3776' style='font-size:medium;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:normal;letter-spacing:normal;word-spacing:normal;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#bebebe;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans'/>
   </g>
-  <g
-     transform="translate(1.25,-105.61217)"
-     id="layer2"
-     style="display:inline">
-    <rect
-       width="65.176353"
-       height="82.556717"
-       x="-1.3325977"
-       y="126.92742"
-       id="rect3772"
-       style="color:#000000;fill:#949494;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="54.313629"
-       height="26.070541"
-       x="72.533943"
-       y="126.92742"
-       id="rect3774"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="54.313629"
-       height="21.725452"
-       x="72.533943"
-       y="161.68814"
-       id="rect3776"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="54.313629"
-       height="17.38036"
-       x="72.533943"
-       y="192.10378"
-       id="rect3778"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-  </g>
-  <g
-     transform="translate(1.25,-305.60997)"
-     id="layer3"
-     style="display:none">
-    <rect
-       width="128.18018"
-       height="39.105812"
-       x="-1.3325977"
-       y="326.9252"
-       id="rect3782"
-       style="color:#000000;fill:#949494;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="39.105812"
-       height="34.760719"
-       x="-1.3325977"
-       y="374.72125"
-       id="rect3784"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="34.760719"
-       height="34.760719"
-       x="46.463394"
-       y="374.72125"
-       id="rect3786"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="36.933266"
-       height="34.760719"
-       x="89.914291"
-       y="374.72125"
-       id="rect3788"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-  </g>
-  <g
-     transform="translate(1.25,-305.60997)"
-     id="layer4"
-     style="display:none">
-    <rect
-       width="58.658718"
-       height="63.003811"
-       x="3.0124924"
-       y="329.09778"
-       id="rect3792"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="52.141083"
-       height="43.450905"
-       x="70.361397"
-       y="331.27032"
-       id="rect3794"
-       style="color:#000000;fill:#585858;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-    <rect
-       width="56.486176"
-       height="58.658718"
-       x="37.773216"
-       y="348.65063"
-       id="rect3798"
-       style="color:#000000;fill:#949494;fill-opacity:1;stroke:none;stroke-width:2.64700007;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate" />
-  </g>
+  <g inkscape:groupmode='layer' id='layer10' inkscape:label='devices' transform='translate(-279.01582,-301)'/>
+  <g inkscape:groupmode='layer' id='layer11' inkscape:label='apps' transform='translate(-279.01582,-301)'/>
+  <g inkscape:groupmode='layer' id='layer12' inkscape:label='actions' transform='translate(-279.01582,-301)'/>
+  <g inkscape:groupmode='layer' id='layer13' inkscape:label='places' transform='translate(-279.01582,-301)'/>
+  <g inkscape:groupmode='layer' id='layer14' inkscape:label='mimetypes' transform='translate(-279.01582,-301)'/>
+  <g inkscape:groupmode='layer' id='layer15' inkscape:label='emblems' style='display:inline' transform='translate(-279.01582,-301)'/>
+  <g inkscape:groupmode='layer' id='g4953' inkscape:label='categories' style='display:inline' transform='translate(-279.01582,-301)'/>
 </svg>
