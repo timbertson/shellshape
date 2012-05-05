@@ -58,4 +58,16 @@ If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/
 ## Licence
 GPLv3
 
+## Changelog
+
+### version 0.5:
+ - Removed label from indicator icon.
+ - Rework icons to be simpler and look/act like other symbolic icons in the panel.
+ - Added a preferences panel (accessible from the gse website, or `gnome-shell-extension-prefs`).
+ - Added a "max autotile windows" option.
+ - Added the ability to customise keyboard shortcuts from the preferences panel.
+
+### version 0.4:
+ - First release on extensions.gnome.org
+
 [bluetile]: http://bluetile.org/

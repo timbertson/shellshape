@@ -149,7 +149,7 @@ GPLv3
 		
 		
 	</group>
-	<group stability="developer">
+	<group>
 		<command name="run">
 			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
 				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
@@ -164,5 +164,6 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
-	<implementation id="." version="0.4-post"/></group>
+		
+	<implementation id="." version="0.5-post"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
