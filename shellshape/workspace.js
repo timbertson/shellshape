@@ -4,6 +4,7 @@ const Meta = imports.gi.Meta;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Log = Extension.imports.log4javascript.log4javascript;
 const Tiling = Extension.imports.tiling;
+const ShellshapeSettings = Extension.imports.shellshape_settings;
 
 function Workspace() {
 	this._init.apply(this, arguments)
@@ -19,6 +20,7 @@ Workspace.prototype = {
 		this.set_layout(this._default_layout);
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+		this.max_autotile_pref = (new ShellshapeSettings.Prefs()).MAX_AUTOTILE;
 		// add all initial windows
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 	},
@@ -115,9 +117,17 @@ Workspace.prototype = {
 		bind_to_window_change('size',     resize_ops,   Lang.bind(this, this.on_window_resized));
 		win.workspace_signals.push([meta_window, meta_window.connect('notify::minimized', Lang.bind(this, this.on_window_minimize_changed))]);
 
-		if(win.should_auto_tile()) {
+		if(this.has_tile_space_left() && win.should_auto_tile()) {
 			this.layout.tile(win);
 		}
+	},
+
+	has_tile_space_left: function() {
+		let n = 0;
+		this.layout.tiles.each_tiled(function() { n = n + 1; });
+		let max = this.max_autotile_pref.get();
+		this.log.debug("there are " + n + " windows tiled, of maximum " + max);
+		return (n < max);
 	},
 
 	// These functions are bound to the workspace and not the layout directly, since
