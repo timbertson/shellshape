@@ -82,11 +82,11 @@ Window.prototype = {
 	,is_shown_on_taskbar: function() {
 		return !this.meta_window.is_skip_taskbar();
 	}
-	,always_on_top: function() {
-		return this.meta_window.above;
+	,floating_window: function() {
+		return this.meta_window.above || this.meta_window_below;
 	}
 	,should_auto_tile: function() {
-		return this.can_be_tiled() && this.is_resizeable() && (!this.always_on_top());
+		return this.can_be_tiled() && this.is_resizeable() && (!this.floating_window());
 	}
 	,can_be_tiled: function() {
 		var window_type = this.window_type();
