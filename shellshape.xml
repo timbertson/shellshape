@@ -180,9 +180,13 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="sha1new=4813ae4eb4c0233e56647055e912056d0de17827" released="2012-04-28" version="0.4">
+		<implementation id="sha1new=4813ae4eb4c0233e56647055e912056d0de17827" released="2012-04-28" stability="stable" version="0.4">
 			<manifest-digest sha256="d2f082bcf626f6b31902fc1438069f922adebff8b2316463ff7d647a2976d8b4"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.4.tgz" size="59715"/>
+		</implementation>
+		<implementation id="sha1new=0be855c7fe860ea85f8ee08336d880bcbd56579a" released="2012-05-05" version="0.5">
+			<manifest-digest sha256="7ba16d6ba7ec202f3e72cc4156d6316fd482bd55c2f327071f37baab81f90eed"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.tgz" size="57843"/>
 		</implementation>
 	</group>
 </interface>
