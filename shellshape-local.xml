@@ -149,7 +149,7 @@ GPLv3
 		
 		
 	</group>
-	<group>
+	<group stability="developer">
 		<command name="run">
 			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
 				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>

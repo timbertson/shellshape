@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+	<schema id="org.gnome.shell.extensions.net.gfxmonk.shellshape.prefs" path="/org/gnome/shell/extensions/net/gfxmonk/shellshape/prefs/">
+		<key type="b" name="descriptive-indicator"><default>true</default><summary>(TODO...)</summary><description></description></key>
+	</schema>
+</schemalist>

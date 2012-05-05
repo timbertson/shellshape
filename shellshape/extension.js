@@ -12,6 +12,7 @@ const ExtensionUtils = imports.misc.extensionUtils;
 const Extension = ExtensionUtils.getCurrentExtension();
 const Tiling = Extension.imports.tiling;
 const Window = Extension.imports.mutter_window.Window;
+const ShellshapeSettings = Extension.imports.shellshape_settings;
 const Workspace = Extension.imports.workspace.Workspace;
 const ShellshapeIndicator = Extension.imports.indicator.ShellshapeIndicator;
 const Gdk = imports.gi.Gdk;
@@ -39,35 +40,6 @@ const Ext = function Ext() {
 			if(fail) throw e;
 			return e;
 		}
-	};
-
-	var get_local_gsettings = function(schema) {
-		self.log.info("initting schemas");
-		const GioSSS = Gio.SettingsSchemaSource;
-
-		let schemaDir = Extension.dir.get_child('xdg').get_child('data').get_child('glib-2.0').get_child('schemas');
-		var schemaSource;
-
-		if(!(schemaDir.query_exists(null))) {
-			global.log("no directory at: " + schemaDir.get_path() + " - assuming schemas globally installed");
-			schemaSource = GioSSS.get_default();
-		} else {
-			global.log("loading schema from: " + schemaDir.get_path());
-			schemaSource = GioSSS.new_from_directory(
-				schemaDir.get_path(),
-				GioSSS.get_default(),
-				false);
-		}
-
-		let schemaObj = schemaSource.lookup(schema, true);
-		if (!schemaObj) {
-			throw new Error(
-				'Schema ' + schema +
-				' could not be found for extension ' +
-				Extension.metadata.uuid
-			);
-		}
-		return new Gio.Settings({ settings_schema: schemaObj });
 	};
 
 	// Given a `proxy GIName:Meta.Workspace`, return a corresponding
@@ -183,7 +155,7 @@ const Ext = function Ext() {
 
 	// Bind keys to callbacks.
 	self._init_keybindings = function _init_keybindings() {
-		var gsettings = get_local_gsettings(KEYBINDING_BASE);
+		var gsettings = new ShellshapeSettings.Keybindings().settings;
 
 		// Utility method that binds a callback to a named keypress-action.
 		function handle(name, func) {
