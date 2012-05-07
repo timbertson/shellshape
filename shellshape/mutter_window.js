@@ -1,6 +1,7 @@
 const Main = imports.ui.main;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
+const Shell = imports.gi.Shell;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Log = Extension.imports.log4javascript.log4javascript;
 
@@ -17,6 +18,7 @@ Window.tileable_window_types = [
 
 Window.prototype = {
 	_init: function(meta_window, ext) {
+		this._windowTracker = Shell.WindowTracker.get_default();
 		this.meta_window = meta_window;
 		this.ext = ext;
 		this.log = Log.getLogger("shellshape.window");
@@ -83,12 +85,14 @@ Window.prototype = {
 		return !this.meta_window.is_skip_taskbar();
 	}
 	,floating_window: function() {
-		return this.meta_window.above || this.meta_window.below;
+		//TODO: add check for this.meta_window.below when mutter exposes it as a property;
+		return this.meta_window.above;
 	}
 	,should_auto_tile: function() {
 		return this.can_be_tiled() && this.is_resizeable() && (!this.floating_window());
 	}
 	,can_be_tiled: function() {
+		if(!this._windowTracker.is_window_interesting(this.meta_window)) return false;
 		var window_type = this.window_type();
 		var result = Window.tileable_window_types.indexOf(window_type) != -1;
 		// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
