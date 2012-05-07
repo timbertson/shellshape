@@ -83,7 +83,7 @@ Window.prototype = {
 		return !this.meta_window.is_skip_taskbar();
 	}
 	,floating_window: function() {
-		return this.meta_window.above || this.meta_window_below;
+		return this.meta_window.above || this.meta_window.below;
 	}
 	,should_auto_tile: function() {
 		return this.can_be_tiled() && this.is_resizeable() && (!this.floating_window());
