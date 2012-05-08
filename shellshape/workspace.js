@@ -132,10 +132,10 @@ Workspace.prototype = {
 
 	// These functions are bound to the workspace and not the layout directly, since
 	// the layout may change at any moment
-	on_window_moved: function(ws, win)   { this.layout.on_window_moved(  this.extension.get_window(win)); },
-	on_window_resized: function(ws, win) { this.layout.on_window_resized(this.extension.get_window(win)); },
+	on_window_moved: function(win)   { this.layout.on_window_moved(  this.extension.get_window(win)); },
+	on_window_resized: function(win) { this.layout.on_window_resized(this.extension.get_window(win)); },
 
-	on_window_minimize_changed: function(workspace, meta_window) {
+	on_window_minimize_changed: function(meta_window) {
 		this.log.debug("window minimization state changed for window " + meta_window);
 		this.layout.layout();
 	},
