@@ -549,6 +549,10 @@ BaseLayout = (function() {
     this.tiles = state.tiles;
   }
 
+  BaseLayout.prototype.toString = function() {
+    return "[object BaseLayout]";
+  };
+
   BaseLayout.prototype.each = function(func) {
     return this.tiles.each(func);
   };
@@ -717,6 +721,10 @@ FloatingLayout = (function() {
     FloatingLayout.__super__.constructor.apply(this, a);
   }
 
+  FloatingLayout.prototype.toString = function() {
+    return "[object FloatingLayout]";
+  };
+
   FloatingLayout.prototype.layout = function(accommodate_window) {
     var _this = this;
     this.each(function(tile) {
@@ -754,6 +762,10 @@ BaseTiledLayout = (function() {
     this.main_split = state.splits[this.main_axis].main;
     this.splits = state.splits[this.main_axis].minor;
   }
+
+  BaseTiledLayout.prototype.toString = function() {
+    return "[object BaseTiledLayout]";
+  };
 
   BaseTiledLayout.prototype._each_tiled = function(func) {
     return this.tiles.each_tiled(func);
@@ -1058,6 +1070,10 @@ HorizontalTiledLayout = (function() {
     HorizontalTiledLayout.__super__.constructor.call(this, state);
   }
 
+  HorizontalTiledLayout.prototype.toString = function() {
+    return "[object HorizontalTiledLayout]";
+  };
+
   return HorizontalTiledLayout;
 
 })();
@@ -1071,6 +1087,10 @@ VerticalTiledLayout = (function() {
     this.main_axis = 'y';
     VerticalTiledLayout.__super__.constructor.call(this, state);
   }
+
+  VerticalTiledLayout.prototype.toString = function() {
+    return "[object VerticalTiledLayout]";
+  };
 
   return VerticalTiledLayout;
 

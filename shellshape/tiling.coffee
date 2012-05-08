@@ -373,6 +373,8 @@ class BaseLayout
 		@state = state
 		@tiles = state.tiles
 	
+	toString: -> "[object BaseLayout]"
+	
 	each: (func) -> @tiles.each(func)
 	contains: (win) -> @tiles.contains(win)
 
@@ -469,6 +471,8 @@ class FloatingLayout extends BaseLayout
 		@log = Log.getLogger("shellshape.tiling.FloatingLayout")
 		super(a...)
 
+	toString: -> "[object FloatingLayout]"
+
 	layout: (accommodate_window) ->
 		@each (tile) =>
 			@log.debug("resetting window state...")
@@ -489,6 +493,8 @@ class BaseTiledLayout extends BaseLayout
 		@bounds = state.bounds
 		@main_split = state.splits[@main_axis].main
 		@splits = state.splits[@main_axis].minor
+
+	toString: -> "[object BaseTiledLayout]"
 
 	_each_tiled: (func) ->
 		@tiles.each_tiled(func)
@@ -710,11 +716,15 @@ class HorizontalTiledLayout extends BaseTiledLayout
 		@main_axis = 'x'
 		super(state)
 
+	toString: -> "[object HorizontalTiledLayout]"
+
 class VerticalTiledLayout extends BaseTiledLayout
 	constructor: (state) ->
 		@log = Log.getLogger("shellshape.tiling.VerticalTiledLayout")
 		@main_axis = 'y'
 		super(state)
+
+	toString: -> "[object VerticalTiledLayout]"
 
 class TiledWindow
 	minimized_counter = 0
