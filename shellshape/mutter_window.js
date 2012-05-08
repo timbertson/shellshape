@@ -16,6 +16,11 @@ Window.tileable_window_types = [
 	Meta.WindowType.SPLASHSCREEN
 ];
 
+// TODO: expose this as a preference if it gets used much
+Window.blacklist_classes = [
+	'Conky'
+];
+
 Window.prototype = {
 	_init: function(meta_window, ext) {
 		this._windowTracker = Shell.WindowTracker.get_default();
@@ -81,6 +86,9 @@ Window.prototype = {
 			return -1;
 		}
 	}
+	,window_class: function() {
+		return this.meta_window.get_wm_class();
+	}
 	,is_shown_on_taskbar: function() {
 		return !this.meta_window.is_skip_taskbar();
 	}
@@ -88,11 +96,26 @@ Window.prototype = {
 		//TODO: add check for this.meta_window.below when mutter exposes it as a property;
 		return this.meta_window.above;
 	}
+	,on_all_workspaces: function() {
+		return this.meta_window.is_on_all_workspaces();
+	}
 	,should_auto_tile: function() {
-		return this.can_be_tiled() && this.is_resizeable() && (!this.floating_window());
+		return this.can_be_tiled() && this.is_resizeable() &&
+			!(this.floating_window() || this.on_all_workspaces());
 	}
 	,can_be_tiled: function() {
-		if(!this._windowTracker.is_window_interesting(this.meta_window)) return false;
+		if(!this._windowTracker.is_window_interesting(this.meta_window)) {
+			// this.log.debug("uninteresting window: " + this);
+			return false;
+		}
+		var window_class = this.window_class();
+		var blacklisted = Window.blacklist_classes.indexOf(window_class) != -1;
+		if(blacklisted)
+		{
+			this.log.debug("window class " + window_class + " is blacklisted");
+			return false;
+		}
+
 		var window_type = this.window_type();
 		var result = Window.tileable_window_types.indexOf(window_type) != -1;
 		// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
