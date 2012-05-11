@@ -169,7 +169,7 @@ $(function() {
 		logger.addAppender(appender);
 
 		$("#screen").css({background: "#dddddd", border: "5px solid #5595ee", width:Screen.width + "px", height:Screen.height + "px", position:"absolute"});
-		tiling = new HorizontalTiledLayout(0, 0, Screen.width, Screen.height);
+		tiling = new VerticalTiledLayout(0, 0, Screen.width, Screen.height);
 		function new_window() {
 			var win = new Window();
 			tiling.add(win);

@@ -71,14 +71,14 @@ ShellshapeIndicator.prototype = {
 				icon: 'window-tile-floating-symbolic'
 			},
 			{
-				label: 'Horizontal',
-				layout: Tiling.HorizontalTiledLayout,
-				icon: 'window-tile-horizontal-symbolic'
-			},
-			{
 				label: 'Vertical',
 				layout: Tiling.VerticalTiledLayout,
 				icon: 'window-tile-vertical-symbolic'
+			},
+			{
+				label: 'Horizontal',
+				layout: Tiling.HorizontalTiledLayout,
+				icon: 'window-tile-horizontal-symbolic'
 			}
 		];
 

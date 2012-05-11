@@ -715,21 +715,21 @@ class BaseTiledLayout extends BaseLayout
 		@log.debug(" ----------------------------------- ")
 
 
-class HorizontalTiledLayout extends BaseTiledLayout
-	constructor: (state) ->
-		@log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout")
-		@main_axis = 'x'
-		super(state)
-
-	toString: -> "[object HorizontalTiledLayout]"
-
 class VerticalTiledLayout extends BaseTiledLayout
 	constructor: (state) ->
 		@log = Log.getLogger("shellshape.tiling.VerticalTiledLayout")
-		@main_axis = 'y'
+		@main_axis = 'x'
 		super(state)
 
 	toString: -> "[object VerticalTiledLayout]"
+
+class HorizontalTiledLayout extends BaseTiledLayout
+	constructor: (state) ->
+		@log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout")
+		@main_axis = 'y'
+		super(state)
+
+	toString: -> "[object HorizontalTiledLayout]"
 
 class TiledWindow
 	minimized_counter = 0
@@ -935,7 +935,7 @@ unless Log?
 
 export_to = (dest) ->
 	dest.LayoutState = LayoutState
-	dest.HorizontalTiledLayout = HorizontalTiledLayout
+	dest.VerticalTiledLayout = VerticalTiledLayout
 	dest.FloatingLayout = FloatingLayout
 	dest.TileCollection = TileCollection
 	dest.Axis = Axis

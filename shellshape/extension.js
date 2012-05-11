@@ -192,8 +192,8 @@ const Ext = function Ext() {
 		handle('swap-current-window-with-main', function() { self.current_layout().swap_active_with_main(); });
 
 		// layout changers
-		handle('set-layout-tiled-horizontal',   function() { self.change_layout(Tiling.HorizontalTiledLayout); });
 		handle('set-layout-tiled-vertical',     function() { self.change_layout(Tiling.VerticalTiledLayout); });
+		handle('set-layout-tiled-horizontal',   function() { self.change_layout(Tiling.HorizontalTiledLayout); });
 		handle('set-layout-floating',           function() { self.change_layout(Tiling.FloatingLayout); });
 
 		// move a window's borders

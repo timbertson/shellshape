@@ -221,7 +221,7 @@ class MockWindow
 	activate: -> null
 	bring_to_front: -> null
 
-describe 'HorizontalTiledLayout', ->
+describe 'VerticalTiledLayout', ->
 	_num_tiles = (layout) ->
 		_tiled_windows(layout).length
 	_tile = (layout, win) ->
@@ -233,7 +233,7 @@ describe 'HorizontalTiledLayout', ->
 	_new_layout = (w, h) ->
 		bounds = {pos: {x: 0, y:0}, size: {x:w, y:h}}
 		state = new tiling.LayoutState(bounds)
-		layout = new tiling.HorizontalTiledLayout(state)
+		layout = new tiling.VerticalTiledLayout(state)
 
 	with_active = (win, f) ->
 		win.active = true

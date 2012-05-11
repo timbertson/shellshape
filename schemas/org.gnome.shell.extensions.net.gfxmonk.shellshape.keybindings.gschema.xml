@@ -15,9 +15,9 @@
 		<key type="as" name="focus-main-window">               <default>["&lt;Mod4&gt;space"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="swap-current-window-with-main">   <default>["&lt;Mod4&gt;&lt;Shift&gt;space"]</default><summary>(TODO...)</summary><description></description></key>
 
-		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;d"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="set-layout-tiled-vertical">       <default>["&lt;Mod4&gt;d"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="set-layout-floating">             <default>["&lt;Mod4&gt;f"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="set-layout-tiled-vertical">       <default>["&lt;Mod4&gt;g"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;g"]</default><summary>(TODO...)</summary><description></description></key>
 
 		<key type="as" name="increase-main-split">             <default>["&lt;Mod4&gt;l"]</default><summary>(TODO...)</summary><description></description></key>
 		<key type="as" name="decrease-main-split">             <default>["&lt;Mod4&gt;h"]</default><summary>(TODO...)</summary><description></description></key>

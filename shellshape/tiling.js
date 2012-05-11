@@ -1125,26 +1125,6 @@ BaseTiledLayout = (function(_super) {
 
 })(BaseLayout);
 
-HorizontalTiledLayout = (function(_super) {
-
-  __extends(HorizontalTiledLayout, _super);
-
-  HorizontalTiledLayout.name = 'HorizontalTiledLayout';
-
-  function HorizontalTiledLayout(state) {
-    this.log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout");
-    this.main_axis = 'x';
-    HorizontalTiledLayout.__super__.constructor.call(this, state);
-  }
-
-  HorizontalTiledLayout.prototype.toString = function() {
-    return "[object HorizontalTiledLayout]";
-  };
-
-  return HorizontalTiledLayout;
-
-})(BaseTiledLayout);
-
 VerticalTiledLayout = (function(_super) {
 
   __extends(VerticalTiledLayout, _super);
@@ -1153,7 +1133,7 @@ VerticalTiledLayout = (function(_super) {
 
   function VerticalTiledLayout(state) {
     this.log = Log.getLogger("shellshape.tiling.VerticalTiledLayout");
-    this.main_axis = 'y';
+    this.main_axis = 'x';
     VerticalTiledLayout.__super__.constructor.call(this, state);
   }
 
@@ -1162,6 +1142,26 @@ VerticalTiledLayout = (function(_super) {
   };
 
   return VerticalTiledLayout;
+
+})(BaseTiledLayout);
+
+HorizontalTiledLayout = (function(_super) {
+
+  __extends(HorizontalTiledLayout, _super);
+
+  HorizontalTiledLayout.name = 'HorizontalTiledLayout';
+
+  function HorizontalTiledLayout(state) {
+    this.log = Log.getLogger("shellshape.tiling.HorizontalTiledLayout");
+    this.main_axis = 'y';
+    HorizontalTiledLayout.__super__.constructor.call(this, state);
+  }
+
+  HorizontalTiledLayout.prototype.toString = function() {
+    return "[object HorizontalTiledLayout]";
+  };
+
+  return HorizontalTiledLayout;
 
 })(BaseTiledLayout);
 
@@ -1470,7 +1470,7 @@ if (typeof Log === "undefined" || Log === null) {
 
 export_to = function(dest) {
   dest.LayoutState = LayoutState;
-  dest.HorizontalTiledLayout = HorizontalTiledLayout;
+  dest.VerticalTiledLayout = VerticalTiledLayout;
   dest.FloatingLayout = FloatingLayout;
   dest.TileCollection = TileCollection;
   dest.Axis = Axis;
