@@ -67,6 +67,12 @@ GPLv3
 
 ## Changelog
 
+### version 0.5.1
+ - Added blacklist to prevent "Conky" windows from being tiled.
+ - Fixed a number of bugs to do with tracking window movement and sizes.
+ - Switched the "Horizontal" and "Vertical" layouts. You may need to adjust your keyboard shortcuts if you've set them to anything non-default, as the gsettings keys have swapped as well (if you haven't customised shortcuts, the defaults will still do the right thing)..
+
+
 ### version 0.5:
  - Removed label from indicator icon.
  - Rework icons to be simpler and look/act like other symbolic icons in the panel.
@@ -125,6 +131,12 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.5.1">version 0.5.1</h3>
+			<ul>
+				<li>Added blacklist to prevent "Conky" windows from being tiled.</li>
+				<li>Fixed a number of bugs to do with tracking window movement and sizes.</li>
+				<li>Switched the "Horizontal" and "Vertical" layouts. You may need to adjust your keyboard shortcuts if you've set them to anything non-default, as the gsettings keys have swapped as well (if you haven't customised shortcuts, the defaults will still do the right thing)..</li>
+			</ul>
 			<h3 id="version-0.5">version 0.5:</h3>
 			<ul>
 				<li>Removed label from indicator icon.</li>
@@ -212,6 +224,10 @@ GPLv3
 		<implementation id="sha1new=0be855c7fe860ea85f8ee08336d880bcbd56579a" released="2012-05-05" version="0.5">
 			<manifest-digest sha256="7ba16d6ba7ec202f3e72cc4156d6316fd482bd55c2f327071f37baab81f90eed"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.tgz" size="57843"/>
+		</implementation>
+		<implementation id="sha1new=d91671fb10f1fb0a490aca73cf1f21b056bf26cb" released="2012-05-11" version="0.5.1">
+			<manifest-digest sha256="825ef9ed735ee9bed5cad5b7c48bd3c2cc37f2485532a1cc37ffa72c997b37eb"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.1.tgz" size="58948"/>
 		</implementation>
 	</group>
 </interface>
