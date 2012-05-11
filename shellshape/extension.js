@@ -152,6 +152,26 @@ const Ext = function Ext() {
 		}
 	};
 
+	self._init_overview = function _init_overview() {
+		self._pending_actions = [];
+		self.connect_and_track(self, Main.overview, 'hiding', function() {
+			if(self._pending_actions.length == 0) return;
+			self.log.debug("Overview hiding - performing " + self._pending_actions.length + " pending actions");
+			for(var i=0; i<self._pending_actions.length; i++) {
+				self._do(self._pending_actions[i], "pending action " + i);
+			}
+			self._pending_actions = [];
+		});
+	};
+
+	self.perform_when_overview_is_hidden = function(action) {
+		if(Main.overview.visible) {
+			self.log.debug("Overview currently visible - delaying action");
+			self._pending_actions.push(action);
+		} else {
+			action();
+		}
+	};
 
 
 	// Bind keys to callbacks.
@@ -311,6 +331,7 @@ const Ext = function Ext() {
 			y: self.monitor.height - Main.panel.actor.height,
 		};
 		self._do(self._init_keybindings, "init keybindings");
+		self._do(self._init_overview, "init overview ducking");
 		self._do(self._init_workspaces, "init workspaces");
 		self._do(self._init_indicator, "init indicator");
 		self.log.info("shellshape enabled");

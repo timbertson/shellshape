@@ -6,6 +6,17 @@ const Log = Extension.imports.log4javascript.log4javascript;
 const Tiling = Extension.imports.tiling;
 const ShellshapeSettings = Extension.imports.shellshape_settings;
 
+
+let _duck_overview = function(fn) {
+	return function() {
+		var _this = this;
+		var _args = arguments;
+		this.extension.perform_when_overview_is_hidden(function() {
+			return fn.apply(_this, _args);
+		});
+	}
+};
+
 function Workspace() {
 	this._init.apply(this, arguments)
 }
@@ -40,7 +51,7 @@ Workspace.prototype = {
 		this.layout.layout();
 	},
 
-	on_window_create: function(workspace, meta_window) {
+	on_window_create: _duck_overview(function(workspace, meta_window) {
 		var get_actor = Lang.bind(this, function() {
 			try {
 				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
@@ -120,7 +131,7 @@ Workspace.prototype = {
 		if(this.has_tile_space_left() && win.should_auto_tile()) {
 			this.layout.tile(win);
 		}
-	},
+	}),
 
 	has_tile_space_left: function() {
 		let n = 0;
@@ -133,15 +144,15 @@ Workspace.prototype = {
 	// These functions are bound to the workspace and not the layout directly, since
 	// the layout may change at any moment
 	// NOTE: these get shellshape `Window` objects as their callback argument, *not* MetaWindow
-	on_window_moved: function(win)   { this.layout.on_window_moved(win); },
-	on_window_resized: function(win) { this.layout.on_window_resized(win); },
+	on_window_moved:   _duck_overview(function(win) { this.layout.on_window_moved(win); }),
+	on_window_resized: _duck_overview(function(win) { this.layout.on_window_resized(win); }),
 
 	on_window_minimize_changed: function(meta_window) {
 		this.log.debug("window minimization state changed for window " + meta_window);
 		this.layout.layout();
 	},
 
-	on_window_remove: function(workspace, meta_window) {
+	on_window_remove: _duck_overview(function(workspace, meta_window) {
 		let window = this.extension.get_window(meta_window);
 		this.log.debug("on_window_remove for " + window);
 		if(window.workspace_signals !== undefined) {
@@ -153,7 +164,7 @@ Workspace.prototype = {
 		}
 		this.layout.on_window_killed(window);
 		this.extension.remove_window(meta_window);
-	},
+	}),
 
 	meta_windows: function() {
 		var wins = this.meta_workspace.list_windows();
