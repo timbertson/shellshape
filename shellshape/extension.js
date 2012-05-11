@@ -308,7 +308,7 @@ const Ext = function Ext() {
 		};
 		self.bounds.size = {
 			x: self.monitor.width,
-            y: self.monitor.height - Main.panel.actor.height,
+			y: self.monitor.height - Main.panel.actor.height,
 		};
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_workspaces, "init workspaces");
