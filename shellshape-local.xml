@@ -63,6 +63,24 @@ If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/
 ## Licence
 GPLv3
 
+## Changelog
+
+### version 0.5.1
+ - Added blacklist to prevent &quot;Conky&quot; windows from being tiled.
+ - Fixed a number of bugs to do with tracking window movement and sizes.
+ - Switched the &quot;Horizontal&quot; and &quot;Vertical&quot; layouts. You may need to adjust your keyboard shortcuts if you've set them to anything non-default, as the gsettings keys have swapped as well (if you haven't customised shortcuts, the defaults will still do the right thing)..
+
+
+### version 0.5:
+ - Removed label from indicator icon.
+ - Rework icons to be simpler and look/act like other symbolic icons in the panel.
+ - Added a preferences panel (accessible from the gse website, or `gnome-shell-extension-prefs`).
+ - Added a &quot;max autotile windows&quot; option.
+ - Added the ability to customise keyboard shortcuts from the preferences panel.
+
+### version 0.4:
+ - First release on extensions.gnome.org
+
 [bluetile]: http://bluetile.org/
 	</description>
 	<homepage>http://gfxmonk.github.com/shellshape/</homepage>
@@ -110,6 +128,25 @@ GPLv3
 			<p><strong>Note</strong> debugging like this won't work unless you run using <code>0launch</code>.</p>
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
+			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.5.1">version 0.5.1</h3>
+			<ul>
+				<li>Added blacklist to prevent &quot;Conky&quot; windows from being tiled.</li>
+				<li>Fixed a number of bugs to do with tracking window movement and sizes.</li>
+				<li>Switched the &quot;Horizontal&quot; and &quot;Vertical&quot; layouts. You may need to adjust your keyboard shortcuts if you've set them to anything non-default, as the gsettings keys have swapped as well (if you haven't customised shortcuts, the defaults will still do the right thing)..</li>
+			</ul>
+			<h3 id="version-0.5">version 0.5:</h3>
+			<ul>
+				<li>Removed label from indicator icon.</li>
+				<li>Rework icons to be simpler and look/act like other symbolic icons in the panel.</li>
+				<li>Added a preferences panel (accessible from the gse website, or <code>gnome-shell-extension-prefs</code>).</li>
+				<li>Added a &quot;max autotile windows&quot; option.</li>
+				<li>Added the ability to customise keyboard shortcuts from the preferences panel.</li>
+			</ul>
+			<h3 id="version-0.4">version 0.4:</h3>
+			<ul>
+				<li>First release on extensions.gnome.org</li>
+			</ul>
 		</div>
 	</rich-description>
 	<group main="run-gnome-shell">
@@ -165,5 +202,6 @@ GPLv3
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
 		
-	<implementation id="." version="0.5-post"/></group>
+		
+	<implementation id="." version="0.5.1-post"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>
