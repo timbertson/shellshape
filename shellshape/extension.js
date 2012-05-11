@@ -91,16 +91,17 @@ const Ext = function Ext() {
 			// self.log.debug("bad window: " + meta_window);
 			return null;
 		}
-		var win = self.windows[meta_window];
+		var id = Window.GetId(meta_window);
+		var win = self.windows[id];
 		if(typeof(win) == "undefined" && create_if_necessary) {
-			win = self.windows[meta_window] = new Window(meta_window, self);
+			win = self.windows[id] = new Window(meta_window, self);
 		}
 		return win;
 	};
 
 	// Remove a window from the extension's cache.
 	self.remove_window = function(meta_window) {
-		delete self.windows[meta_window];
+		delete self.windows[Window.GetId(meta_window)];
 	};
 
 	// Returns a Workspace (shellshape/workspace.js) representing the

@@ -121,6 +121,16 @@ Window.prototype = {
 		// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
 		return result;
 	}
+	,id: function() {
+		return Window.GetId(this.meta_window);
+	}
+	,eq: function(other) {
+		let eq = this.id() == other.id();
+		if(eq && (this != other)) {
+			this.log.warn("Multiple wrappers for the same MetaWindow created: " + this);
+		}
+		return eq;
+	}
 
 	// dimensions
 	,width: function() { return this._outer_rect().width; }
@@ -130,3 +140,9 @@ Window.prototype = {
 	,_outer_rect: function() { return this.meta_window.get_outer_rect(); }
 };
 
+Window.GetId = function(w) {
+	if(!w.get_stable_sequence) {
+		Log.getLogger("shellshape.window").error("Non-window object: " + w);
+	}
+	return w.get_stable_sequence();
+}

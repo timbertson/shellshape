@@ -380,10 +380,11 @@ class BaseLayout
 
 	tile_for: (win, func) ->
 		return false unless win
-		return @tiles.each (tile, idx) ->
+		return @tiles.each (tile, idx) =>
 			if tile.window == win
 				func(tile, idx)
 				return STOP
+		return false
 
 	managed_tile_for: (win, func) ->
 		# like @tile_for, but ignore floating windows
@@ -449,10 +450,17 @@ class BaseLayout
 			else
 				tile.unmaximize()
 
-	# all the actions that are specific to an actual tiling layout are NOOP'd here, 
+	on_window_moved: (win) -> @on_window_resized(win)
+	on_window_resized: (win) ->
+		found = @tile_for win, (tile, idx) =>
+			tile.update_original_rect()
+			@layout()
+		if !found
+			@log.warn("couldn't find tile for window: " + win)
+
+	# all the actions that are specific to an actual tiling layout are NOOP'd here,
 	# so the keyboard handlers don't have to worry whether it's a valid thing to call
-	on_window_moved: (win) -> null
-	on_window_resized: (win) -> null
+
 	on_split_resize_start: (win) -> null
 	adjust_splits_to_fit: (win) -> null
 
@@ -481,11 +489,6 @@ class FloatingLayout extends BaseLayout
 		# now don't bother laying out anything again!
 		@layout = (accommodate_window) -> null
 
-	on_window_resized: (win) -> @on_window_moved(win)
-	on_window_moved: (win) ->
-		@tile_for win, (tile, idx) =>
-			tile.update_original_rect()
-
 class BaseTiledLayout extends BaseLayout
 	constructor: (state) ->
 		super(state)
@@ -501,7 +504,7 @@ class BaseTiledLayout extends BaseLayout
 
 	layout: (accommodate_window) ->
 		layout_windows = @tiles.for_layout()
-		# @log.debug("laying out #{layout_windows.length} windows")
+		@log.debug("laying out #{layout_windows.length} windows")
 		if accommodate_window?
 			@_change_main_ratio_to_accommodate(accommodate_window, @main_split)
 		[left, right] = @main_split.split(@bounds, layout_windows)
@@ -590,18 +593,20 @@ class BaseTiledLayout extends BaseLayout
 				@layout()
 	
 	on_window_moved: (win) ->
-		@managed_tile_for win, (tile, idx) =>
-			moved = @_swap_moved_tile_if_necessary(tile, idx)
+		@tile_for win, (tile, idx) =>
+			moved = false
+			if tile.managed
+				moved = @_swap_moved_tile_if_necessary(tile, idx)
 			tile.update_offset() unless moved
 			@layout()
 
 	on_split_resize_start: (win) ->
+		#TODO: this is never called in mutter
 		@split_resize_start_rect = Tile.copy_rect(@tiles[@indexOf(win)].window_rect())
 		@log.debug("starting resize of split.. #{j @split_resize_start_rect}")
 
 	on_window_resized: (win) ->
 		@managed_tile_for win, (tile, idx) =>
-			#TODO: doesn't work in mutter yet
 			if @split_resize_start_rect?
 				diff = Tile.point_diff(@split_resize_start_rect.size, tile.window_rect().size)
 				@log.debug("split resized! diff = #{j diff}")
