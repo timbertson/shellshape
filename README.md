@@ -65,7 +65,6 @@ GPLv3
  - Fixed a number of bugs to do with tracking window movement and sizes.
  - Switched the "Horizontal" and "Vertical" layouts. You may need to adjust your keyboard shortcuts if you've set them to anything non-default, as the gsettings keys have swapped as well (if you haven't customised shortcuts, the defaults will still do the right thing)..
 
-
 ### version 0.5:
  - Removed label from indicator icon.
  - Rework icons to be simpler and look/act like other symbolic icons in the panel.
