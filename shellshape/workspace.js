@@ -17,6 +17,52 @@ let _duck_overview = function(fn) {
 	}
 };
 
+let _duck_turbulence = function(fn) {
+	return function() {
+		let _this = this;
+		let _args = arguments;
+		this._turbulence.add_action(function() {
+			return fn.apply(_this, _args);
+		});
+	};
+};
+
+// TubulentState allows actions to be delayed - applied when the turbulence is
+// over, but ONLY if this instance was not affected ("shaken").
+function TurbulentState() {
+	this.active = false;
+	this.pending = [];
+	this.log = Log.getLogger("shellshape.workspace.turbulence");
+};
+TurbulentState.prototype = {
+	enter: function() {
+		this.active = true;
+		this.affected = false;
+	},
+	shake: function() { // is perhaps taking the metaphor too far ;)
+		this.affected = true;
+	},
+	add_action: function(f) {
+		if(this.active) {
+			this.pending.push(f);
+		} else {
+			f();
+		}
+	},
+	leave: function() {
+		if(this.affected) {
+			this.log.debug("ignoring " + this.pending.length + " actions due to turbulence");
+			if(this.cleanup) this.cleanup();
+		} else {
+			for (var i=0; i<this.pending.length; i++) {
+				this.pending[i]();
+			}
+		}
+		this.active = false;
+		this.pending = [];
+	}
+}
+
 function Workspace() {
 	this._init.apply(this, arguments)
 }
@@ -32,6 +78,8 @@ Workspace.prototype = {
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
 		this.max_autotile_pref = ext.prefs.MAX_AUTOTILE;
+		this._turbulence = new TurbulentState();
+		this._turbulence.cleanup = Lang.bind(this, this._check_all_windows);
 		// add all initial windows
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 	},
@@ -44,6 +92,61 @@ Workspace.prototype = {
 		this.extension = null;
 	},
 
+	_reset_layout: function() {
+		this.layout_state = this.layout_state.empty_copy();
+		this.set_layout(this._default_layout);
+	},
+
+	_take_layout_from: function(other) {
+		this._turbulence.shake();
+		if(!other) {
+			this._reset_layout();
+			return;
+		}
+		let keys = ['layout_state', 'layout', 'active_layout'];
+		for(let i=0; i<keys.length; i++) {
+			this[keys[i]] = other[keys[i]];
+		}
+		this._relayout();
+	},
+
+	_relayout: _duck_overview(function() {
+		this.layout.layout();
+	}),
+
+	// after turbulence, windows may have shuffled. we best make sure we own all windows that we should,
+	// and that we don't own any windows that have moved to other workspaces.
+	_check_all_windows: function() {
+		let expected_meta_windows = this.meta_windows();
+		let layout_meta_windows = [];
+		this.layout.each(function(tile) {
+			layout_meta_windows.push(tile.window.meta_window);
+		});
+
+		// check for windows in layout but not workspace window list
+		for (var i=0; i<layout_meta_windows.length; i++) {
+			let win = layout_meta_windows[i];
+			if(expected_meta_windows.indexOf(win) == -1) {
+				this.log.debug("removing unexpected window from workspace " + this + ": " + win.get_title());
+				this.on_window_remove(null, win);
+			}
+		}
+
+		// check for windows in workspace but not layout
+		for (var i=0; i<expected_meta_windows.length; i++) {
+			let win = expected_meta_windows[i];
+			if(layout_meta_windows.indexOf(win) == -1) {
+				// we add new windows after a minor delay so that removal from the current workspace happens first
+				// (as removal will wipe out all attached signals)
+				Mainloop.idle_add(Lang.bind(this, function () {
+					this.log.debug("adding missing window to workspace " + this + ": " + win.get_title());
+					this.on_window_create(null, win);
+					return false;
+				}));
+			}
+		}
+	},
+
 	set_layout: function(cls) {
 		this.log.debug("Instantiating new layout class");
 		this.active_layout = cls;
@@ -52,7 +155,11 @@ Workspace.prototype = {
 		this.layout.layout();
 	},
 
-	on_window_create: _duck_overview(function(workspace, meta_window) {
+	toString: function() {
+		return "<# Workspace at idx " + this.meta_workspace.index() + ">";
+	},
+
+	on_window_create: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
 		var get_actor = Lang.bind(this, function() {
 			try {
 				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
@@ -143,7 +250,7 @@ Workspace.prototype = {
 		if(should_auto_tile && this.has_tile_space_left()) {
 			this.layout.tile(win);
 		}
-	}),
+	})),
 
 	has_tile_space_left: function() {
 		let n = 0;
@@ -164,7 +271,7 @@ Workspace.prototype = {
 		this.layout.layout();
 	},
 
-	on_window_remove: _duck_overview(function(workspace, meta_window) {
+	on_window_remove: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
 		let window = this.extension.get_window(meta_window);
 		this.log.debug("on_window_remove for " + window);
 		if(window.workspace_signals !== undefined) {
@@ -176,7 +283,7 @@ Workspace.prototype = {
 		}
 		this.layout.on_window_killed(window);
 		this.extension.remove_window(window);
-	}),
+	})),
 
 	meta_windows: function() {
 		var wins = this.meta_workspace.list_windows();

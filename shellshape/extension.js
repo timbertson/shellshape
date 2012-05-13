@@ -228,6 +228,70 @@ const Ext = function Ext() {
 		});
 	};
 
+	// Pretty messy stuff: The overview workspace thumbnail area inserts a new workspace
+	// by simply moving everything one workspace up and leaving a hole where the new workspace
+	// is supposed to go. This means that our Shellshape.Workspace objects (keyed by
+	// meta_workspace object) are now attached to the wrong meta_workspace.
+	//
+	// The attachment to workspace object is not itself a problem, but we need to move
+	// all the user-facing details (layout and tile state) in the same way that the
+	// overview moves the windows.
+	//
+	// Note that this function is executed once at constructionn time, not during init()
+	// (and is never unbound). It doesn't *do* anything while the extension is inactive,
+	// but there's no correct way to undo a monkey-patching if other extensions also
+	// monkey-patched the same function.
+	(function() {
+		let src = imports.ui.workspaceThumbnail.ThumbnailsBox.prototype;
+		let orig = src.acceptDrop;
+		let ws_by_index = function(i) { return self.get_workspace(self.screen.get_workspace_by_index(i)); }
+		let replace = function(old_idx, new_idx) {
+			self.log.debug("copying layout from workspace[" + old_idx + "] to workspace[" + new_idx + "]");
+			if(old_idx == new_idx) return;
+			ws_by_index(new_idx)._take_layout_from(ws_by_index(old_idx));
+		};
+		let map_ws = function(f) {
+			for (let i = 0; i < self.screen.get_n_workspaces(); i++) {
+				f(ws_by_index(i));
+			}
+		};
+
+		let replacement = function() {
+			if(!self.enabled) return orig.apply(this, arguments);
+
+			let _dropPlaceholderPos = this._dropPlaceholderPos;
+			map_ws(function(ws) { ws._turbulence.enter(); });
+			self.log.info("DROP_PLACEHOLDER_START");
+			let ret = orig.apply(this, arguments);
+			if(ret === true && _dropPlaceholderPos != -1) {
+				// a new workspace was inserted at _dropPlaceholderPos
+				_dropPlaceholderPos = _dropPlaceholderPos + 0; // just in case it's null or something daft.
+				self.log.debug("looks like a new workspace was inserted at position " + _dropPlaceholderPos);
+				let num_workspaces = self.screen.get_n_workspaces();
+				for (var i=num_workspaces - 1; i > _dropPlaceholderPos; i--) {
+					replace(i-1, i);
+				}
+				ws_by_index(_dropPlaceholderPos)._take_layout_from(null);
+
+				// confusing things will happen if we ever get two workspaces referencing the
+				// same layout, so make sure it hasn't happened:
+				var layouts = [];
+				for (var i=0; i<num_workspaces; i++) {
+					let layout = ws_by_index(i).layout;
+					if(layouts.indexOf(layout) != -1) {
+						throw new Error("Aliasing error! two workspaces ended up with the same layout: " + i + " and " + layouts.indexOf(layout));
+					}
+					layouts.push(layout);
+				}
+				self.emit('layout-changed');
+			};
+			self.log.info("DROP_PLACEHOLDER_END");
+			map_ws(function(ws) { ws._turbulence.leave(); });
+			return ret;
+		};
+		src.acceptDrop = replacement;
+	})();
+
 	self.perform_when_overview_is_hidden = function(action) {
 		if(Main.overview.visible) {
 			self.log.debug("Overview currently visible - delaying action");

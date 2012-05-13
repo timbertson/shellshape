@@ -536,6 +536,10 @@ LayoutState = (function() {
     this.bounds = bounds;
   }
 
+  LayoutState.prototype.empty_copy = function() {
+    return new LayoutState(this.bounds);
+  };
+
   return LayoutState;
 
 })();

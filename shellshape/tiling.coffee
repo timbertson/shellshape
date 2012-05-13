@@ -340,6 +340,9 @@ class LayoutState
 			}
 		}
 		@bounds = bounds
+	
+	empty_copy: () ->
+		new LayoutState(@bounds)
 
 
 class MultiSplit extends BaseSplit
