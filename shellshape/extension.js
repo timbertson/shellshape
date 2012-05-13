@@ -155,7 +155,7 @@ const Ext = function Ext() {
 			self.log.info("Garbage collecting " + self.dead_windows.length + " windows");
 		}
 		for(let i=0; i<self.dead_windows.length; i++) {
-			let win = dead_windows[i];
+			let win = self.dead_windows[i];
 			delete self.windows[Window.GetId(win.meta_window)];
 		}
 		self.dead_windows = [];
