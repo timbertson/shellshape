@@ -30,7 +30,16 @@ const Ext = function Ext() {
 	self.log = Log.getLogger("shellshape.extension");
 	self.prefs = new ShellshapeSettings.Prefs();
 
-	// Utility method that safely executes a callback by catching any
+	/* -------------------------------------------------------------
+	 *                 Utility functions
+	 * ------------------------------------------------------------- */
+
+	// Returns a string representation of the extension.
+	self.toString = function() {
+		return "<Shellshape Extension>";
+	};
+
+	// Safely execute a callback by catching any
 	// exceptions and logging the traceback and a caller-provided
 	// description of the action.
 	self._do = function _do(action, desc, fail) {
@@ -43,6 +52,21 @@ const Ext = function Ext() {
 			return e;
 		}
 	};
+
+	// Utility function over GObject.connect(). Keeps track
+	// of each added connection in `owner._bound_signals`,
+	// for later cleanup in disconnect_tracked_signals().
+	self.connect_and_track = function(owner, subject, name, cb) {
+		if (!owner.hasOwnProperty('_bound_signals')) {
+			owner._bound_signals = [];
+		}
+		owner._bound_signals.push([subject, subject.connect(name, cb)]);
+	};
+
+
+	/* -------------------------------------------------------------
+	 *           window / workspace object management
+	 * ------------------------------------------------------------- */
 
 	// Given a `proxy GIName:Meta.Workspace`, return a corresponding
 	// shellshape Workspace (as defined in shellshape/workspace.js).
@@ -124,6 +148,8 @@ const Ext = function Ext() {
 		}
 	};
 
+	// garbage collect windows that have been marked as "dead"
+	// (and haven't been revived since then).
 	self.gc_windows = function(win) {
 		if(self.dead_windows.length > 0) {
 			self.log.info("Garbage collecting " + self.dead_windows.length + " windows");
@@ -183,6 +209,11 @@ const Ext = function Ext() {
 		}
 	};
 
+	/* -------------------------------------------------------------
+	 *   OVERVIEW ducking, and dealing with changes in workspaces
+	 *          and windows from within the overview mode.
+	 * ------------------------------------------------------------- */
+
 	self._init_overview = function _init_overview() {
 		self._pending_actions = [];
 		self.connect_and_track(self, Main.overview, 'hiding', function() {
@@ -206,6 +237,10 @@ const Ext = function Ext() {
 		}
 	};
 
+
+	/* -------------------------------------------------------------
+	 *                          KEYBINDINGS
+	 * ------------------------------------------------------------- */
 
 	// Bind keys to callbacks.
 	self._init_keybindings = function _init_keybindings() {
@@ -275,6 +310,11 @@ const Ext = function Ext() {
 		self.log.debug("Done adding keyboard handlers for Shellshape");
 	};
 
+
+	/* -------------------------------------------------------------
+	 *           workspace / layout changes
+	 * ------------------------------------------------------------- */
+
 	// Change the layout of the current workspace.
 	self.change_layout = function(cls) {
 		self.current_workspace().set_layout(cls);
@@ -283,21 +323,11 @@ const Ext = function Ext() {
 		self.emit('layout-changed');
 	};
 
-	// Utility function over GObject.connect(). Keeps track
-	// of each added connection in `owner._bound_signals`,
-	// for later cleanup in disconnect_tracked_signals().
-	self.connect_and_track = function(owner, subject, name, cb) {
-		if (!owner.hasOwnProperty('_bound_signals')) {
-			owner._bound_signals = [];
-		}
-		owner._bound_signals.push([subject, subject.connect(name, cb)]);
-	};
-
-
 	// Connect callbacks to all workspaces
 	self._init_workspaces = function() {
 		self.screen = global.screen;
 		function _init_workspace (i) {
+			self.log.debug("new workspace at index " + i);
 			self.get_workspace(self.screen.get_workspace_by_index(i));
 		};
 
@@ -325,14 +355,13 @@ const Ext = function Ext() {
 		});
 	};
 
+	/* -------------------------------------------------------------
+	 *                   setup / teardown
+	 * ------------------------------------------------------------- */
+
 	// Enable ShellshapeIndicator
 	self._init_indicator = function() {
 		ShellshapeIndicator.enable(self);
-	};
-
-	// Returns a string representation of the extension.
-	self.toString = function() {
-		return "<Shellshape Extension>";
 	};
 
 	// Resets the runtime state of the extension,
