@@ -208,6 +208,7 @@ class MockWindow
 	move_resize: (x, y, w, h) ->
 		@rect = {x:Math.round(x), y:Math.round(y), w:Math.round(w), h:Math.round(h)}
 		puts("#{@name}: resizing to: " + j(this.rect))
+	set_tile_preference: () -> null
 	
 	xpos: -> @rect.x
 	ypos: -> @rect.y
