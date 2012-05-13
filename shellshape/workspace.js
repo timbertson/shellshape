@@ -31,10 +31,11 @@ Workspace.prototype = {
 		this.set_layout(this._default_layout);
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
-		this.max_autotile_pref = (new ShellshapeSettings.Prefs()).MAX_AUTOTILE;
+		this.max_autotile_pref = ext.prefs.MAX_AUTOTILE;
 		// add all initial windows
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 	},
+
 	_disable: function() {
 		var self = this;
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_remove(null, win); }));

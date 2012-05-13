@@ -28,6 +28,7 @@ const Ext = function Ext() {
 	let self = this;
 	self.enabled = false;
 	self.log = Log.getLogger("shellshape.extension");
+	self.prefs = new ShellshapeSettings.Prefs();
 
 	// Utility method that safely executes a callback by catching any
 	// exceptions and logging the traceback and a caller-provided
