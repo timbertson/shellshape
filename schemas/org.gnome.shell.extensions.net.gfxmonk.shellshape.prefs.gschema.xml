@@ -6,5 +6,13 @@
 			<summary>Stop auto-tiling new windows when there are this many windows already tiled.</summary>
 			<description/>
 		</key>
+		<key type="s" name="default-layout">
+			<choices>
+				<choice value="floating"/>
+				<choice value="horizontal"/>
+				<choice value="vertical"/>
+			</choices>
+			<default>"floating"</default>
+		</key>
 	</schema>
 </schemalist>

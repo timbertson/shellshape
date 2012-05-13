@@ -22,6 +22,13 @@ const Gio = imports.gi.Gio;
 const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
 
+const LAYOUTS = {
+	'floating': Tiling.FloatingLayout,
+	'vertical': Tiling.VerticalTiledLayout,
+	'horizontal': Tiling.HorizontalTiledLayout
+};
+
+
 // Primary 'extension' object.  This is instantiated and enabled by the
 // main() function declared at the bottom of this file.
 const Ext = function Ext() {
@@ -420,6 +427,41 @@ const Ext = function Ext() {
 	};
 
 	/* -------------------------------------------------------------
+	 *              PREFERENCE monitoring
+	 * ------------------------------------------------------------- */
+	self._init_prefs = function() {
+
+		// default layout
+		(function() {
+			let default_layout = self.prefs.DEFAULT_LAYOUT;
+			let update = function() {
+				let name = default_layout.get();
+				let new_layout = LAYOUTS[name];
+				if(new_layout) {
+					self.log.info("updating default layout to " + name);
+					Workspace.prototype.default_layout = new_layout;
+				} else {
+					self.log.warn("Unknown layout name: " + name);
+				}
+			};
+			self.connect_and_track(self, default_layout.gsettings, 'changed::' + default_layout.key, update);
+			update();
+		})();
+
+		// max-autotile
+		(function() {
+			let pref = self.prefs.MAX_AUTOTILE;
+			let update = function() {
+				let val = pref.get();
+				self.log.info("setting max-autotile to " + val);
+				Workspace.prototype.max_autotile = val;
+			};
+			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+			update();
+		})();
+	};
+
+	/* -------------------------------------------------------------
 	 *                   setup / teardown
 	 * ------------------------------------------------------------- */
 
@@ -459,6 +501,7 @@ const Ext = function Ext() {
 			x: self.monitor.width,
 			y: self.monitor.height - Main.panel.actor.height,
 		};
+		self._do(self._init_prefs, "init preference bindings");
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_overview, "init overview ducking");
 		self._do(self._init_workspaces, "init workspaces");

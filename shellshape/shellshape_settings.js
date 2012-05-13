@@ -97,7 +97,14 @@ function Prefs() {
 	var settings = this.settings = get_local_gsettings(PREFS);
 	this.MAX_AUTOTILE = {
 		key: 'max-autotiled-windows',
+		gsettings: settings,
 		get: function() { return settings.get_int(this.key); },
 		set: function(v) { settings.set_int(this.key, v); }
+	};
+	this.DEFAULT_LAYOUT = {
+		key: 'default-layout',
+		gsettings: settings,
+		get: function() { return settings.get_string(this.key); },
+		set: function(v) { settings.set_string(this.key, v); },
 	};
 };

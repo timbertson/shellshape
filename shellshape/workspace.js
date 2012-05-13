@@ -67,17 +67,17 @@ function Workspace() {
 	this._init.apply(this, arguments)
 }
 Workspace.prototype = {
-	_default_layout: Tiling.FloatingLayout,
+	default_layout: Tiling.FloatingLayout,
+	max_autotile: null,
 
 	_init : function(meta_workspace, layout_state, ext) {
 		this.log = Log.getLogger("shellshape.workspace");
 		this.layout_state = layout_state;
 		this.meta_workspace = meta_workspace;
 		this.extension = ext;
-		this.set_layout(this._default_layout);
+		this.set_layout(this.default_layout);
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
-		this.max_autotile_pref = ext.prefs.MAX_AUTOTILE;
 		this._turbulence = new TurbulentState();
 		this._turbulence.cleanup = Lang.bind(this, this._check_all_windows);
 		// add all initial windows
@@ -94,7 +94,7 @@ Workspace.prototype = {
 
 	_reset_layout: function() {
 		this.layout_state = this.layout_state.empty_copy();
-		this.set_layout(this._default_layout);
+		this.set_layout(this.default_layout);
 	},
 
 	_take_layout_from: function(other) {
@@ -255,7 +255,7 @@ Workspace.prototype = {
 	has_tile_space_left: function() {
 		let n = 0;
 		this.layout.tiles.each_tiled(function() { n = n + 1; });
-		let max = this.max_autotile_pref.get();
+		let max = this.max_autotile;
 		this.log.debug("there are " + n + " windows tiled, of maximum " + max);
 		return (n < max);
 	},
