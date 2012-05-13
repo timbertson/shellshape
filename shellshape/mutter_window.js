@@ -27,6 +27,7 @@ Window.prototype = {
 		this.meta_window = meta_window;
 		this.ext = ext;
 		this.log = Log.getLogger("shellshape.window");
+		this.tile_preference = null;
 	}
 	,bring_to_front: function() {
 		// NOOP (TODO: remove)
@@ -64,6 +65,10 @@ Window.prototype = {
 	,move_resize: function(x, y, w, h) {
 		this.meta_window.unmaximize(Meta.MaximizeFlags.VERTICAL | Meta.MaximizeFlags.HORIZONTAL);
 		this.meta_window.move_resize_frame(true, x, y, w, h);
+	}
+	,set_tile_preference: function(new_pref) {
+		this.log.debug("window adopting tile preference of " + new_pref + " - " + this);
+		this.tile_preference = new_pref;
 	}
 	,get_title: function() {
 		return this.meta_window.get_title();
@@ -141,7 +146,7 @@ Window.prototype = {
 };
 
 Window.GetId = function(w) {
-	if(!w.get_stable_sequence) {
+	if(!w || !w.get_stable_sequence) {
 		Log.getLogger("shellshape.window").error("Non-window object: " + w);
 	}
 	return w.get_stable_sequence();

@@ -139,8 +139,6 @@ ShellshapeIndicator.prototype = {
 	},
 
 	_workspaceChanged: function(meta_screen, old_index, new_index) {
-		this.meta_workspace = global.screen.get_workspace_by_index(new_index);
-		// this.log.debug("indicator saw switch to new workspace: " + this.meta_workspace);
 		this._update_indicator();
 	},
 

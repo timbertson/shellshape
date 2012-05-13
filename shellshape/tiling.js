@@ -1223,6 +1223,7 @@ TiledWindow = (function() {
       this.reset_offset();
     } else {
       this.managed = true;
+      this.window.set_tile_preference(true);
       this.original_rect = this.window_rect();
     }
     return this.reset_offset();
@@ -1409,7 +1410,8 @@ TiledWindow = (function() {
 
   TiledWindow.prototype.release = function() {
     this.set_rect(this.original_rect);
-    return this.managed = false;
+    this.managed = false;
+    return this.window.set_tile_preference(false);
   };
 
   TiledWindow.prototype.activate = function() {

@@ -768,6 +768,7 @@ class TiledWindow
 			@reset_offset()
 		else
 			this.managed = true
+			this.window.set_tile_preference(true)
 			@original_rect = @window_rect()
 		@reset_offset()
 	
@@ -894,6 +895,7 @@ class TiledWindow
 	release: ->
 		this.set_rect(this.original_rect)
 		this.managed = false
+		this.window.set_tile_preference(false)
 	
 	activate: ->
 		@window.activate()

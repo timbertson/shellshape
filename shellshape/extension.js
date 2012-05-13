@@ -26,6 +26,7 @@ const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybi
 // main() function declared at the bottom of this file.
 const Ext = function Ext() {
 	let self = this;
+	self.enabled = false;
 	self.log = Log.getLogger("shellshape.extension");
 
 	// Utility method that safely executes a callback by catching any
@@ -95,13 +96,42 @@ const Ext = function Ext() {
 		var win = self.windows[id];
 		if(typeof(win) == "undefined" && create_if_necessary) {
 			win = self.windows[id] = new Window(meta_window, self);
+		} else {
+			// if window is scheduled for GC, stop that:
+			self.mark_window_as_active(win);
 		}
 		return win;
 	};
 
 	// Remove a window from the extension's cache.
-	self.remove_window = function(meta_window) {
-		delete self.windows[Window.GetId(meta_window)];
+	// this doesn't happen immediately, but only on the next "GC"
+	// gc happens whenever the overview window is closed, or
+	// dead_windows grows larger than 20 items
+	self.remove_window = function(win) {
+		let meta_window = win.meta_window;
+		let id = Window.GetId(meta_window);
+		self.dead_windows.push(win);
+		if(self.dead_windows.length > 20) {
+			self.gc_windows();
+		}
+	};
+
+	self.mark_window_as_active = function(win) {
+		let idx = self.dead_windows.indexOf(win);
+		if(idx != -1) {
+			self.dead_windows.splice(idx, 1);
+		}
+	};
+
+	self.gc_windows = function(win) {
+		if(self.dead_windows.length > 0) {
+			self.log.info("Garbage collecting " + self.dead_windows.length + " windows");
+		}
+		for(let i=0; i<self.dead_windows.length; i++) {
+			let win = dead_windows[i];
+			delete self.windows[Window.GetId(win.meta_window)];
+		}
+		self.dead_windows = [];
 	};
 
 	// Returns a Workspace (shellshape/workspace.js) representing the
@@ -155,12 +185,14 @@ const Ext = function Ext() {
 	self._init_overview = function _init_overview() {
 		self._pending_actions = [];
 		self.connect_and_track(self, Main.overview, 'hiding', function() {
-			if(self._pending_actions.length == 0) return;
-			self.log.debug("Overview hiding - performing " + self._pending_actions.length + " pending actions");
-			for(var i=0; i<self._pending_actions.length; i++) {
-				self._do(self._pending_actions[i], "pending action " + i);
+			if(self._pending_actions.length > 0) {
+				self.log.debug("Overview hiding - performing " + self._pending_actions.length + " pending actions");
+				for(var i=0; i<self._pending_actions.length; i++) {
+					self._do(self._pending_actions[i], "pending action " + i);
+				}
+				self._pending_actions = [];
 			}
-			self._pending_actions = [];
+			self.gc_windows();
 		});
 	};
 
@@ -306,9 +338,11 @@ const Ext = function Ext() {
 	// basically all of the things that will be
 	// repopuplated in enable().
 	self._reset_state = function() {
+		self.enabled = false;
 		// reset stateful variables
 		self.workspaces = {};
 		self.windows = {};
+		self.dead_windows = [];
 		self.bounds = {};
 		self._bound_keybindings = {};
 	};
@@ -318,6 +352,7 @@ const Ext = function Ext() {
 	self.enable = function() {
 		self.log.info("shellshape enable() called");
 		self._reset_state();
+		self.enabled = true;
 		let screen = self.screen = global.screen;
 		//TODO: multiple monitor support
 		var monitorIdx = screen.get_primary_monitor();

@@ -128,7 +128,18 @@ Workspace.prototype = {
 		bind_to_window_change('size',     resize_ops,   Lang.bind(this, this.on_window_resized));
 		win.workspace_signals.push([meta_window, meta_window.connect('notify::minimized', Lang.bind(this, this.on_window_minimize_changed))]);
 
-		if(this.has_tile_space_left() && win.should_auto_tile()) {
+		let tile_pref = win.tile_preference;
+		let should_auto_tile;
+
+		if(tile_pref === null) {
+			should_auto_tile = win.should_auto_tile();
+		} else {
+			// if the window has a tiling preference (given by a previous user tile/untile action),
+			// that overrides the default should_auto_tile logic
+			this.log.debug("window has a tile preference, and it is " + String(tile_pref));
+			should_auto_tile = tile_pref;
+		}
+		if(should_auto_tile && this.has_tile_space_left()) {
 			this.layout.tile(win);
 		}
 	}),
@@ -143,7 +154,7 @@ Workspace.prototype = {
 
 	// These functions are bound to the workspace and not the layout directly, since
 	// the layout may change at any moment
-	// NOTE: these get shellshape `Window` objects as their callback argument, *not* MetaWindow
+	// NOTE: these two get shellshape `Window` objects as their callback argument, *not* MetaWindow
 	on_window_moved:   _duck_overview(function(win) { this.layout.on_window_moved(win); }),
 	on_window_resized: _duck_overview(function(win) { this.layout.on_window_resized(win); }),
 
@@ -163,7 +174,7 @@ Workspace.prototype = {
 			}));
 		}
 		this.layout.on_window_killed(window);
-		this.extension.remove_window(meta_window);
+		this.extension.remove_window(window);
 	}),
 
 	meta_windows: function() {
