@@ -438,27 +438,43 @@ const Ext = function Ext() {
 				let name = default_layout.get();
 				let new_layout = LAYOUTS[name];
 				if(new_layout) {
-					self.log.info("updating default layout to " + name);
+					self.log.debug("updating default layout to " + name);
 					Workspace.prototype.default_layout = new_layout;
 				} else {
-					self.log.warn("Unknown layout name: " + name);
+					self.log.error("Unknown layout name: " + name);
 				}
 			};
 			self.connect_and_track(self, default_layout.gsettings, 'changed::' + default_layout.key, update);
 			update();
 		})();
 
+
 		// max-autotile
 		(function() {
 			let pref = self.prefs.MAX_AUTOTILE;
 			let update = function() {
 				let val = pref.get();
-				self.log.info("setting max-autotile to " + val);
+				self.log.debug("setting max-autotile to " + val);
 				Workspace.prototype.max_autotile = val;
 			};
 			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 			update();
 		})();
+
+
+		// padding
+		(function() {
+			let pref = self.prefs.PADDING;
+			let update = function() {
+				let val = pref.get();
+				self.log.debug("setting padding to " + val);
+				Tiling.BaseLayout.prototype.padding = val;
+				self.current_workspace().relayout();
+			};
+			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+			update();
+		})();
+		
 	};
 
 	/* -------------------------------------------------------------

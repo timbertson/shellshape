@@ -56,18 +56,20 @@ Tile = {
       }
     };
   },
-  split_rect: function(rect, axis, ratio) {
+  split_rect: function(rect, axis, ratio, padding) {
     var new_rect, new_size_a, new_size_b;
+    padding || (padding = 0);
     if (ratio > 1 || ratio < 0) {
       throw "invalid ratio: " + ratio + " (must be between 0 and 1)";
     }
-    new_size_a = rect.size[axis] * ratio;
+    new_size_a = Math.round(rect.size[axis] * ratio);
     new_size_b = rect.size[axis] - new_size_a;
+    padding = Math.round(Math.min(new_size_a / 2, new_size_b / 2, padding));
     new_rect = Tile.copy_rect(rect);
     rect = Tile.copy_rect(rect);
-    rect.size[axis] = new_size_a;
-    new_rect.size[axis] = new_size_b;
-    new_rect.pos[axis] += new_size_a;
+    rect.size[axis] = new_size_a - padding;
+    new_rect.size[axis] = new_size_b - padding;
+    new_rect.pos[axis] += new_size_a + padding;
     return [rect, new_rect];
   },
   add_diff_to_rect: function(rect, diff) {
@@ -490,7 +492,7 @@ Split = (function(_super) {
     return Split.__super__.constructor.apply(this, arguments);
   }
 
-  Split.prototype.layout_one = function(rect, windows) {
+  Split.prototype.layout_one = function(rect, windows, padding) {
     var first_window, remaining, window_rect, _ref;
     this.save_last_rect(rect);
     first_window = windows.shift();
@@ -498,7 +500,7 @@ Split = (function(_super) {
       first_window.set_rect(rect);
       return [{}, []];
     }
-    _ref = Tile.split_rect(rect, this.axis, this.ratio), window_rect = _ref[0], remaining = _ref[1];
+    _ref = Tile.split_rect(rect, this.axis, this.ratio, padding), window_rect = _ref[0], remaining = _ref[1];
     first_window.set_rect(window_rect);
     return [remaining, windows];
   };
@@ -556,12 +558,12 @@ MultiSplit = (function(_super) {
     MultiSplit.__super__.constructor.call(this, axis);
   }
 
-  MultiSplit.prototype.split = function(bounds, windows) {
+  MultiSplit.prototype.split = function(bounds, windows, padding) {
     var left_rect, left_windows, right_rect, right_windows, _ref, _ref1, _ref2;
     this.save_last_rect(bounds);
     _ref = this.partition_windows(windows), left_windows = _ref[0], right_windows = _ref[1];
     if (left_windows.length > 0 && right_windows.length > 0) {
-      _ref1 = Tile.split_rect(bounds, this.axis, this.ratio), left_rect = _ref1[0], right_rect = _ref1[1];
+      _ref1 = Tile.split_rect(bounds, this.axis, this.ratio, padding), left_rect = _ref1[0], right_rect = _ref1[1];
     } else {
       _ref2 = [bounds, bounds], left_rect = _ref2[0], right_rect = _ref2[1];
     }
@@ -583,6 +585,8 @@ MultiSplit = (function(_super) {
 BaseLayout = (function() {
 
   BaseLayout.name = 'BaseLayout';
+
+  BaseLayout.prototype.padding = 0;
 
   function BaseLayout(state) {
     this.state = state;
@@ -827,18 +831,19 @@ BaseTiledLayout = (function(_super) {
   };
 
   BaseTiledLayout.prototype.layout = function(accommodate_window) {
-    var layout_windows, left, right, _ref;
+    var layout_windows, left, padding, right, _ref;
+    padding = this.padding;
     layout_windows = this.tiles.for_layout();
     this.log.debug("laying out " + layout_windows.length + " windows");
     if (accommodate_window != null) {
       this._change_main_ratio_to_accommodate(accommodate_window, this.main_split);
     }
-    _ref = this.main_split.split(this.bounds, layout_windows), left = _ref[0], right = _ref[1];
-    this._layout_side.apply(this, __slice.call(left).concat([this.splits.left], [accommodate_window]));
-    return this._layout_side.apply(this, __slice.call(right).concat([this.splits.right], [accommodate_window]));
+    _ref = this.main_split.split(this.bounds, layout_windows, padding), left = _ref[0], right = _ref[1];
+    this._layout_side.apply(this, __slice.call(left).concat([this.splits.left], [accommodate_window], [padding]));
+    return this._layout_side.apply(this, __slice.call(right).concat([this.splits.right], [accommodate_window], [padding]));
   };
 
-  BaseTiledLayout.prototype._layout_side = function(rect, windows, splits, accommodate_window) {
+  BaseTiledLayout.prototype._layout_side = function(rect, windows, splits, accommodate_window, padding) {
     var accommodate_idx, axis, bottom_split, extend_to, other_axis, previous_split, split, top_splits, window, zip, _i, _len, _ref, _ref1, _ref2, _results;
     axis = Axis.other(this.main_axis);
     extend_to = function(size, array, generator) {
@@ -881,7 +886,7 @@ BaseTiledLayout = (function(_super) {
     for (_i = 0, _len = _ref.length; _i < _len; _i++) {
       _ref1 = _ref[_i], window = _ref1[0], split = _ref1[1];
       window.top_split = previous_split;
-      _ref2 = split.layout_one(rect, windows), rect = _ref2[0], windows = _ref2[1];
+      _ref2 = split.layout_one(rect, windows, padding), rect = _ref2[0], windows = _ref2[1];
       window.ensure_within(this.bounds);
       window.bottom_split = windows.length > 0 ? split : null;
       _results.push(previous_split = split);

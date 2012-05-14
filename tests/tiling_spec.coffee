@@ -183,22 +183,26 @@ describe 'Window Splitting / layout', ->
 describe 'Basic Tile functions', ->
 	it 'should split x', ->
 		eq Tile.split_rect({pos:{x:0,  y:0}, size: {x:100, y:200}}, 'x', 0.5),
-			               [{pos:{x:0,  y:0}, size: {x:50,  y:200}},
-			                {pos:{x:50, y:0}, size: {x:50,  y:200}}]
+		                  [{pos:{x:0,  y:0}, size: {x:50,  y:200}},
+		                   {pos:{x:50, y:0}, size: {x:50,  y:200}}]
 	it 'should split y', ->
 		eq Tile.split_rect({pos:{x:0,  y:0},   size: {x:100, y:200}}, 'y', 0.5),
-			               [{pos:{x:0,  y:0},   size: {x:100, y:100}},
-			                {pos:{x:0,  y:100}, size: {x:100, y:100}}]
+		                  [{pos:{x:0,  y:0},   size: {x:100, y:100}},
+		                   {pos:{x:0,  y:100}, size: {x:100, y:100}}]
 	it 'should split non-evenly', ->
 		eq Tile.split_rect({pos:{x:0,  y:0},  size: {x:100, y:200}}, 'y', 0.1),
-			               [{pos:{x:0,  y:0},  size: {x:100, y:20}},
-			                {pos:{x:0,  y:20}, size: {x:100, y:180}}]
+		                  [{pos:{x:0,  y:0},  size: {x:100, y:20}},
+		                   {pos:{x:0,  y:20}, size: {x:100, y:180}}]
+	
+	it 'should split with a padding', ->
+		eq Tile.split_rect({pos:{x:0, y:0}, size: {x:100, y:200}}, 'y', 0.5, 10),
+		                  [{pos:{x:0, y:0}, size: {x:100, y:90}},
+		                   {pos:{x:0, y:110}, size: {x:100, y:90}}]
 
-	# it 'should join two rects', ->
-	# 	# test doesn't work as-written because coffee-script compiler is broken :(
-	# 	eq(Tile.joinRects({pos:{x:40, y:0},  size: {x:100, y:20}},
-	# 		                {pos:{x:0,  y:40}, size: {x:100, y:20}}),
-	# 		                {pos:{x:0,  y:0},  size: {x:140, y:60}})
+	it 'should join two rects', ->
+		eq(Tile.joinRects({pos:{x:40, y:0},  size: {x:100, y:20}},
+		                  {pos:{x:0,  y:40}, size: {x:100, y:20}}),
+		                  {pos:{x:0,  y:0},  size: {x:140, y:60}})
 
 
 class MockWindow
@@ -208,7 +212,9 @@ class MockWindow
 	move_resize: (x, y, w, h) ->
 		@rect = {x:Math.round(x), y:Math.round(y), w:Math.round(w), h:Math.round(h)}
 		puts("#{@name}: resizing to: " + j(this.rect))
-	set_tile_preference: () -> null
+
+	set_tile_preference: (newval) ->
+		@tile_preference = newval
 	
 	xpos: -> @rect.x
 	ypos: -> @rect.y
@@ -324,6 +330,48 @@ describe 'VerticalTiledLayout', ->
 			eq(window1.rect, {x:0, y:0, w:200, h:600})
 			eq(window3.rect, {x:200, y:0,   w:600, h:300})
 			eq(window2.rect, {x:200, y:300, w:600, h:300})
+	
+	describe 'padded layout scenario', ->
+		layout = _new_layout(800, 600)
+		layout.padding = 10
+		num_tiles =  -> _num_tiles(layout)
+		tiled_windows = -> _tiled_windows(layout)
+		tile = (w) -> _tile(layout, w)
+
+		window1 = new MockWindow('window1')
+		window2 = new MockWindow('window2')
+		window3 = new MockWindow('window3')
+		window4 = new MockWindow('window4')
+
+		it 'should not pad a fullscreen window', ->
+			tile(window1)
+			eq(num_tiles(), 1)
+			eq(window1.rect, {x:0, y:0, w:800, h:600})
+
+		it 'should pad both sides of a single split', ->
+			tile(window2)
+			eq(num_tiles(), 2)
+
+			# win1 should be on left half; win2 on right half
+			eq(window1.rect, {x:0, y:0, w:390, h:600})
+			eq(window2.rect, {x:410, y:0, w:390, h:600})
+
+		it 'should pad both sides of a secondary split', ->
+			tile(window3)
+			eq(num_tiles(), 3)
+
+			# win1 should be on left half; win2 and win3 on right half
+			eq(window1.rect, {x:0, y:0, w:390, h:600})
+			eq(window2.rect, {x:410, y:0, w:390, h:290})
+			eq(window3.rect, {x:410, y:310, w:390, h:290})
+
+		it 'should pad all joins in a multiple-split layout', ->
+			tile(window4)
+			# win2, 3 and 4 should now be sharing RHS of screen:
+			eq(window1.rect, {x:0, y:0, w:390, h:600})
+			eq(window2.rect, {x:410, y:0,   w:390, h:290})
+			eq(window3.rect, {x:410, y:310, w:390, h:135})
+			eq(window4.rect, {x:410, y:465, w:390, h:135})
 
 	describe 'adjusting splits to accomodate window', ->
 		layout = null

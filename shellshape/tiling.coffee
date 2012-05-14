@@ -22,21 +22,26 @@ get_mouse_position = ->
 	throw "override get_mouse_position()"
 
 Tile = {
+
 	copy_rect: (rect) ->
 		return {pos:{x:rect.pos.x, y:rect.pos.y}, size:{x:rect.size.x, y:rect.size.y}}
 
-	split_rect: (rect, axis, ratio) ->
+	split_rect: (rect, axis, ratio, padding) ->
+		padding ||= 0
 		# log("#split_rect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio)
 		if(ratio > 1 || ratio < 0)
 			throw("invalid ratio: " + ratio + " (must be between 0 and 1)")
-		new_size_a = rect.size[axis] * ratio
+		new_size_a = Math.round(rect.size[axis] * ratio)
 		new_size_b = rect.size[axis] - new_size_a
+
+		padding = Math.round(Math.min((new_size_a / 2), (new_size_b / 2), padding))
+		# log("effective padding is " + padding)
 
 		new_rect = Tile.copy_rect(rect)
 		rect = Tile.copy_rect(rect)
-		rect.size[axis] = new_size_a
-		new_rect.size[axis] = new_size_b
-		new_rect.pos[axis] += new_size_a
+		rect.size[axis] = new_size_a - padding
+		new_rect.size[axis] = new_size_b - padding
+		new_rect.pos[axis] += new_size_a + padding
 		# log("rect copy: " + j(rect))
 		# log("new_rect: " + j(new_rect))
 		return [rect, new_rect]
@@ -312,13 +317,13 @@ class BaseSplit
 		@ratio = new_ratio
 
 class Split extends BaseSplit
-	layout_one: (rect, windows) ->
+	layout_one: (rect, windows, padding) ->
 		@save_last_rect(rect)
 		first_window = windows.shift()
 		if windows.length == 0
 			first_window.set_rect(rect)
 			return [{}, []]
-		[window_rect, remaining] = Tile.split_rect(rect, @axis, @ratio)
+		[window_rect, remaining] = Tile.split_rect(rect, @axis, @ratio, padding)
 		first_window.set_rect(window_rect)
 		return [remaining, windows]
 	
@@ -353,12 +358,12 @@ class MultiSplit extends BaseSplit
 		@log = Log.getLogger("shellshape.tiling.MultiSplit")
 		super(axis)
 	
-	split: (bounds, windows) ->
+	split: (bounds, windows, padding) ->
 		@save_last_rect(bounds)
 		# @log.debug("mainsplit: dividing #{windows.length} after #{@primary_windows} for bounds #{j bounds}")
 		[left_windows, right_windows] = @partition_windows(windows)
 		if left_windows.length > 0 and right_windows.length > 0
-			[left_rect, right_rect] = Tile.split_rect(bounds, @axis, @ratio)
+			[left_rect, right_rect] = Tile.split_rect(bounds, @axis, @ratio, padding)
 		else
 			# only one side wil actually be laid out...
 			[left_rect, right_rect] = [bounds, bounds]
@@ -372,6 +377,7 @@ class MultiSplit extends BaseSplit
 		idx < @primary_windows
 
 class BaseLayout
+	padding: 0
 	constructor: (state) ->
 		@state = state
 		@tiles = state.tiles
@@ -506,16 +512,17 @@ class BaseTiledLayout extends BaseLayout
 		@tiles.each_tiled(func)
 
 	layout: (accommodate_window) ->
+		padding = @padding
 		layout_windows = @tiles.for_layout()
 		@log.debug("laying out #{layout_windows.length} windows")
 		if accommodate_window?
 			@_change_main_ratio_to_accommodate(accommodate_window, @main_split)
-		[left, right] = @main_split.split(@bounds, layout_windows)
+		[left, right] = @main_split.split(@bounds, layout_windows, padding)
 		# @log.debug("split screen into rect #{j left[0]} | #{j right[0]}")
-		@_layout_side(left..., @splits.left, accommodate_window)
-		@_layout_side(right..., @splits.right, accommodate_window)
+		@_layout_side(left..., @splits.left, accommodate_window, padding)
+		@_layout_side(right..., @splits.right, accommodate_window, padding)
 	
-	_layout_side: (rect, windows, splits, accommodate_window) ->
+	_layout_side: (rect, windows, splits, accommodate_window, padding) ->
 		axis = Axis.other(@main_axis)
 
 		extend_to = (size, array, generator) ->
@@ -541,7 +548,7 @@ class BaseTiledLayout extends BaseLayout
 		previous_split = null
 		for [window, split] in zip(windows, splits)
 			window.top_split = previous_split
-			[rect, windows] = split.layout_one(rect, windows)
+			[rect, windows] = split.layout_one(rect, windows, padding)
 			window.ensure_within(@bounds)
 			window.bottom_split = if (windows.length > 0) then split else null
 			previous_split = split
@@ -834,6 +841,7 @@ class TiledWindow
 
 	set_rect : (r) ->
 		# log("offset rect to " + j(@offset))
+		# @log.debug("tile has new rect: " + j(r))
 		@_resize(r.size)
 		@_move(r.pos)
 		@layout()

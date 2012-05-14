@@ -107,4 +107,10 @@ function Prefs() {
 		get: function() { return settings.get_string(this.key); },
 		set: function(v) { settings.set_string(this.key, v); },
 	};
+	this.PADDING = {
+		key: 'tile-padding',
+		gsettings: settings,
+		get: function() { return settings.get_int(this.key); },
+		set: function(v) { settings.set_int(this.key, v); },
+	};
 };

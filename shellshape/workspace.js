@@ -107,10 +107,10 @@ Workspace.prototype = {
 		for(let i=0; i<keys.length; i++) {
 			this[keys[i]] = other[keys[i]];
 		}
-		this._relayout();
+		this.relayout();
 	},
 
-	_relayout: _duck_overview(function() {
+	relayout: _duck_overview(function() {
 		this.layout.layout();
 	}),
 

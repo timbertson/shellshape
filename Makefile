@@ -4,7 +4,7 @@ spec=0launch --not-before=0.4 http://gfxmonk.net/dist/0install/coffee-spec.xml
 markdown=0launch http://gfxmonk.net/dist/0install/markdown.xml
 template=0launch http://gfxmonk.net/dist/0install/template.xml
 
-all: js shellshape/schemas
+all: js schemas
 
 schemas: phony
 	make -C schemas
@@ -13,7 +13,7 @@ js: phony
 	${coffee} --bare -c shellshape/tiling.coffee
 
 test: phony js
-	${spec} -vc tests
+	${spec} -v tests
 
 auto: phony js
 	${watchdog} tricks .tricks.yaml
