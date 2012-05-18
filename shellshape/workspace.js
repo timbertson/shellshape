@@ -52,13 +52,13 @@ TurbulentState.prototype = {
 	leave: function() {
 		if(this.affected) {
 			this.log.debug("ignoring " + this.pending.length + " actions due to turbulence");
+			this.active = false;
 			if(this.cleanup) this.cleanup();
 		} else {
 			for (var i=0; i<this.pending.length; i++) {
 				this.pending[i]();
 			}
 		}
-		this.active = false;
 		this.pending = [];
 	}
 }
@@ -122,6 +122,7 @@ Workspace.prototype = {
 		this.layout.each(function(tile) {
 			layout_meta_windows.push(tile.window.meta_window);
 		});
+		this.log.debug("workspace " + this + " is checking its window members...");
 
 		// check for windows in layout but not workspace window list
 		for (var i=0; i<layout_meta_windows.length; i++) {
@@ -145,6 +146,8 @@ Workspace.prototype = {
 				}));
 			}
 		}
+
+		this.log.debug("check complete");
 	},
 
 	set_layout: function(cls) {

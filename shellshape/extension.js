@@ -268,8 +268,10 @@ const Ext = function Ext() {
 
 			let _dropPlaceholderPos = this._dropPlaceholderPos;
 			map_ws(function(ws) { ws._turbulence.enter(); });
-			self.log.info("DROP_PLACEHOLDER_START");
+			self.log.debug("acceptDrop start");
 			let ret = orig.apply(this, arguments);
+			self.log.debug("acceptDrop returned: " + String(ret));
+			self.log.debug("_dropPlaceholderPos: " + String(_dropPlaceholderPos));
 			if(ret === true && _dropPlaceholderPos != -1) {
 				// a new workspace was inserted at _dropPlaceholderPos
 				_dropPlaceholderPos = _dropPlaceholderPos + 0; // just in case it's null or something daft.
@@ -292,7 +294,7 @@ const Ext = function Ext() {
 				}
 				self.emit('layout-changed');
 			};
-			self.log.info("DROP_PLACEHOLDER_END");
+			self.log.debug("acceptDrop end");
 			map_ws(function(ws) { ws._turbulence.leave(); });
 			return ret;
 		};
