@@ -502,6 +502,23 @@ const Ext = function Ext() {
 		self._bound_keybindings = {};
 	};
 
+	var Bounds = function(monitor) {
+		this.monitor = monitor;
+		this.update();
+	};
+	Bounds.prototype.update = function()
+	{
+		let panel_height = Main.panel.actor.height;
+		this.pos = {
+			x: this.monitor.x,
+			y: this.monitor.y + panel_height
+		};
+		this.size = {
+			x: this.monitor.width,
+			y: this.monitor.height - panel_height
+		};
+	};
+
 	// Turn on the extension.  Grabs the screen size to set up boundaries
 	// in the process.
 	self.enable = function() {
@@ -512,14 +529,7 @@ const Ext = function Ext() {
 		//TODO: multiple monitor support
 		var monitorIdx = screen.get_primary_monitor();
 		self.monitor = screen.get_monitor_geometry(monitorIdx);
-		self.bounds.pos = {
-			x: self.monitor.x,
-			y: self.monitor.y + Main.panel.actor.height,
-		};
-		self.bounds.size = {
-			x: self.monitor.width,
-			y: self.monitor.height - Main.panel.actor.height,
-		};
+		self.bounds = new Bounds(self.monitor);
 		self._do(self._init_prefs, "init preference bindings");
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_overview, "init overview ducking");

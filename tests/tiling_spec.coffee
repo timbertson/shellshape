@@ -9,6 +9,7 @@ pp = (x) -> util.log(util.inspect(x))
 log = util.log
 # pp require("assert")
 eq = deepEqual
+noop = () -> null
 
 tiling.to_get_mouse_position ->
 	{x: 0, y:0}
@@ -138,7 +139,7 @@ describe 'tile collection', ->
 rect = (x,y,w,h) -> {pos: {x:x, y:y}, size: {x:w, y:h}}
 describe 'rect* functions', ->
 	describe 'move_rect_within(rect, bounds)', ->
-		bounds = {pos: {x:0, y:0}, size: {x:800, y:600}}
+		bounds = {pos: {x:0, y:0}, size: {x:800, y:600}, update: noop}
 		it 'should leave a window that is within bounds', ->
 			eq Tile.move_rect_within(rect(10, 10, 400, 300), bounds), rect(0,0,0,0)
 
@@ -238,7 +239,7 @@ describe 'VerticalTiledLayout', ->
 		tiles = layout.tiles.filter(layout.tiles.is_tiled, layout.tiles.items)
 		(tile.window for tile in tiles)
 	_new_layout = (w, h) ->
-		bounds = {pos: {x: 0, y:0}, size: {x:w, y:h}}
+		bounds = {pos: {x: 0, y:0}, size: {x:w, y:h}, update: noop}
 		state = new tiling.LayoutState(bounds)
 		layout = new tiling.VerticalTiledLayout(state)
 

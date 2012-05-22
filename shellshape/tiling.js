@@ -832,6 +832,7 @@ BaseTiledLayout = (function(_super) {
 
   BaseTiledLayout.prototype.layout = function(accommodate_window) {
     var layout_windows, left, padding, right, _ref;
+    this.bounds.update();
     padding = this.padding;
     layout_windows = this.tiles.for_layout();
     this.log.debug("laying out " + layout_windows.length + " windows");

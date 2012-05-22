@@ -512,6 +512,7 @@ class BaseTiledLayout extends BaseLayout
 		@tiles.each_tiled(func)
 
 	layout: (accommodate_window) ->
+		@bounds.update()
 		padding = @padding
 		layout_windows = @tiles.for_layout()
 		@log.debug("laying out #{layout_windows.length} windows")
