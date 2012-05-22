@@ -212,7 +212,7 @@ const Ext = function Ext() {
 			window.move_to_workspace(new_index);
 			next_workspace.activate_with_focus(window.meta_window, global.get_current_time())
 		} else {
-			next_workspace.activate(true);
+			next_workspace.activate(global.get_current_time());
 		}
 	};
 
