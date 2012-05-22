@@ -249,6 +249,7 @@ const Ext = function Ext() {
 	// but there's no correct way to undo a monkey-patching if other extensions also
 	// monkey-patched the same function.
 	(function() {
+		return; // NOTE: DISABLED until bugs are ironed out.
 		let src = imports.ui.workspaceThumbnail.ThumbnailsBox.prototype;
 		let orig = src.acceptDrop;
 		let ws_by_index = function(i) { return self.get_workspace(self.screen.get_workspace_by_index(i)); }
