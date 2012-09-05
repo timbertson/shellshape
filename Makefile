@@ -24,6 +24,8 @@ auto: phony js
 		-p shellshape \
 		-p xdg \
 		-p lib \
+		-p LICENCE \
+		-p README.md \
 		shellshape.xml
 
 ZIP_FILE=0inst/shellshape.zip

@@ -3,7 +3,7 @@
 <interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://gfxmonk.net/dist/0install/shellshape.xml">
 	<name>shellshape</name>
 	<summary>tiling window manager extension for gnome-shell</summary>
-	<publish xmlns="http://gfxmonk.net/dist/0install" mode="default"/>
+	<publish xmlns="http://gfxmonk.net/dist/0install" mode="featured"/>
 	<description>
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
@@ -71,7 +71,6 @@ GPLv3
  - Added blacklist to prevent "Conky" windows from being tiled.
  - Fixed a number of bugs to do with tracking window movement and sizes.
  - Switched the "Horizontal" and "Vertical" layouts. You may need to adjust your keyboard shortcuts if you've set them to anything non-default, as the gsettings keys have swapped as well (if you haven't customised shortcuts, the defaults will still do the right thing)..
-
 
 ### version 0.5:
  - Removed label from indicator icon.
@@ -221,7 +220,7 @@ GPLv3
 			<manifest-digest sha256="d2f082bcf626f6b31902fc1438069f922adebff8b2316463ff7d647a2976d8b4"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.4.tgz" size="59715"/>
 		</implementation>
-		<implementation id="sha1new=0be855c7fe860ea85f8ee08336d880bcbd56579a" released="2012-05-05" version="0.5" stability="stable">
+		<implementation id="sha1new=0be855c7fe860ea85f8ee08336d880bcbd56579a" released="2012-05-05" stability="stable" version="0.5">
 			<manifest-digest sha256="7ba16d6ba7ec202f3e72cc4156d6316fd482bd55c2f327071f37baab81f90eed"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.tgz" size="57843"/>
 		</implementation>

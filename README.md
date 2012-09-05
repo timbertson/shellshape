@@ -60,6 +60,10 @@ GPLv3
 
 ## Changelog
 
+### version 0.5.2
+ - Updated manifest.json to declare compatibility with gnome-shell 3.4.2
+ - Include LICENCE and README.md files in tarball
+
 ### version 0.5.1
  - Added blacklist to prevent "Conky" windows from being tiled.
  - Fixed a number of bugs to do with tracking window movement and sizes.
