@@ -54,6 +54,14 @@ Other extensions I use and recommend:
 
 All of these should be available from your package manager, or [the gnome shell extensions page](https://live.gnome.org/GnomeShell/Extensions)
 
+## Keyboard shortcuts
+
+Are listed at [http://gfxmonk.net/shellshape/]()
+Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:
+
+ - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
+ - [Desktop wallpaper](http://dl.dropbox.com/u/1879450/shellshape.svg) - Andreas Wallberg ([source](https://github.com/gfxmonk/shellshape/issues/95))
+
 ## Hacking
 The core layout stuff is in `tiling.coffee`. This should run in both the shell and in the web browser (see `interactive/index.html`; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for `tiling.js`, it is generated from `tiling.coffee`).
 
@@ -66,6 +74,10 @@ If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/
 GPLv3
 
 ## Changelog
+
+### version 0.5.2
+ - Updated manifest.json to declare compatibility with gnome-shell 3.4.2
+ - Include LICENCE and README.md files in tarball
 
 ### version 0.5.1
  - Added blacklist to prevent "Conky" windows from being tiled.
@@ -95,8 +107,7 @@ GPLv3
 			<p>Briefly, <code>0launch http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0launch</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/"><code class="url">http://gfxmonk.net/shellshape/</code></a></p>
 			<p>To run your own checkout, you should be able to clone this repo and run <code>0launch shellshape-local.xml</code>. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:</p>
 			<pre>
-				<code>ln -s "$PWD/shellshape" "~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"
-</code>
+				<code>ln -s "$PWD/shellshape" "~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"</code>
 			</pre>
 			<h2 id="running-it-on-gnome-shell-3.2">Running it on gnome-shell 3.2*</h2>
 			<p>Is hard, error-prone, and no longer supported. Sorry!</p>
@@ -108,8 +119,7 @@ GPLv3
 				<code>- Check the extension is enabled (you can see this in the "Shell Extensions" section of `gnome-tweak-tool`)
 - See if there are any errors in looking glass that mention shellshape (press alt-F2, type "`lg`" and then click the "Errors" tab)
 - Check the console output (if running in a console) for any messages that mention shellshape
-- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all
-</code>
+- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all</code>
 			</pre>
 			<p>To report a bug or crash, please see the <a href="https://github.com/gfxmonk/shellshape/issues">github issues page</a>.</p>
 			<h2 id="replace-gnome-shell">Replace gnome-shell</h2>
@@ -122,6 +132,12 @@ GPLv3
 				<li>workspace switcher</li>
 			</ul>
 			<p>All of these should be available from your package manager, or <a href="https://live.gnome.org/GnomeShell/Extensions">the gnome shell extensions page</a></p>
+			<h2 id="keyboard-shortcuts">Keyboard shortcuts</h2>
+			<p>Are listed at <a href="">http://gfxmonk.net/shellshape/</a> Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:</p>
+			<ul>
+				<li><a href="https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg">Keyboard overlay image</a> - Jordan Klassen</li>
+				<li><a href="http://dl.dropbox.com/u/1879450/shellshape.svg">Desktop wallpaper</a> - Andreas Wallberg (<a href="https://github.com/gfxmonk/shellshape/issues/95">source</a>)</li>
+			</ul>
 			<h2 id="hacking">Hacking</h2>
 			<p>The core layout stuff is in <code>tiling.coffee</code>. This should run in both the shell and in the web browser (see <code>interactive/index.html</code>; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for <code>tiling.js</code>, it is generated from <code>tiling.coffee</code>).</p>
 			<h2 id="debugging">Debugging</h2>
@@ -130,6 +146,11 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.5.2">version 0.5.2</h3>
+			<ul>
+				<li>Updated manifest.json to declare compatibility with gnome-shell 3.4.2</li>
+				<li>Include LICENCE and README.md files in tarball</li>
+			</ul>
 			<h3 id="version-0.5.1">version 0.5.1</h3>
 			<ul>
 				<li>Added blacklist to prevent "Conky" windows from being tiled.</li>
@@ -227,6 +248,10 @@ GPLv3
 		<implementation id="sha1new=d91671fb10f1fb0a490aca73cf1f21b056bf26cb" released="2012-05-11" version="0.5.1">
 			<manifest-digest sha256="825ef9ed735ee9bed5cad5b7c48bd3c2cc37f2485532a1cc37ffa72c997b37eb"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.1.tgz" size="58948"/>
+		</implementation>
+		<implementation id="sha1new=38902c46c6d2375b316853ac3eb03d30487ef12f" released="2012-09-05" version="0.5.2">
+			<manifest-digest sha256="5595f4fbbb6565162fd6f726a7117ec7d97bbc8c63d1322bceadbae71bc658ae"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.2.tgz" size="65186"/>
 		</implementation>
 	</group>
 </interface>

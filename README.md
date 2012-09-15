@@ -47,6 +47,14 @@ Other extensions I use and recommend:
 
 All of these should be available from your package manager, or [the gnome shell extensions page](https://live.gnome.org/GnomeShell/Extensions)
 
+## Keyboard shortcuts
+
+Are listed at [http://gfxmonk.net/shellshape/]()
+Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:
+
+ - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
+ - [Desktop wallpaper](http://dl.dropbox.com/u/1879450/shellshape.svg) - Andreas Wallberg ([source](https://github.com/gfxmonk/shellshape/issues/95))
+
 ## Hacking
 The core layout stuff is in `tiling.coffee`. This should run in both the shell and in the web browser (see `interactive/index.html`; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for `tiling.js`, it is generated from `tiling.coffee`).
 
