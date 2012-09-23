@@ -1,4 +1,5 @@
 const Gtk = imports.gi.Gtk;
+const GLib = imports.gi.GLib;
 
 let Extension = imports.misc.extensionUtils.getCurrentExtension();
 let ShellshapeSettings = Extension.imports.shellshape_settings;
@@ -172,7 +173,7 @@ function buildPrefsWidget() {
 			try {
 				// The magic sauce that lets dconf-editor see our local schema:
 				let envp = ShellshapeSettings.envp_with_shellshape_xdg_data_dir();
-				imports.gi.GLib.spawn_async(null, ['dconf-editor'], envp, null, null);
+				GLib.spawn_async(null, ['dconf-editor'], envp, GLib.SpawnFlags.SEARCH_PATH, null);
 			} catch(e) {
 				error_msg.set_label("ERROR: Could not launch dconf-editor. Is it installed?");
 				throw e;
