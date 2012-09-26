@@ -68,6 +68,9 @@ GPLv3
 
 ## Changelog
 
+### version 0.5.3
+ - Fix error launching dconf-editor from the preferences panel
+
 ### version 0.5.2
  - Updated manifest.json to declare compatibility with gnome-shell 3.4.2
  - Include LICENCE and README.md files in tarball

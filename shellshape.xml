@@ -75,6 +75,9 @@ GPLv3
 
 ## Changelog
 
+### version 0.5.3
+ - Fix error launching dconf-editor from the preferences panel
+
 ### version 0.5.2
  - Updated manifest.json to declare compatibility with gnome-shell 3.4.2
  - Include LICENCE and README.md files in tarball
@@ -146,6 +149,10 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.5.3">version 0.5.3</h3>
+			<ul>
+				<li>Fix error launching dconf-editor from the preferences panel</li>
+			</ul>
 			<h3 id="version-0.5.2">version 0.5.2</h3>
 			<ul>
 				<li>Updated manifest.json to declare compatibility with gnome-shell 3.4.2</li>
@@ -252,6 +259,10 @@ GPLv3
 		<implementation id="sha1new=38902c46c6d2375b316853ac3eb03d30487ef12f" released="2012-09-05" version="0.5.2">
 			<manifest-digest sha256="5595f4fbbb6565162fd6f726a7117ec7d97bbc8c63d1322bceadbae71bc658ae"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.2.tgz" size="65186"/>
+		</implementation>
+		<implementation id="sha1new=22bfbabbeaaeebe4020d53215265f6291768a30c" released="2012-09-23" version="0.5.3">
+			<manifest-digest sha256="568e284ea4cff36428fc19927ec873c39e0b1bcdb30042fd73f11f0fbfc860f2"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.3.tgz" size="65414"/>
 		</implementation>
 	</group>
 </interface>
