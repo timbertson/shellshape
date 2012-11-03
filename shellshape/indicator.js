@@ -43,8 +43,7 @@ PopupImageMenuItem.prototype = {
 			text: text
 		});
 		this._icon = new St.Icon({
-			icon_type: (St.IconType.SYMBOLIC)
-			,style_class: 'system-status-icon'
+			style_class: 'system-status-icon'
 		});
 		this.addActor(this._icon, { align: St.Align.START });
 		this.addActor(this.label);
@@ -97,9 +96,8 @@ ShellshapeIndicator.prototype = {
 
 		var default_entry = this.menu_entries[0];
 		this.icon = new St.Icon({
-			icon_type: (St.IconType.SYMBOLIC)
-			,icon_name: default_entry.icon
-			,style_class: 'system-status-icon'
+			icon_name: default_entry.icon,
+			style_class: 'system-status-icon'
 		});
 		this.actor.get_children().forEach(function(c) { c.destroy() });
 		this.actor.add_actor(this.icon);
