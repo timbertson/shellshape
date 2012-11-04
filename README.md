@@ -68,6 +68,9 @@ GPLv3
 
 ## Changelog
 
+### version 0.5.4
+ - Support for gnome-shell 3.6
+
 ### version 0.5.3
  - Fix error launching dconf-editor from the preferences panel
 

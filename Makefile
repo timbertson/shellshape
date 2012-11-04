@@ -28,6 +28,9 @@ auto: phony js
 		-p README.md \
 		shellshape.xml
 
+shellshape-local.xml: shellshape.xml
+	0launch http://gfxmonk.net/dist/0install/0local.xml shellshape.xml
+
 ZIP_FILE=0inst/shellshape.zip
 zip: phony
 	rm -f ${ZIP_FILE}
