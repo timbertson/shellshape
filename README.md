@@ -49,7 +49,7 @@ All of these should be available from your package manager, or [the gnome shell 
 
 ## Keyboard shortcuts
 
-Are listed at [http://gfxmonk.net/shellshape/]()
+Are listed at [http://gfxmonk.net/shellshape/](http://gfxmonk.net/shellshape/)
 Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:
 
  - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
