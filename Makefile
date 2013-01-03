@@ -20,8 +20,8 @@ auto: phony js
 
 0: phony js
 	mkzero-gfxmonk \
+		--resolve-links \
 		-p gnome-shell.desktop \
-		-p shellshape \
 		-p xdg \
 		-p lib \
 		-p LICENCE \

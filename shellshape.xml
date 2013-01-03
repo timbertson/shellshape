@@ -17,7 +17,9 @@ I must thank [bluetile][bluetile], for it was the inspiration for this extension
 Briefly, `0launch http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0launch`, you should install the `zeroinstall-injector` package first.
 For more details, please see instructions on &lt;http://gfxmonk.net/shellshape/&gt;
 
-To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`.
+To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:
+
+	ln -s "$PWD/shellshape" "~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"
 
 ## Running it on gnome-shell 3.2*
 
@@ -54,7 +56,7 @@ All of these should be available from your package manager, or [the gnome shell 
 
 ## Keyboard shortcuts
 
-Are listed at [http://gfxmonk.net/shellshape/]()
+Are listed at [http://gfxmonk.net/shellshape/](http://gfxmonk.net/shellshape/)
 Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:
 
  - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
@@ -72,6 +74,9 @@ If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/
 GPLv3
 
 ## Changelog
+
+### version 0.5.4
+ - Support for gnome-shell 3.6
 
 ### version 0.5.3
  - Fix error launching dconf-editor from the preferences panel
@@ -134,7 +139,7 @@ GPLv3
 			</ul>
 			<p>All of these should be available from your package manager, or <a href="https://live.gnome.org/GnomeShell/Extensions">the gnome shell extensions page</a></p>
 			<h2 id="keyboard-shortcuts">Keyboard shortcuts</h2>
-			<p>Are listed at <a href="">http://gfxmonk.net/shellshape/</a> Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:</p>
+			<p>Are listed at <a href="http://gfxmonk.net/shellshape/">http://gfxmonk.net/shellshape/</a> Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:</p>
 			<ul>
 				<li><a href="https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg">Keyboard overlay image</a> - Jordan Klassen</li>
 				<li><a href="http://dl.dropbox.com/u/1879450/shellshape.svg">Desktop wallpaper</a> - Andreas Wallberg (<a href="https://github.com/gfxmonk/shellshape/issues/95">source</a>)</li>
@@ -147,6 +152,10 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.5.4">version 0.5.4</h3>
+			<ul>
+				<li>Support for gnome-shell 3.6</li>
+			</ul>
 			<h3 id="version-0.5.3">version 0.5.3</h3>
 			<ul>
 				<li>Fix error launching dconf-editor from the preferences panel</li>
@@ -242,25 +251,25 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="sha1new=4813ae4eb4c0233e56647055e912056d0de17827" released="2012-04-28" stability="stable" version="0.4">
+		<implementation id="sha1new=4813ae4eb4c0233e56647055e912056d0de17827" released="2012-04-28" stability="buggy" version="0.4">
 			<manifest-digest sha256="d2f082bcf626f6b31902fc1438069f922adebff8b2316463ff7d647a2976d8b4"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.4.tgz" size="59715"/>
 		</implementation>
-		<implementation id="sha1new=0be855c7fe860ea85f8ee08336d880bcbd56579a" released="2012-05-05" stability="stable" version="0.5">
+		<implementation id="sha1new=0be855c7fe860ea85f8ee08336d880bcbd56579a" released="2012-05-05" stability="buggy" version="0.5">
 			<manifest-digest sha256="7ba16d6ba7ec202f3e72cc4156d6316fd482bd55c2f327071f37baab81f90eed"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.tgz" size="57843"/>
 		</implementation>
-		<implementation id="sha1new=d91671fb10f1fb0a490aca73cf1f21b056bf26cb" released="2012-05-11" version="0.5.1">
+		<implementation id="sha1new=d91671fb10f1fb0a490aca73cf1f21b056bf26cb" released="2012-05-11" stability="buggy" version="0.5.1">
 			<manifest-digest sha256="825ef9ed735ee9bed5cad5b7c48bd3c2cc37f2485532a1cc37ffa72c997b37eb"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.1.tgz" size="58948"/>
 		</implementation>
-		<implementation id="sha1new=38902c46c6d2375b316853ac3eb03d30487ef12f" released="2012-09-05" version="0.5.2">
+		<implementation id="sha1new=38902c46c6d2375b316853ac3eb03d30487ef12f" released="2012-09-05" stability="buggy" version="0.5.2">
 			<manifest-digest sha256="5595f4fbbb6565162fd6f726a7117ec7d97bbc8c63d1322bceadbae71bc658ae"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.2.tgz" size="65186"/>
 		</implementation>
-		<implementation id="sha1new=22bfbabbeaaeebe4020d53215265f6291768a30c" released="2012-09-23" version="0.5.3">
-			<manifest-digest sha256="568e284ea4cff36428fc19927ec873c39e0b1bcdb30042fd73f11f0fbfc860f2"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.3.tgz" size="65414"/>
+		<implementation id="sha1new=ef2fa1c3da53b99b9034effaa32b4bcee01b915d" released="2013-01-03" version="0.5.3">
+			<manifest-digest sha256="b57f4d672650efb82cf224fd2930cf0c32fa7244892d450f0e92442f17c56c0f"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.3.tgz" size="67631"/>
 		</implementation>
 	</group>
 	<group>
@@ -277,9 +286,13 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="sha1new=0520555396b3ab333783d430815076301089eecc" released="2012-11-04" version="0.5.4">
+		<implementation id="sha1new=0520555396b3ab333783d430815076301089eecc" released="2012-11-04" stability="buggy" version="0.5.4">
 			<manifest-digest sha256="e5113ad739db44ffcf7ff314bee6b4f1f108f2994e15b7587ccd8a9cda328f5e"/>
 			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.4.tgz" size="65390"/>
+		</implementation>
+		<implementation id="sha1new=60c141b1241ada713d028f0546efe7cf6948973e" released="2013-01-03" version="0.5.5">
+			<manifest-digest sha256="2900edd389814cfde737497c449bf7dbbbff5e882cb28c3a2cc7837512060b4b"/>
+			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.5.tgz" size="69643"/>
 		</implementation>
 	</group>
 </interface>

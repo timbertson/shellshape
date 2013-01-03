@@ -5,7 +5,7 @@ This software is in-development. I use it daily, but it might break stuff. Use a
 
 I must thank [bluetile][bluetile], for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).
 
-## Running it on gnome-shell 3.4*
+## Running it on gnome-shell 3.4+
 
 Briefly, `0launch http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0launch`, you should install the `zeroinstall-injector` package first.
 For more details, please see instructions on <http://gfxmonk.net/shellshape/>
