@@ -54,7 +54,7 @@ All of these should be available from your package manager, or [the gnome shell 
 
 ## Keyboard shortcuts
 
-Are listed at [http://gfxmonk.net/shellshape/]()
+Are listed at [http://gfxmonk.net/shellshape/](http://gfxmonk.net/shellshape/)
 Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:
 
  - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
@@ -72,6 +72,9 @@ If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/
 GPLv3
 
 ## Changelog
+
+### version 0.5.4
+ - Support for gnome-shell 3.6
 
 ### version 0.5.3
  - Fix error launching dconf-editor from the preferences panel
@@ -134,7 +137,7 @@ GPLv3
 			</ul>
 			<p>All of these should be available from your package manager, or <a href="https://live.gnome.org/GnomeShell/Extensions">the gnome shell extensions page</a></p>
 			<h2 id="keyboard-shortcuts">Keyboard shortcuts</h2>
-			<p>Are listed at <a href="">http://gfxmonk.net/shellshape/</a> Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:</p>
+			<p>Are listed at <a href="http://gfxmonk.net/shellshape/">http://gfxmonk.net/shellshape/</a> Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:</p>
 			<ul>
 				<li><a href="https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg">Keyboard overlay image</a> - Jordan Klassen</li>
 				<li><a href="http://dl.dropbox.com/u/1879450/shellshape.svg">Desktop wallpaper</a> - Andreas Wallberg (<a href="https://github.com/gfxmonk/shellshape/issues/95">source</a>)</li>
@@ -147,6 +150,10 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.5.4">version 0.5.4</h3>
+			<ul>
+				<li>Support for gnome-shell 3.6</li>
+			</ul>
 			<h3 id="version-0.5.3">version 0.5.3</h3>
 			<ul>
 				<li>Fix error launching dconf-editor from the preferences panel</li>
@@ -248,5 +255,6 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
-	<implementation id="." version="0.5.4-post"/></group>
+		
+	<implementation id="." version="0.5.5-post"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>

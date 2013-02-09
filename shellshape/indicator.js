@@ -92,6 +92,15 @@ ShellshapeIndicator.prototype = {
 				this._current_workspace().set_layout(item_props.layout);
 			}));
 		}
+		items.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+		let item = new PopupMenu.PopupMenuItem("Shellshape Settings");
+		item.connect('activate', Lang.bind(this, function() {
+			// TODO: _extensionsSerivce is private (and misspelt!)
+			// Figure out how to call DBUS methods on your own...
+			imports.ui.main.shellDBusService._extensionsSerivce.LaunchExtensionPrefs("shellshape@gfxmonk.net");
+		}));
+		items.addMenuItem(item);
+
 		this.menu.addMenuItem(items);
 
 		var default_entry = this.menu_entries[0];

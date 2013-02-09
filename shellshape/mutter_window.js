@@ -148,6 +148,7 @@ Window.prototype = {
 Window.GetId = function(w) {
 	if(!w || !w.get_stable_sequence) {
 		Log.getLogger("shellshape.window").error("Non-window object: " + w);
+		return null;
 	}
 	return w.get_stable_sequence();
 }

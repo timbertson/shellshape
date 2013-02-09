@@ -125,6 +125,7 @@ const Ext = function Ext() {
 			return null;
 		}
 		var id = Window.GetId(meta_window);
+		if(id == null) return null;
 		var win = self.windows[id];
 		if(typeof(win) == "undefined" && create_if_necessary) {
 			win = self.windows[id] = new Window(meta_window, self);
