@@ -412,6 +412,15 @@ TileCollection = (function() {
     return this.filter(this.is_tiled, this.items);
   };
 
+  TileCollection.prototype.update_decorations = function() {
+    var _this = this;
+    return this.each(function(tile, idx) {
+      var do_decorate;
+      do_decorate = !_this.is_tiled(tile);
+      return tile.set_decorations(do_decorate);
+    });
+  };
+
   TileCollection.prototype.remove_at = function(idx) {
     return this.items.splice(idx, 1);
   };
@@ -798,7 +807,8 @@ FloatingLayout = (function(_super) {
     this.each(function(tile) {
       _this.log.debug("resetting window state...");
       tile.resume_original_state();
-      return tile.layout();
+      tile.layout();
+      return tile.set_decorations(true);
     });
     return this.layout = function(accommodate_window) {
       return null;
@@ -832,6 +842,7 @@ BaseTiledLayout = (function(_super) {
 
   BaseTiledLayout.prototype.layout = function(accommodate_window) {
     var layout_windows, left, padding, right, _ref;
+    this.tiles.update_decorations();
     this.bounds.update();
     padding = this.padding;
     layout_windows = this.tiles.for_layout();
@@ -1254,6 +1265,10 @@ TiledWindow = (function() {
 
   TiledWindow.prototype.toString = function() {
     return "<\#TiledWindow of " + this.window.toString() + ">";
+  };
+
+  TiledWindow.prototype.set_decorations = function(decorate) {
+    return this.window.set_decorations(decorate);
   };
 
   TiledWindow.prototype.update_offset = function() {

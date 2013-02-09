@@ -93,7 +93,7 @@ ShellshapeIndicator.prototype = {
 			}));
 		}
 		items.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-		let item = new PopupMenu.PopupMenuItem("Shellshape Settings");
+		let item = new PopupMenu.PopupMenuItem("Settings");
 		item.connect('activate', Lang.bind(this, function() {
 			// TODO: _extensionsSerivce is private (and misspelt!)
 			// Figure out how to call DBUS methods on your own...

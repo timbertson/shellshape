@@ -80,8 +80,13 @@ Workspace.prototype = {
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
 		this._turbulence = new TurbulentState();
 		this._turbulence.cleanup = Lang.bind(this, this._check_all_windows);
-		// add all initial windows
+		
+		// Add all initial windows.
+		// We temporarily disable on_windows_changed() so as not to call it once per every window
+		this.on_windows_changed = function() {};
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
+		this.on_windows_changed();
+		delete this.on_windows_changed;
 	},
 
 	_disable: function() {
@@ -250,6 +255,7 @@ Workspace.prototype = {
 			this.log.debug("window has a tile preference, and it is " + String(tile_pref));
 			should_auto_tile = tile_pref;
 		}
+		this.on_windows_changed();
 		if(should_auto_tile && this.has_tile_space_left()) {
 			this.layout.tile(win);
 		}
@@ -286,10 +292,107 @@ Workspace.prototype = {
 		}
 		this.layout.on_window_killed(window);
 		this.extension.remove_window(window);
+		this.on_windows_changed();
 	})),
 
 	meta_windows: function() {
 		var wins = this.meta_workspace.list_windows();
 		return wins;
+	},
+
+	on_windows_changed: function() {
+		if (this.extension.track_xids) {
+			this.annotate_xids();
+		}
+	},
+
+	annotate_xids: function() {
+		var self = this;
+		// We rely on the fact that wnck and mutter, when
+		// executed in the same event loop, should have an
+		// identical ordering of windows (by their stack
+		// order). We can then assign X ids to mutter IDs,
+		// which is used for disabling window decorations.
+
+		let Wnck = imports.gi.Wnck;
+		var workspace_idx = self.meta_workspace.index();
+		var wnck_windows = (function() {
+			var result = [];
+			var screen = Wnck.Screen.get_default();
+			screen.force_update();
+			var wins = screen.get_windows_stacked();
+			for (var i = 0; i<wins.length; i++) {
+				var w = wins[i];
+				if(w.get_window_type() != Wnck.WindowType.NORMAL) continue;
+				var ws = w.get_workspace();
+				if (ws == null) continue;
+				if (ws.get_number() != workspace_idx) continue;
+
+				result.push(w);
+			}
+			return result;
+		})();
+		self.log.debug("Found " + wnck_windows.length + " wnck windows");
+		if (wnck_windows.length == 0)
+		{
+			// not initialized yet.. we will try again later
+			return;
+		}
+
+		var meta_windows = (function() {
+			var wins = self.meta_windows();
+			wins = global.display.sort_windows_by_stacking(wins);
+			var result = [];
+
+			for (var i=0;i<wins.length; i++) {
+				var win = self.extension.get_window(wins[i]);
+				if (win == null) continue;
+				if (win.can_be_tiled()) {
+					result.push(win);
+				}
+			}
+			return result;
+		})();
+
+		if(meta_windows.length < wnck_windows.length) {
+			self.log.debug("trimming excess wnck windows");
+			// we have an excess of wnck windows. Trim them down:
+			var wnck_idx = 0;
+			var keep_dims = meta_windows.slice().map(function(w) {
+				var rect = w._outer_rect();
+				return [rect.x, rect.y, rect.width, rect.height];
+			});
+			wnck_windows = wnck_windows.filter(function(w) {
+				var geom = w.get_geometry();
+				for (var j=0; j<keep_dims.length; j++) {
+					var target = keep_dims[j];
+					if (String(geom) == String(target)) {
+						// mark this dimension as used
+						// The only false positive we can have with this check is when we get:
+						//  - a WnckWindow which should be ignored, that appears below
+						//    a relevant window with identical dimesions. In which case,
+						//    screw it all...
+						keep_dims.splice(j, 1);
+						return true;
+					}
+				}
+				self.log.debug("Dropping seemingly useless wnck_xid: " + w.get_xid());
+			});
+			self.log.debug("after wnck_filter, ended up with " + wnck_windows.length + " wnck windows");
+		}
+
+		if (meta_windows.length != wnck_windows.length) {
+			self.log.error("Size mismatch between meta_windows (" + meta_windows.length + ") and wnck_windows (" + wnck_windows.length + ") lists. Can't figure out X IDs for " + self);
+			//TODO: log get_window_type() as well
+			self.log.error("WNCK windows: " + wnck_windows.map(function(w) {return w.get_xid();}).join("\n - "));
+			self.log.error("mutter windows: " + meta_windows.join("\n - "));
+			return;
+		}
+
+		for (var i=0; i<meta_windows.length; i++) {
+			var id = wnck_windows[i].get_xid();
+			var win = meta_windows[i];
+			win.set_xid(id);
+		}
 	}
 }

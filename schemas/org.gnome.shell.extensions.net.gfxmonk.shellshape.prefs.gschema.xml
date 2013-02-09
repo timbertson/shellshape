@@ -19,5 +19,19 @@
 			</choices>
 			<default>"floating"</default>
 		</key>
+		<key type="s" name="tile-decorations">
+			<choices>
+				<choice value="default"/>
+				<choice value="border"/>
+				<choice value="none"/>
+			</choices>
+			<default>"default"</default>
+			<summary>
+				"default" does nothing, i.e leaves decorations alone.
+				"border" removes title but leaves border / drop shadow.
+				"none" removes both titlebar and border.
+				This setting is experimental, and may break in certain situations.
+			</summary>
+		</key>
 	</schema>
 </schemalist>

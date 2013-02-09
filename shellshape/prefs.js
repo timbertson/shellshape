@@ -12,6 +12,32 @@ function init() {
 	ShellshapeSettings = Extension.imports.shellshape_settings;
 }
 
+function make_combo(obj) {
+	var pref = obj.pref;
+	var options = obj.options;
+
+	let combo = new Gtk.ComboBoxText();
+
+	for (var i=0; i<options.length; i++) {
+		let [id, text] = options[i];
+		combo.append(id, text);
+	}
+
+	let active = pref.get();
+	for (var i=0; i<options.length; i++) {
+		if (options[i][0] == active) {
+			combo.set_active(i);
+			break;
+		}
+	}
+
+	combo.connect('changed', function(combo) {
+		var idx = combo.get_active();
+		pref.set(options[idx][0]);
+	});
+	return combo;
+};
+
 function buildPrefsWidget() {
 	let config = new ShellshapeSettings.Prefs();
 	let frame = new Gtk.Box({
@@ -75,41 +101,17 @@ function buildPrefsWidget() {
 			label: "Default layout:\n<small>NOTE: only affects newly-created workspaces,\nrestart the shell to apply globally.</small>",
 				use_markup: true
 		});
-		let radio_box = new Gtk.Box({
-			orientation: Gtk.Orientation.VERTICAL,
-			spacing: 2
+
+		let combo_box = make_combo({
+			pref: config.DEFAULT_LAYOUT,
+			options: [
+				['floating', 'Floating'],
+				['vertical', 'Vertical'],
+				['horizontal', 'Horizontal']]
 		});
-		let r_floating = new Gtk.RadioButton(  { label: ("Floating") });
-		let r_vertical = new Gtk.RadioButton(  { label: ("Vertical"),   group: r_floating });
-		let r_horizontal = new Gtk.RadioButton({ label: ("Horizontal"), group: r_floating });
-
-		let layout_radios =
-		{
-			'floating': r_floating,
-			'horizontal': r_horizontal,
-			'vertical': r_vertical
-		};
-
-		var pref = config.DEFAULT_LAYOUT;
-		let active = layout_radios[pref.get()];
-		if(active) {
-			active.set_active(true);
-		}
-		let init_radio = function(k) {
-			let radio = layout_radios[k];
-			radio.connect('toggled', function() {
-				if(radio.get_active()) {
-					pref.set(k);
-				}
-			});
-			radio_box.add(radio);
-		};
-		init_radio('floating');
-		init_radio('vertical');
-		init_radio('horizontal');
 
 		hbox.add(label);
-		hbox.add(radio_box);
+		hbox.pack_end(combo_box, false, false, 0);
 		vbox.add(hbox);
 	})();
 
@@ -159,6 +161,7 @@ function buildPrefsWidget() {
 		xalign: 0
 	});
 	vbox.add(label);
+
 	(function() {
 		let hbox = new Gtk.Box({
 			orientation: Gtk.Orientation.HORIZONTAL,
@@ -190,6 +193,31 @@ function buildPrefsWidget() {
 		vbox.add(hbox);
 		vbox.add(error_msg);
 
+	})();
+
+
+	(function() {
+		let hbox = new Gtk.Box({
+			orientation: Gtk.Orientation.HORIZONTAL,
+			spacing: 20
+		});
+
+		let label = new Gtk.Label({
+			label: "Tiled window decorations:\n<small><b>EXPERIMENTAL</b>, may not work properly.\nYou have been warned!</small>",
+				use_markup: true
+		});
+
+		var combo_box = make_combo({
+			pref: config.TILED_WINDOW_DECORATIONS,
+			options: [
+				['default', "Gnome default (do nothing)"],
+				['border', "Remove titlebar, keep shadow"],
+				['none', "Remove all decorations"]]
+		});
+
+		hbox.add(label);
+		hbox.pack_end(combo_box, false, false, 0);
+		vbox.add(hbox);
 	})();
 
 	frame.add(vbox);

@@ -273,6 +273,11 @@ class TileCollection
 		# @log.debug("tiles = #{@items}, filtered = #{@filter(@is_tiled, @items)}")
 		@filter(@is_tiled, @items)
 
+	update_decorations: ->
+		@each (tile, idx) =>
+			do_decorate = not @is_tiled(tile)
+			tile.set_decorations(do_decorate)
+
 	remove_at: (idx) ->
 		@items.splice(idx, 1)
 	
@@ -495,6 +500,7 @@ class FloatingLayout extends BaseLayout
 			@log.debug("resetting window state...")
 			tile.resume_original_state()
 			tile.layout()
+			tile.set_decorations(true)
 		# now don't bother laying out anything again!
 		@layout = (accommodate_window) -> null
 
@@ -512,6 +518,7 @@ class BaseTiledLayout extends BaseLayout
 		@tiles.each_tiled(func)
 
 	layout: (accommodate_window) ->
+		@tiles.update_decorations()
 		@bounds.update()
 		padding = @padding
 		layout_windows = @tiles.for_layout()
@@ -788,6 +795,9 @@ class TiledWindow
 	
 	toString: ->
 		"<\#TiledWindow of " + @window.toString() + ">"
+	
+	set_decorations: (decorate) ->
+		@window.set_decorations(decorate)
 	
 	update_offset: ->
 		rect = @rect

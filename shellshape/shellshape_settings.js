@@ -107,6 +107,12 @@ function Prefs() {
 		get: function() { return settings.get_string(this.key); },
 		set: function(v) { settings.set_string(this.key, v); },
 	};
+	this.TILED_WINDOW_DECORATIONS = {
+		key: 'tile-decorations',
+		gsettings: settings,
+		get: function() { return settings.get_string(this.key); },
+		set: function(v) { settings.set_string(this.key, v); },
+	};
 	this.PADDING = {
 		key: 'tile-padding',
 		gsettings: settings,

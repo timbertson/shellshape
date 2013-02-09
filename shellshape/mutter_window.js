@@ -2,6 +2,7 @@ const Main = imports.ui.main;
 const Lang = imports.lang;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
+const GLib = imports.gi.GLib;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Log = Extension.imports.log4javascript.log4javascript;
 
@@ -28,9 +29,86 @@ Window.prototype = {
 		this.ext = ext;
 		this.log = Log.getLogger("shellshape.window");
 		this.tile_preference = null;
+		this.xid = null;
+	
+		// we could assume has_decorations = false on creation, but that
+		// would (very occasionally) be wrong.
+		this.has_decorations = undefined;
 	}
 	,bring_to_front: function() {
 		// NOOP (TODO: remove)
+	}
+	,set_xid: function(id) {
+		if (this.xid == null) {
+			this.log.debug("assigning X ID " + id + " for " + this);
+		} else if (this.xid != id) {
+			this.log.warn("X ID changed from " + this.xid + " -> " + id + " for " + this);
+		}
+		this.xid = id;
+	}
+	,set_decorations: function(decorate) {
+		if (this.ext.decoration_override !== null) {
+			decorate = this.ext.decoration_override;
+		}
+		if (this.xid == null) {
+			this.log.error("missing X id for " + this + ",  can't call set_decorations( " + decorate + ")");
+			return;
+		}
+		if (this.has_decorations === decorate) return;
+
+		this.log.debug("Changing decorations of " + this + " to " + decorate);
+		var self = this;
+
+		/*
+		xprop code below adapted from mathematicalcoffee's maximus-gnome-shell-extension
+		For a description of _MOTIF_WM_HINTS,
+		see MwmUtil.h from OpenMotif source (cvs.openmotif.org),
+		*/
+		var flag;
+		if(decorate) {
+			flag = '0x1';
+		} else {
+			flag = this.ext.decoration_keep_border ? '0x2' : '0x0';
+		}
+		var cmd = [
+			'xprop', '-id', String(this.xid),
+			'-f', '_MOTIF_WM_HINTS', '32c',
+			'-set', '_MOTIF_WM_HINTS',
+			'0x2, 0x0, ' + flag + ', 0x0, 0x0'];
+		this.log.debug("Running: " + cmd.join(' '));
+		try {
+			// spawn xprop command
+			var [success, pid] = GLib.spawn_async(
+				null, cmd, null,
+				GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+				null
+			);
+			if (!success) throw new Error("spawn() returned " + success);
+
+			// Monkey-patch move_resize to delay action until child_watch returns.
+			// This works because only one place in the code is crazy enough to monkey-patch
+			// move_resize. Figure out something smarter if we ever do that elsewhere...
+			var args = null;
+			GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, function() {
+				self.log.debug("xprop (pid " + pid + ") complete");
+				delete self.move_resize; // go back to using move_resize from self.prototype
+				if(args != null) {
+					self.move_resize.apply(self, args);
+				}
+			}, null);
+
+			self.move_resize = function move_resize_delay(/* args ... */){
+				// if we do move_resize before the `xprop` call is complete,
+				// the decoration change will cause us to end up with the
+				// wrong dimensions. So we delay until `xprop` is done.
+				self.log.debug("delaying move_resize() call");
+				args = arguments;
+			};
+		} catch(e) {
+			this.log.error("Failed to run xprop");
+			throw e;
+		}
+		this.has_decorations = decorate;
 	}
 	,is_active: function() {
 		return this.ext.current_window() === this;

@@ -478,6 +478,28 @@ const Ext = function Ext() {
 			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 			update();
 		})();
+
+		// decorations
+		(function() {
+			let pref = self.prefs.TILED_WINDOW_DECORATIONS;
+			let update = function() {
+				let val = pref.get();
+				self.log.debug("setting tiled-window-decorations to " + val);
+				if (val == 'default') {
+					self.decoration_override = true;
+					self.track_xids = false;
+				} else {
+					self.decoration_override = null;
+					self.track_xids = true;
+					self.decoration_keep_border = (val == 'border');
+				}
+				// X IDs are set in on_windows_changed(), and are required for decoration modifications
+				self.current_workspace().on_windows_changed();
+				self.current_workspace().relayout();
+			};
+			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+			update();
+		})();
 		
 	};
 
