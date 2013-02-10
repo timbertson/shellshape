@@ -19,18 +19,22 @@
 			</choices>
 			<default>"floating"</default>
 		</key>
-		<key type="s" name="tile-decorations">
+		<key type="b" name="undecorate-tiles">
+			<default>false</default>
+			<summary>
+				This setting is experimental, and may break in certain situations.
+			</summary>
+		</key>
+		<key type="s" name="undecorate-mode">
 			<choices>
-				<choice value="default"/>
 				<choice value="border"/>
 				<choice value="none"/>
 			</choices>
-			<default>"default"</default>
+			<default>"border"</default>
 			<summary>
-				"default" does nothing, i.e leaves decorations alone.
 				"border" removes title but leaves border / drop shadow.
 				"none" removes both titlebar and border.
-				This setting is experimental, and may break in certain situations.
+				This setting only takes effect when "undecorate-tiles" is true.
 			</summary>
 		</key>
 	</schema>

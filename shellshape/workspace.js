@@ -85,8 +85,8 @@ Workspace.prototype = {
 		// We temporarily disable on_windows_changed() so as not to call it once per every window
 		this.on_windows_changed = function() {};
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
-		this.on_windows_changed();
 		delete this.on_windows_changed;
+		this.on_windows_changed();
 	},
 
 	_disable: function() {
@@ -292,7 +292,15 @@ Workspace.prototype = {
 		}
 		this.layout.on_window_killed(window);
 		this.extension.remove_window(window);
-		this.on_windows_changed();
+
+		// once this window has *actually* been removed, call
+		// on_windows_changed
+		Meta.later_add(
+			Meta.LaterType.IDLE, //when
+			Lang.bind(this, this.on_windows_changed), //func
+			null, //data
+			null //notify
+		)
 	})),
 
 	meta_windows: function() {
@@ -313,6 +321,26 @@ Workspace.prototype = {
 		// identical ordering of windows (by their stack
 		// order). We can then assign X ids to mutter IDs,
 		// which is used for disabling window decorations.
+		
+		var xids_missing = false;
+		var meta_windows = (function() {
+			var wins = self.meta_windows();
+			wins = global.display.sort_windows_by_stacking(wins);
+			var result = [];
+
+			for (var i=0;i<wins.length; i++) {
+				var win = self.extension.get_window(wins[i]);
+				if (win == null) continue;
+				if (win.can_be_tiled()) {
+					if(win.xid == null) xids_missing = true;
+					result.push(win);
+				}
+			}
+			return result;
+		})();
+		if (!xids_missing) {
+			self.log.debug("no XIDs are missing - skipping annotate_xids()");
+		}
 
 		let Wnck = imports.gi.Wnck;
 		var workspace_idx = self.meta_workspace.index();
@@ -339,20 +367,6 @@ Workspace.prototype = {
 			return;
 		}
 
-		var meta_windows = (function() {
-			var wins = self.meta_windows();
-			wins = global.display.sort_windows_by_stacking(wins);
-			var result = [];
-
-			for (var i=0;i<wins.length; i++) {
-				var win = self.extension.get_window(wins[i]);
-				if (win == null) continue;
-				if (win.can_be_tiled()) {
-					result.push(win);
-				}
-			}
-			return result;
-		})();
 
 		if(meta_windows.length < wnck_windows.length) {
 			self.log.debug("trimming excess wnck windows");

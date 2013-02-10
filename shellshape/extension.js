@@ -143,6 +143,13 @@ const Ext = function Ext() {
 	self.remove_window = function(win) {
 		let meta_window = win.meta_window;
 		let id = Window.GetId(meta_window);
+		for (let i=0; i<self.dead_windows.length; i++) {
+			if(self.dead_windows[i] == id) {
+				self.log.warn("window " + id + " marked as \"dead\" more than once.");
+				return;
+			}
+		}
+
 		self.dead_windows.push(win);
 		if(self.dead_windows.length > 20) {
 			self.gc_windows();
@@ -479,23 +486,30 @@ const Ext = function Ext() {
 			update();
 		})();
 
-		// decorations
+		// undecorate tiles
 		(function() {
-			let pref = self.prefs.TILED_WINDOW_DECORATIONS;
-			let update = function() {
+			let pref = self.prefs.UNDECORATE_TILES;
+			let update = function(change) {
 				let val = pref.get();
-				self.log.debug("setting tiled-window-decorations to " + val);
-				if (val == 'default') {
-					self.decoration_override = true;
-					self.track_xids = false;
-				} else {
-					self.decoration_override = null;
-					self.track_xids = true;
-					self.decoration_keep_border = (val == 'border');
-				}
+				self.log.debug("setting undecorate-tiles to " + val);
+				self.undecorate_tiles = val;
+				self.track_xids = val;
+				
 				// X IDs are set in on_windows_changed(), and are required for decoration modifications
-				self.current_workspace().on_windows_changed();
-				self.current_workspace().relayout();
+				if (change !== undefined) self._each_workspace(function(w) { w.on_windows_changed(); w.relayout() });
+			};
+			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+			update();
+		})();
+
+		// undecorate mode
+		(function() {
+			let pref = self.prefs.UNDECORATE_MODE;
+			let update = function(change) {
+				let val = pref.get();
+				self.undecorate_flag = (val == 'border') ? '0x2' : '0x0';
+				self.log.debug("setting undecorate-mode to " + val + ", flag = " + self.undecorate_flag);
+				if (change !== undefined) self._each_window(function(w) { w.redo_decorations(); });
 			};
 			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 			update();
@@ -596,6 +610,22 @@ const Ext = function Ext() {
 		for (var k in self.workspaces) {
 			if (self.workspaces.hasOwnProperty(k)) {
 				self.remove_workspace(k);
+			}
+		}
+	};
+
+	self._each_workspace = function(f) {
+		for (var k in self.workspaces) {
+			if (self.workspaces.hasOwnProperty(k)) {
+				f(self.workspaces[k]);
+			}
+		}
+	};
+
+	self._each_window = function(f) {
+		for (var k in self.windows) {
+			if (self.windows.hasOwnProperty(k)) {
+				f(self.windows[k]);
 			}
 		}
 	};

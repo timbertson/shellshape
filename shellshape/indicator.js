@@ -58,6 +58,7 @@ PopupImageMenuItem.prototype = {
 ShellshapeIndicator.prototype = {
 	__proto__: PanelMenu.SystemStatusButton.prototype,
 	_init: function(ext) {
+		var self = this;
 		this.log = Log.getLogger("shellshape.indicator");
 		this.ext = ext;
 		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
@@ -93,13 +94,16 @@ ShellshapeIndicator.prototype = {
 			}));
 		}
 		items.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-		let item = new PopupMenu.PopupMenuItem("Settings");
-		item.connect('activate', Lang.bind(this, function() {
-			// TODO: _extensionsSerivce is private (and misspelt!)
-			// Figure out how to call DBUS methods on your own...
-			imports.ui.main.shellDBusService._extensionsSerivce.LaunchExtensionPrefs("shellshape@gfxmonk.net");
-		}));
-		items.addMenuItem(item);
+
+		(function() {
+			let item = new PopupMenu.PopupMenuItem("Settings");
+			item.connect('activate', Lang.bind(this, function() {
+				// TODO: _extensionsSerivce is private (and misspelt!)
+				// Figure out how to call DBUS methods on your own...
+				imports.ui.main.shellDBusService._extensionsSerivce.LaunchExtensionPrefs("shellshape@gfxmonk.net");
+			}));
+			items.addMenuItem(item);
+		})();
 
 		this.menu.addMenuItem(items);
 

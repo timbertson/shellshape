@@ -107,8 +107,14 @@ function Prefs() {
 		get: function() { return settings.get_string(this.key); },
 		set: function(v) { settings.set_string(this.key, v); },
 	};
-	this.TILED_WINDOW_DECORATIONS = {
-		key: 'tile-decorations',
+	this.UNDECORATE_TILES = {
+		key: 'undecorate-tiles',
+		gsettings: settings,
+		get: function() { return settings.get_boolean(this.key); },
+		set: function(v) { settings.set_boolean(this.key, v); },
+	};
+	this.UNDECORATE_MODE = {
+		key: 'undecorate-mode',
 		gsettings: settings,
 		get: function() { return settings.get_string(this.key); },
 		set: function(v) { settings.set_string(this.key, v); },

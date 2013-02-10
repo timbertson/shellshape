@@ -34,6 +34,7 @@ Window.prototype = {
 		// we could assume has_decorations = false on creation, but that
 		// would (very occasionally) be wrong.
 		this.has_decorations = undefined;
+		this._wants_decorations = undefined;
 	}
 	,bring_to_front: function() {
 		// NOOP (TODO: remove)
@@ -46,15 +47,23 @@ Window.prototype = {
 		}
 		this.xid = id;
 	}
-	,set_decorations: function(decorate) {
-		if (this.ext.decoration_override !== null) {
-			decorate = this.ext.decoration_override;
+	,redo_decorations: function() {
+		this.log.debug("redoing decorations as: " + this._wants_decorations);
+		this.set_decorations(this._wants_decorations, true);
+	}
+	,set_decorations: function(decorate, force) {
+		if (decorate === undefined) return;
+		this._wants_decorations = decorate;
+		if (!this.ext.undecorate_tiles) {
+			// don't actually undecorate anything
+			// (and reinstate decorations if they are missing)
+			decorate = true;
 		}
 		if (this.xid == null) {
 			this.log.error("missing X id for " + this + ",  can't call set_decorations( " + decorate + ")");
 			return;
 		}
-		if (this.has_decorations === decorate) return;
+		if ((!force) && this.has_decorations === decorate) return;
 
 		this.log.debug("Changing decorations of " + this + " to " + decorate);
 		var self = this;
@@ -68,7 +77,7 @@ Window.prototype = {
 		if(decorate) {
 			flag = '0x1';
 		} else {
-			flag = this.ext.decoration_keep_border ? '0x2' : '0x0';
+			flag = this.ext.undecorate_flag;
 		}
 		var cmd = [
 			'xprop', '-id', String(this.xid),
@@ -84,6 +93,7 @@ Window.prototype = {
 				null
 			);
 			if (!success) throw new Error("spawn() returned " + success);
+			this.has_decorations = decorate;
 
 			// Monkey-patch move_resize to delay action until child_watch returns.
 			// This works because only one place in the code is crazy enough to monkey-patch
@@ -108,7 +118,6 @@ Window.prototype = {
 			this.log.error("Failed to run xprop");
 			throw e;
 		}
-		this.has_decorations = decorate;
 	}
 	,is_active: function() {
 		return this.ext.current_window() === this;

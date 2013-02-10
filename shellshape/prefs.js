@@ -151,6 +151,61 @@ function buildPrefsWidget() {
 	})();
 
 
+	vbox.add(new Gtk.HSeparator());
+	let label = new Gtk.Label({
+		label: ("<b>Window decorations:</b>\n" +
+			"<small>" +
+			"This feature is <i>EXPERIMENTAL</i> and may not always work.\n" +
+			"It might even crash Gnome Shell. Mostly it works, but you have been warned!" +
+			"</small>"),
+		use_markup: true,
+		xalign: 0
+	});
+	vbox.add(label);
+	(function() {
+		let hbox = new Gtk.Box({
+			orientation: Gtk.Orientation.HORIZONTAL,
+			spacing: 20
+		});
+
+		let label = new Gtk.Label({
+			label: "Remove window decorations to save space:"
+		});
+
+		var pref = config.UNDECORATE_TILES;
+		var enable = new Gtk.Switch();
+		enable.connect('notify::active', function() {
+			pref.set(enable.get_active());
+		});
+		enable.set_active(pref.get());
+
+		hbox.add(label);
+		hbox.pack_end(enable, false, false, 0);
+		vbox.add(hbox);
+	})();
+
+	(function() {
+		let hbox = new Gtk.Box({
+			orientation: Gtk.Orientation.HORIZONTAL,
+			spacing: 20
+		});
+		let label = new Gtk.Label({
+			label: "Decoration mode: (requires restart)"
+		});
+
+		var combo_box = make_combo({
+			pref: config.UNDECORATE_MODE,
+			options: [
+				['border', "Remove titlebar, keep shadow"],
+				['none', "Remove all decorations"]]
+		});
+
+		hbox.add(label);
+		hbox.pack_end(combo_box, false, false, 0);
+		vbox.add(hbox);
+	})();
+
+
 
 	let label = new Gtk.HSeparator();
 	vbox.add(label);
@@ -169,7 +224,7 @@ function buildPrefsWidget() {
 		});
 
 		let label = new Gtk.Label({
-			label: "Edit keyboard settings" +
+			label: "Edit keyboard bindings" +
 				"\n<small>(make sure you have dconf-editor installed)\n" +
 				"Navigate to org/gnome/shell/extensions/net/gfxmonk/shellshape</small>",
 			use_markup: true});
@@ -196,29 +251,6 @@ function buildPrefsWidget() {
 	})();
 
 
-	(function() {
-		let hbox = new Gtk.Box({
-			orientation: Gtk.Orientation.HORIZONTAL,
-			spacing: 20
-		});
-
-		let label = new Gtk.Label({
-			label: "Tiled window decorations:\n<small><b>EXPERIMENTAL</b>, may not work properly.\nYou have been warned!</small>",
-				use_markup: true
-		});
-
-		var combo_box = make_combo({
-			pref: config.TILED_WINDOW_DECORATIONS,
-			options: [
-				['default', "Gnome default (do nothing)"],
-				['border', "Remove titlebar, keep shadow"],
-				['none', "Remove all decorations"]]
-		});
-
-		hbox.add(label);
-		hbox.pack_end(combo_box, false, false, 0);
-		vbox.add(hbox);
-	})();
 
 	frame.add(vbox);
 
