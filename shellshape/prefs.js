@@ -1,10 +1,15 @@
 const Gtk = imports.gi.Gtk;
 const GLib = imports.gi.GLib;
 
-let Extension = imports.misc.extensionUtils.getCurrentExtension();
-let ShellshapeSettings = Extension.imports.shellshape_settings;
+var ShellshapeSettings; // set in init()
 
 function init() {
+	// extension.js (via log4javascript) inits /tmp/shellshape.log, which
+	// is a pain since prefs.js runs in a new process, and
+	// overwrites the useful log file with a basically empty one.
+	GLib.unsetenv("SHELLSHAPE_DEBUG");
+	let Extension = imports.misc.extensionUtils.getCurrentExtension();
+	ShellshapeSettings = Extension.imports.shellshape_settings;
 }
 
 function buildPrefsWidget() {
