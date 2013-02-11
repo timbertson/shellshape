@@ -281,8 +281,9 @@ Workspace.prototype = {
 	},
 
 	on_window_remove: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
-		let window = this.extension.get_window(meta_window);
+		let window = this.extension.lookup_window(meta_window);
 		this.log.debug("on_window_remove for " + window);
+		if(window == null) return;
 		if(window.workspace_signals !== undefined) {
 			this.log.debug("Disconnecting " + window.workspace_signals.length + " workspace-managed signals from window");
 			window.workspace_signals.map(Lang.bind(this, function(signal) {
@@ -329,7 +330,7 @@ Workspace.prototype = {
 			var result = [];
 
 			for (var i=0;i<wins.length; i++) {
-				var win = self.extension.get_window(wins[i]);
+				var win = self.extension.lookup_window(wins[i]);
 				if (win == null) continue;
 				if (win.can_be_tiled()) {
 					if(win.xid == null) xids_missing = true;
