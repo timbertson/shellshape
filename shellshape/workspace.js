@@ -341,6 +341,7 @@ Workspace.prototype = {
 		})();
 		if (!xids_missing) {
 			self.log.debug("no XIDs are missing - skipping annotate_xids()");
+			return;
 		}
 
 		let Wnck = imports.gi.Wnck;
@@ -352,7 +353,11 @@ Workspace.prototype = {
 			var wins = screen.get_windows_stacked();
 			for (var i = 0; i<wins.length; i++) {
 				var w = wins[i];
-				if(w.get_window_type() != Wnck.WindowType.NORMAL) continue;
+				var wtype = w.get_window_type();
+				if (
+					wtype != Wnck.WindowType.NORMAL &&
+					wtype != Wnck.WindowType.DIALOG &&
+					wtype != Wnck.WindowType.UTILITY) continue;
 				var ws = w.get_workspace();
 				if (ws == null) continue;
 				if (ws.get_number() != workspace_idx) continue;

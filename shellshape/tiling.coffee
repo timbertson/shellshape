@@ -496,13 +496,15 @@ class FloatingLayout extends BaseLayout
 	toString: -> "[object FloatingLayout]"
 
 	layout: (accommodate_window) ->
+		reset_decorations = (tile) -> tile.set_decorations(true)
 		@each (tile) =>
 			@log.debug("resetting window state...")
 			tile.resume_original_state()
 			tile.layout()
-			tile.set_decorations(true)
-		# now don't bother laying out anything again!
-		@layout = (accommodate_window) -> null
+			reset_decorations(tile)
+		# now don't bother with layouts again (but still ensure decorations are correct)
+		@layout = (accommodate_window) => @each(reset_decorations)
+
 
 class BaseTiledLayout extends BaseLayout
 	constructor: (state) ->

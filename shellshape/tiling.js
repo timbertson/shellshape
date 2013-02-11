@@ -803,15 +803,19 @@ FloatingLayout = (function(_super) {
   };
 
   FloatingLayout.prototype.layout = function(accommodate_window) {
-    var _this = this;
+    var reset_decorations,
+      _this = this;
+    reset_decorations = function(tile) {
+      return tile.set_decorations(true);
+    };
     this.each(function(tile) {
       _this.log.debug("resetting window state...");
       tile.resume_original_state();
       tile.layout();
-      return tile.set_decorations(true);
+      return reset_decorations(tile);
     });
     return this.layout = function(accommodate_window) {
-      return null;
+      return _this.each(reset_decorations);
     };
   };
 
