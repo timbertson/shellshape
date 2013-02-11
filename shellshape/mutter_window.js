@@ -73,12 +73,7 @@ Window.prototype = {
 		For a description of _MOTIF_WM_HINTS,
 		see MwmUtil.h from OpenMotif source (cvs.openmotif.org),
 		*/
-		var flag;
-		if(decorate) {
-			flag = '0x1';
-		} else {
-			flag = this.ext.undecorate_flag;
-		}
+		var flag = decorate ? '0x1' : '0x2';
 		var cmd = [
 			'xprop', '-id', String(this.xid),
 			'-f', '_MOTIF_WM_HINTS', '32c',

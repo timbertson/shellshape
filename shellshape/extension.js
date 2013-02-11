@@ -504,20 +504,6 @@ const Ext = function Ext() {
 			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 			update();
 		})();
-
-		// undecorate mode
-		(function() {
-			let pref = self.prefs.UNDECORATE_MODE;
-			let update = function() {
-				let val = pref.get();
-				self.undecorate_flag = (val == 'border') ? '0x2' : '0x0';
-				self.log.debug("setting undecorate-mode to " + val + ", flag = " + self.undecorate_flag);
-				self._each_window(function(w) { w.redo_decorations(); });
-			};
-			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
-			update();
-		})();
-		
 	};
 
 	/* -------------------------------------------------------------

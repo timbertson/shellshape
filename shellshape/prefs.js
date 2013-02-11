@@ -184,29 +184,6 @@ function buildPrefsWidget() {
 		vbox.add(hbox);
 	})();
 
-	(function() {
-		let hbox = new Gtk.Box({
-			orientation: Gtk.Orientation.HORIZONTAL,
-			spacing: 20
-		});
-		let label = new Gtk.Label({
-			label: "Decoration mode: (requires restart)"
-		});
-
-		var combo_box = make_combo({
-			pref: config.UNDECORATE_MODE,
-			options: [
-				['border', "Remove titlebar, keep shadow"],
-				['none', "Remove all decorations"]]
-		});
-
-		hbox.add(label);
-		hbox.pack_end(combo_box, false, false, 0);
-		vbox.add(hbox);
-	})();
-
-
-
 	let label = new Gtk.HSeparator();
 	vbox.add(label);
 

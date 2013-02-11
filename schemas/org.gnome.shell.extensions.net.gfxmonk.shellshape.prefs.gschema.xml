@@ -22,19 +22,7 @@
 		<key type="b" name="undecorate-tiles">
 			<default>false</default>
 			<summary>
-				This setting is experimental, and may break in certain situations.
-			</summary>
-		</key>
-		<key type="s" name="undecorate-mode">
-			<choices>
-				<choice value="border"/>
-				<choice value="none"/>
-			</choices>
-			<default>"border"</default>
-			<summary>
-				"border" removes title but leaves border / drop shadow.
-				"none" removes both titlebar and border.
-				This setting only takes effect when "undecorate-tiles" is true.
+				This setting is experimental, and may break / not work in certain situations.
 			</summary>
 		</key>
 	</schema>
