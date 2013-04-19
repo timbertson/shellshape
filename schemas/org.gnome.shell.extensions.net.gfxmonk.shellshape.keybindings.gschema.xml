@@ -1,43 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
 	<schema id="org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings" path="/org/gnome/shell/extensions/net/gfxmonk/shellshape/keybindings/">
-		<key type="as" name="tile-current-window">             <default>["&lt;Mod4&gt;p"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="untile-current-window">           <default>["&lt;Mod4&gt;y"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="adjust-splits-to-fit">            <default>["&lt;Mod4&gt;&lt;Shift&gt;p"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="increase-main-window-count">      <default>["&lt;Mod4&gt;comma"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-main-window-count">      <default>["&lt;Mod4&gt;period"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="tile-current-window">             <default>["&lt;Mod4&gt;p"]</default><summary>Tile (place) the current window</summary><description>Tile (place) the current window.</description></key>
+		<key type="as" name="untile-current-window">           <default>["&lt;Mod4&gt;y"]</default><summary>Untile (yank) the current window</summary><description>Untile (yank) the current window.</description></key>
+		<key type="as" name="adjust-splits-to-fit">            <default>["&lt;Mod4&gt;&lt;Shift&gt;p"]</default><summary>Adjust tile boundaries to fit window</summary><description>Adjust tile boundaries to fit window.</description></key>
+		<key type="as" name="increase-main-window-count">      <default>["&lt;Mod4&gt;comma"]</default><summary>More windows in the master area</summary><description>More windows in the master area.</description></key>
+		<key type="as" name="decrease-main-window-count">      <default>["&lt;Mod4&gt;period"]</default><summary>Less windows in the master area</summary><description>Less windows in the master area.</description></key>
 
-		<key type="as" name="next-window">                     <default>["&lt;Mod4&gt;j", "&lt;Mod4&gt;Tab"]</default><summary>Change focus to the next window</summary><description></description></key>
-		<key type="as" name="prev-window">                     <default>["&lt;Mod4&gt;k", "&lt;Mod4&gt;&lt;Shift&gt;Tab"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="next-window">                     <default>["&lt;Mod4&gt;j", "&lt;Mod4&gt;Tab"]</default><summary>Change focus to the next window</summary><description>Change focus to the next window.</description></key>
+		<key type="as" name="prev-window">                     <default>["&lt;Mod4&gt;k", "&lt;Mod4&gt;&lt;Shift&gt;Tab"]</default><summary>Change focus to the previous window</summary><description>Change focus to the previous window.</description></key>
 
-		<key type="as" name="rotate-current-window">           <default>["&lt;Mod4&gt;&lt;Shift&gt;j"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="rotate-current-window-reverse">   <default>["&lt;Mod4&gt;&lt;Shift&gt;k"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="focus-main-window">               <default>["&lt;Mod4&gt;space"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="swap-current-window-with-main">   <default>["&lt;Mod4&gt;&lt;Shift&gt;space"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="rotate-current-window">           <default>["&lt;Mod4&gt;&lt;Shift&gt;j"]</default><summary>Swap with next window</summary><description>Swap with next window.</description></key>
+		<key type="as" name="rotate-current-window-reverse">   <default>["&lt;Mod4&gt;&lt;Shift&gt;k"]</default><summary>Swap with prev window</summary><description>Swap with prev window.</description></key>
+		<key type="as" name="focus-main-window">               <default>["&lt;Mod4&gt;space"]</default><summary>Select main window</summary><description>Select main window.</description></key>
+		<key type="as" name="swap-current-window-with-main">   <default>["&lt;Mod4&gt;&lt;Shift&gt;space"]</default><summary>Swap with main window</summary><description>Swap with main window.</description></key>
 
-		<key type="as" name="set-layout-tiled-vertical">       <default>["&lt;Mod4&gt;d"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="set-layout-floating">             <default>["&lt;Mod4&gt;f"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;g"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="set-layout-tiled-vertical">       <default>["&lt;Mod4&gt;d"]</default><summary>Switch workspace to vertical tiled mode</summary><description>Switch workspace to vertical tiled mode.</description></key>
+		<key type="as" name="set-layout-floating">             <default>["&lt;Mod4&gt;f"]</default><summary>Switch workspace to floating mode</summary><description>Switch workspace to floating mode.</description></key>
+		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;g"]</default><summary>Switch workspace to horizontal tiled mode</summary><description>Switch workspace to horizontal tiled mode.</description></key>
 
-		<key type="as" name="increase-main-split">             <default>["&lt;Mod4&gt;l"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-main-split">             <default>["&lt;Mod4&gt;h"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="increase-minor-split">            <default>["&lt;Mod4&gt;i"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-minor-split">            <default>["&lt;Mod4&gt;u"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="increase-main-split">             <default>["&lt;Mod4&gt;l"]</default><summary>Grow master area</summary><description>Grow master area.</description></key>
+		<key type="as" name="decrease-main-split">             <default>["&lt;Mod4&gt;h"]</default><summary>Shrink master area</summary><description>Shrink master area.</description></key>
+		<key type="as" name="increase-minor-split">            <default>["&lt;Mod4&gt;i"]</default><summary>grow a slave area</summary><description>grow a slave area.</description></key>
+		<key type="as" name="decrease-minor-split">            <default>["&lt;Mod4&gt;u"]</default><summary>Shrink a slave area</summary><description>Shrink a slave area.</description></key>
 
-		<key type="as" name="increase-main-size">              <default>["&lt;Mod4&gt;&lt;Shift&gt;l"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-main-size">              <default>["&lt;Mod4&gt;&lt;Shift&gt;h"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="increase-minor-size">             <default>["&lt;Mod4&gt;&lt;Shift&gt;i"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-minor-size">             <default>["&lt;Mod4&gt;&lt;Shift&gt;u"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="increase-size">                   <default>["&lt;Mod4&gt;equal"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="decrease-size">                   <default>["&lt;Mod4&gt;minus"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="increase-main-size">              <default>["&lt;Mod4&gt;&lt;Shift&gt;l"]</default><summary>Increase window's width</summary><description>Increase window's width.</description></key>
+		<key type="as" name="decrease-main-size">              <default>["&lt;Mod4&gt;&lt;Shift&gt;h"]</default><summary>Decrease window's width</summary><description>Decrease window's width.</description></key>
+		<key type="as" name="increase-minor-size">             <default>["&lt;Mod4&gt;&lt;Shift&gt;i"]</default><summary>Increase window's height</summary><description>Increase window's height.</description></key>
+		<key type="as" name="decrease-minor-size">             <default>["&lt;Mod4&gt;&lt;Shift&gt;u"]</default><summary>Decrease window's height</summary><description>Decrease window's height.</description></key>
+		<key type="as" name="increase-size">                   <default>["&lt;Mod4&gt;equal"]</default><summary>Increase window's size</summary><description>Increase window's size.</description></key>
+		<key type="as" name="decrease-size">                   <default>["&lt;Mod4&gt;minus"]</default><summary>Decrease window's size</summary><description>Decrease window's size.</description></key>
 
-		<key type="as" name="switch-workspace-up">             <default>["&lt;Mod4&gt;&lt;Alt&gt;k"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="switch-workspace-down">           <default>["&lt;Mod4&gt;&lt;Alt&gt;j"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="move-window-workspace-up">        <default>["&lt;Mod4&gt;&lt;Alt&gt;&lt;Shift&gt;k"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="move-window-workspace-down">      <default>["&lt;Mod4&gt;&lt;Alt&gt;&lt;Shift&gt;j"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="switch-workspace-up">             <default>["&lt;Mod4&gt;&lt;Alt&gt;k"]</default><summary>Go to workspace above</summary><description>Go to workspace above.</description></key>
+		<key type="as" name="switch-workspace-down">           <default>["&lt;Mod4&gt;&lt;Alt&gt;j"]</default><summary>Go to workspace below</summary><description>Go to workspace below.</description></key>
+		<key type="as" name="move-window-workspace-up">        <default>["&lt;Mod4&gt;&lt;Alt&gt;&lt;Shift&gt;k"]</default><summary>Move window to workspace above</summary><description>Move window to workspace above.</description></key>
+		<key type="as" name="move-window-workspace-down">      <default>["&lt;Mod4&gt;&lt;Alt&gt;&lt;Shift&gt;j"]</default><summary>Move window to workspace below</summary><description>Move window to workspace below.</description></key>
 
-		<key type="as" name="toggle-maximize">                 <default>["&lt;Mod4&gt;z"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="minimize-window">                 <default>["&lt;Mod4&gt;m"]</default><summary>(TODO...)</summary><description></description></key>
-		<key type="as" name="unminimize-last-window">          <default>["&lt;Mod4&gt;&lt;Shift&gt;m"]</default><summary>(TODO...)</summary><description></description></key>
+		<key type="as" name="toggle-maximize">                 <default>["&lt;Mod4&gt;z"]</default><summary>Toggle window maximized state</summary><description>Toggle window maximized state.</description></key>
+		<key type="as" name="minimize-window">                 <default>["&lt;Mod4&gt;m"]</default><summary>Minimize window</summary><description>Minimize window.</description></key>
+		<key type="as" name="unminimize-last-window">          <default>["&lt;Mod4&gt;&lt;Shift&gt;m"]</default><summary>Un-minimize last window</summary><description>Un-minimize last window.</description></key>
 	</schema>
 </schemalist>
