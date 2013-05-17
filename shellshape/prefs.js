@@ -1,6 +1,10 @@
 const Gtk = imports.gi.Gtk;
 const GLib = imports.gi.GLib;
 
+const Config = imports.misc.config;
+const Gettext = imports.gettext.domain('shellshape');
+const _ = Gettext.gettext;
+
 var ShellshapeSettings; // set in init()
 
 function init() {
@@ -10,6 +14,23 @@ function init() {
 	GLib.unsetenv("SHELLSHAPE_DEBUG");
 	let Extension = imports.misc.extensionUtils.getCurrentExtension();
 	ShellshapeSettings = Extension.imports.shellshape_settings;
+	initTranslations("shellshape");
+}
+
+function initTranslations(domain) {
+    let extension = imports.misc.extensionUtils.getCurrentExtension();
+
+    domain = domain || extension.metadata['gettext-domain'];
+
+    // check if this extension was built with "make zip-file", and thus
+    // has the locale files in a subfolder
+    // otherwise assume that extension has been installed in the
+    // same prefix as gnome-shell
+    let localeDir = extension.dir.get_child('locale');
+    if (localeDir.query_exists(null))
+        imports.gettext.bindtextdomain(domain, localeDir.get_path());
+    else
+        imports.gettext.bindtextdomain(domain, Config.LOCALEDIR);
 }
 
 function buildPrefsWidget() {
@@ -25,7 +46,7 @@ function buildPrefsWidget() {
 	});
 
 	let label = new Gtk.Label({
-		label: "<b>Tiling:</b>",
+		label: _("<b>Tiling:</b>"),
 		use_markup: true,
 		xalign: 0
 	});
@@ -37,7 +58,7 @@ function buildPrefsWidget() {
 			spacing: 20
 		});
 
-		let label = new Gtk.Label({ label: "Maximum number of windows to auto-tile:" });
+		let label = new Gtk.Label({ label: _("Maximum number of windows to auto-tile:") });
 		let adjustment = new Gtk.Adjustment({
 			lower: 0,
 			upper: 20,
@@ -72,16 +93,16 @@ function buildPrefsWidget() {
 		});
 
 		let label = new Gtk.Label({
-			label: "Default layout:\n<small>NOTE: only affects newly-created workspaces,\nrestart the shell to apply globally.</small>",
+			label: _("Default layout:")+"\n<small>"+_("NOTE: only affects newly-created workspaces,\nrestart the shell to apply globally.")+"</small>",
 				use_markup: true
 		});
 		let radio_box = new Gtk.Box({
 			orientation: Gtk.Orientation.VERTICAL,
 			spacing: 2
 		});
-		let r_floating = new Gtk.RadioButton(  { label: ("Floating") });
-		let r_vertical = new Gtk.RadioButton(  { label: ("Vertical"),   group: r_floating });
-		let r_horizontal = new Gtk.RadioButton({ label: ("Horizontal"), group: r_floating });
+		let r_floating = new Gtk.RadioButton(  { label: _("Floating") });
+		let r_vertical = new Gtk.RadioButton(  { label: _("Vertical"),   group: r_floating });
+		let r_horizontal = new Gtk.RadioButton({ label: _("Horizontal"), group: r_floating });
 
 		let layout_radios =
 		{
@@ -121,7 +142,7 @@ function buildPrefsWidget() {
 			spacing: 20
 		});
 
-		let label = new Gtk.Label({ label: "Padding between tiles (px)" });
+		let label = new Gtk.Label({ label: _("Padding between tiles (px)") });
 		let adjustment = new Gtk.Adjustment({
 			lower: 0,
 			upper: 20,
@@ -154,7 +175,7 @@ function buildPrefsWidget() {
 	vbox.add(label);
 
 	let label = new Gtk.Label({
-		label: "<b>Advanced settings:</b>",
+		label: _("<b>Advanced settings:</b>"),
 		use_markup: true,
 		xalign: 0
 	});
@@ -166,9 +187,9 @@ function buildPrefsWidget() {
 		});
 
 		let label = new Gtk.Label({
-			label: "Edit keyboard settings" +
-				"\n<small>(make sure you have dconf-editor installed)\n" +
-				"Navigate to org/gnome/shell/extensions/net/gfxmonk/shellshape</small>",
+			label: _("Edit keyboard settings") +
+				"\n<small>"+_("(make sure you have dconf-editor installed)")+"\n" +
+				_("Navigate to")+" org/gnome/shell/extensions/net/gfxmonk/shellshape</small>",
 			use_markup: true});
 		let button = new Gtk.Button({
 			label: 'dconf-editor'
@@ -180,7 +201,7 @@ function buildPrefsWidget() {
 				let envp = ShellshapeSettings.envp_with_shellshape_xdg_data_dir();
 				GLib.spawn_async(null, ['dconf-editor'], envp, GLib.SpawnFlags.SEARCH_PATH, null);
 			} catch(e) {
-				error_msg.set_label("ERROR: Could not launch dconf-editor. Is it installed?");
+				error_msg.set_label(_("ERROR: Could not launch dconf-editor. Is it installed?"));
 				throw e;
 			}
 		});
