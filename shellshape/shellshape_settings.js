@@ -114,3 +114,21 @@ function Prefs() {
 		set: function(v) { settings.set_int(this.key, v); },
 	};
 };
+
+function initTranslations(domain) {
+	let extension = imports.misc.extensionUtils.getCurrentExtension();
+	domain = domain || Extension.metadata['gettext-domain'];
+
+	// check if this extension was built with "make zip-file", and thus
+	// has the locale files in a subfolder
+	// otherwise assume that extension has been installed in the
+	// same prefix as gnome-shell
+	let localeDir = Extension.dir.get_child('locale');
+	if (localeDir.query_exists(null)) {
+		imports.gettext.bindtextdomain(domain, localeDir.get_path());
+	} else {
+		imports.gettext.bindtextdomain(domain, Config.LOCALEDIR);
+	}
+	log.info("translations initted for " + domain);
+}
+

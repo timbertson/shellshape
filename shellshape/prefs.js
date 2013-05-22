@@ -14,23 +14,7 @@ function init() {
 	GLib.unsetenv("SHELLSHAPE_DEBUG");
 	let Extension = imports.misc.extensionUtils.getCurrentExtension();
 	ShellshapeSettings = Extension.imports.shellshape_settings;
-	initTranslations("shellshape");
-}
-
-function initTranslations(domain) {
-    let extension = imports.misc.extensionUtils.getCurrentExtension();
-
-    domain = domain || extension.metadata['gettext-domain'];
-
-    // check if this extension was built with "make zip-file", and thus
-    // has the locale files in a subfolder
-    // otherwise assume that extension has been installed in the
-    // same prefix as gnome-shell
-    let localeDir = extension.dir.get_child('locale');
-    if (localeDir.query_exists(null))
-        imports.gettext.bindtextdomain(domain, localeDir.get_path());
-    else
-        imports.gettext.bindtextdomain(domain, Config.LOCALEDIR);
+	ShellshapeSettings.initTranslations();
 }
 
 function buildPrefsWidget() {

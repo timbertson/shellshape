@@ -36,6 +36,7 @@ const Ext = function Ext() {
 	self.enabled = false;
 	self.log = Log.getLogger("shellshape.extension");
 	self.prefs = new ShellshapeSettings.Prefs();
+	ShellshapeSettings.initTranslations();
 
 	/* -------------------------------------------------------------
 	 *                 Utility functions
