@@ -323,15 +323,28 @@ const Ext = function Ext() {
 		var gsettings = new ShellshapeSettings.Keybindings().settings;
 
 		// Utility method that binds a callback to a named keypress-action.
-		function handle(name, func) {
+		function handle(name, func, flags) {
 			self._bound_keybindings[name] = true;
-			var added = self.current_display().add_keybinding(name,
-				gsettings,
-				Meta.KeyBindingFlags.NONE,
-				function() {
-					self._do(func, "handler for binding " + name);
-				}
-			);
+			var added;
+			var handler = function() { self._do(func, "handler for binding " + name); };
+			var flags = Meta.KeyBindingFlags.NONE;
+ 
+			if (Main.wm.addKeybinding) {
+				// 3.8+
+				added = Main.wm.addKeybinding(
+					name,
+					gsettings,
+					flags,
+					Shell.KeyBindingMode.NORMAL | Shell.KeyBindingMode.MESSAGE_TRAY,
+					handler);
+			} else {
+				// pre-3.8
+				added = self.current_display().add_keybinding(
+					name,
+					gsettings,
+					flags,
+					handler);
+			}
 			if(!added) {
 				throw("failed to add keybinding handler for: " + name);
 			}
@@ -551,7 +564,11 @@ const Ext = function Ext() {
 			var desc = "unbinding key " + k;
 			self._do(function() {
 				self.log.debug(desc);
-				display.remove_keybinding(k);
+				if (Main.wm.removeKeybinding) {
+					Main.wm.removeKeybinding(k);
+				} else {
+					display.remove_keybinding(k);
+				}
 			}, desc);
 		}
 	};
