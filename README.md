@@ -68,6 +68,10 @@ GPLv3
 
 ## Changelog
 
+### version 0.6
+ - Support for gnome-shell 3.8
+ - Support for localisation (plus german translation) thanks to @jonnius
+
 ### version 0.5.4
  - Support for gnome-shell 3.6
 
