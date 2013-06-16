@@ -323,7 +323,7 @@ const Ext = function Ext() {
 		var gsettings = new ShellshapeSettings.Keybindings().settings;
 
 		// Utility method that binds a callback to a named keypress-action.
-		function handle(name, func, flags) {
+		function handle(name, func) {
 			self._bound_keybindings[name] = true;
 			var added;
 			var handler = function() { self._do(func, "handler for binding " + name); };
