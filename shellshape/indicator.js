@@ -2,7 +2,8 @@ const Lang = imports.lang;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
 const St = imports.gi.St;
-const Clutter = imports.gi.Clutter
+const Clutter = imports.gi.Clutter;
+const Shell = imports.gi.Shell;
 const Main = imports.ui.main;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Log = Extension.imports.log4javascript.log4javascript;
@@ -95,9 +96,12 @@ ShellshapeIndicator.prototype = {
 		items.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 		let item = new PopupMenu.PopupMenuItem("Shellshape Settings");
 		item.connect('activate', Lang.bind(this, function() {
-			// TODO: _extensionsSerivce is private (and misspelt!)
-			// Figure out how to call DBUS methods on your own...
-			imports.ui.main.shellDBusService._extensionsSerivce.LaunchExtensionPrefs("shellshape@gfxmonk.net");
+			let uuid = "shellshape@gfxmonk.net";
+			let appSys = Shell.AppSystem.get_default();
+			let app = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
+			app.launch(
+				global.display.get_current_time_roundtrip(),
+				['extension:///' + uuid], -1, null);
 		}));
 		items.addMenuItem(item);
 
