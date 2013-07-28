@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <?xml-stylesheet type='text/xsl' href='interface.xsl'?>
-<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface" uri="http://gfxmonk.net/dist/0install/shellshape.xml">
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
 	<name>shellshape</name>
 	<summary>tiling window manager extension for gnome-shell</summary>
 	<publish xmlns="http://gfxmonk.net/dist/0install" mode="featured"/>
+	<feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/>
 	<description>
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
