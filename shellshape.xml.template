@@ -75,6 +75,13 @@ GPLv3
 
 ## Changelog
 
+### version 0.6.1
+ - Fixed "Shellshape settings" indicator menu in gnome-shell 3.8
+
+### version 0.6
+ - Support for gnome-shell 3.8
+ - Support for localisation (plus german translation) thanks to @jonnius
+
 ### version 0.5.4
  - Support for gnome-shell 3.6
 
@@ -110,23 +117,19 @@ GPLv3
 			<p>This software is in-development. I use it daily, but it might break stuff. Use at your own risk. Multiple monitor support is not really present, and doing fancy things like "always on top" windows may or may not break it.</p>
 			<p>I must thank <a href="http://bluetile.org/">bluetile</a>, for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).</p>
 			<h2 id="running-it-on-gnome-shell-3.4">Running it on gnome-shell 3.4+</h2>
-			<p>Briefly, <code>0launch http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0launch</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/"><code class="url">http://gfxmonk.net/shellshape/</code></a></p>
+			<p>Briefly, <code>0launch http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0launch</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/">http://gfxmonk.net/shellshape/</a></p>
 			<p>To run your own checkout, you should be able to clone this repo and run <code>0launch shellshape-local.xml</code>. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:</p>
-			<pre>
-				<code>ln -s "$PWD/shellshape" "~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"</code>
-			</pre>
+			<pre><code>ln -s "$PWD/shellshape" "~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"</code></pre>
 			<h2 id="running-it-on-gnome-shell-3.2">Running it on gnome-shell 3.2*</h2>
 			<p>Is hard, error-prone, and no longer supported. Sorry!</p>
 			<h2 id="running-on-arch-linux">running on arch linux</h2>
 			<p>You may want to try <a href="https://aur.archlinux.org/packages.php?ID=50257">this user-maintained package</a> if the normal method doesn't work for you, but I have no idea what it will do to your system.</p>
 			<h2 id="it-doesnt-work">"It doesn't work"</h2>
 			<p>If you don't know why, here's some things to check:</p>
-			<pre>
-				<code>- Check the extension is enabled (you can see this in the "Shell Extensions" section of `gnome-tweak-tool`)
+			<pre><code>- Check the extension is enabled (you can see this in the "Shell Extensions" section of `gnome-tweak-tool`)
 - See if there are any errors in looking glass that mention shellshape (press alt-F2, type "`lg`" and then click the "Errors" tab)
 - Check the console output (if running in a console) for any messages that mention shellshape
-- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all</code>
-			</pre>
+- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all</code></pre>
 			<p>To report a bug or crash, please see the <a href="https://github.com/gfxmonk/shellshape/issues">github issues page</a>.</p>
 			<h2 id="replace-gnome-shell">Replace gnome-shell</h2>
 			<p>If you symlink the provided <code>gnome-shell.desktop</code> file to <code>~/.local/share/applications/</code>, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.</p>
@@ -152,6 +155,15 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.6.1">version 0.6.1</h3>
+			<ul>
+				<li>Fixed "Shellshape settings" indicator menu in gnome-shell 3.8</li>
+			</ul>
+			<h3 id="version-0.6">version 0.6</h3>
+			<ul>
+				<li>Support for gnome-shell 3.8</li>
+				<li>Support for localisation (plus german translation) thanks to @jonnius</li>
+			</ul>
 			<h3 id="version-0.5.4">version 0.5.4</h3>
 			<ul>
 				<li>Support for gnome-shell 3.6</li>
@@ -185,93 +197,6 @@ GPLv3
 			</ul>
 		</div>
 	</rich-description>
-	<group main="run-gnome-shell">
-		<command name="run" path="run-gnome-shell">
-			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.0.2"/>
-				<version before="3.0.3"/>
-			</requires>
-		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
-			<version not-before="0.1"/>
-			<version before="0.2"/>
-		</requires>
-		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		<implementation id="sha1new=5f32e22e9a90324b873a685235d7b8b96479481f" released="2011-06-24" stability="stable" version="0.1">
-			<manifest-digest sha256="d1d5239ba82d6fe334194402087b647acddbb9d151ab3fd872b42396065899dc"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.1.tgz" size="19310"/>
-		</implementation>
-	</group>
-	<group>
-		<command name="run">
-			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
-				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
-				<arg>--plugin-command</arg>
-				<arg>run</arg>
-			</runner>
-			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.0.2"/>
-				<version before="3.3"/>
-			</requires>
-		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
-			<version not-before="0.2"/>
-			<version before="0.4"/>
-		</requires>
-		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="sha1new=f9a5118aae1af805a88430956880046733ab2723" released="2011-07-17" version="0.2">
-			<manifest-digest sha256="1ddd07270621510b0146d878663cb658a82c551d85ae8b7c8340792f1a77adbf"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.2.tgz" size="52106"/>
-		</implementation>
-		<implementation id="sha1new=5911b1408350157fe60331346296c32e3f579857" released="2011-11-06" version="0.3">
-			<manifest-digest sha256="74ad0de60e71ac63577e37e9c7c277fc15eb6622b2a1905f473c86e2d007d2ba"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.tgz" size="52270"/>
-		</implementation>
-		<implementation id="sha1new=d833b17b5152812a8f7e58ab2848154402b17c46" released="2011-12-21" version="0.3.1">
-			<manifest-digest sha256="2437376cd245ee4f09b0738e1cc7392a04750a9cec4b0875bf71606703d9ee01"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.1.tgz" size="66650"/>
-		</implementation>
-		<implementation id="sha1new=89200d31d32d2a7702fa2e6bd753dbd30c2fb69a" released="2012-04-08" version="0.3.2">
-			<manifest-digest sha256="ed3a600dd0002c492be3250235429822b2668244af49567eeb3b6524ff78c63c"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.3.2.tgz" size="55007"/>
-		</implementation>
-	</group>
-	<group>
-		<command name="run">
-			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
-				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
-				<arg>--plugin-command</arg>
-				<arg>run</arg>
-			</runner>
-		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-			<version not-before="3.4"/>
-			<version before="3.5"/>
-		</requires>
-		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="sha1new=4813ae4eb4c0233e56647055e912056d0de17827" released="2012-04-28" stability="buggy" version="0.4">
-			<manifest-digest sha256="d2f082bcf626f6b31902fc1438069f922adebff8b2316463ff7d647a2976d8b4"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.4.tgz" size="59715"/>
-		</implementation>
-		<implementation id="sha1new=0be855c7fe860ea85f8ee08336d880bcbd56579a" released="2012-05-05" stability="buggy" version="0.5">
-			<manifest-digest sha256="7ba16d6ba7ec202f3e72cc4156d6316fd482bd55c2f327071f37baab81f90eed"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.tgz" size="57843"/>
-		</implementation>
-		<implementation id="sha1new=d91671fb10f1fb0a490aca73cf1f21b056bf26cb" released="2012-05-11" stability="buggy" version="0.5.1">
-			<manifest-digest sha256="825ef9ed735ee9bed5cad5b7c48bd3c2cc37f2485532a1cc37ffa72c997b37eb"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.1.tgz" size="58948"/>
-		</implementation>
-		<implementation id="sha1new=38902c46c6d2375b316853ac3eb03d30487ef12f" released="2012-09-05" stability="buggy" version="0.5.2">
-			<manifest-digest sha256="5595f4fbbb6565162fd6f726a7117ec7d97bbc8c63d1322bceadbae71bc658ae"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.2.tgz" size="65186"/>
-		</implementation>
-		<implementation id="sha1new=ef2fa1c3da53b99b9034effaa32b4bcee01b915d" released="2013-01-03" version="0.5.3">
-			<manifest-digest sha256="b57f4d672650efb82cf224fd2930cf0c32fa7244892d450f0e92442f17c56c0f"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.3.tgz" size="67631"/>
-		</implementation>
-	</group>
 	<group>
 		<command name="run">
 			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
@@ -285,17 +210,9 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		<implementation id="sha1new=0520555396b3ab333783d430815076301089eecc" released="2012-11-04" stability="buggy" version="0.5.4">
-			<manifest-digest sha256="e5113ad739db44ffcf7ff314bee6b4f1f108f2994e15b7587ccd8a9cda328f5e"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.4.tgz" size="65390"/>
-		</implementation>
-		<implementation id="sha1new=60c141b1241ada713d028f0546efe7cf6948973e" released="2013-01-03" version="0.5.5">
-			<manifest-digest sha256="2900edd389814cfde737497c449bf7dbbbff5e882cb28c3a2cc7837512060b4b"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.5.5.tgz" size="69643"/>
-		</implementation>
-		<implementation id="sha1new=c65b8c46fb74e7ab7e9cab413b0502884db75643" released="2013-06-16" version="0.6">
-			<manifest-digest sha256new="GQKVPWJATC5422TCDK4V7PX37QN245JUWKEDIEQZNKC6C3HNJNGA"/>
-			<archive href="http://gfxmonk.net/dist/0install/shellshape/shellshape-0.6.tgz" size="72729"/>
+		<implementation released="{date}" version="{version}">
+			<manifest-digest/>
+			<archive href="{archive}"/>
 		</implementation>
 	</group>
 </interface>

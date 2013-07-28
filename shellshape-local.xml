@@ -1,5 +1,4 @@
-<?xml version="1.0" ?>
-<?xml-stylesheet type='text/xsl' href='interface.xsl'?><interface uri="http://gfxmonk.net/dist/0install/shellshape.xml" xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+<?xml version="1.0" ?><?xml-stylesheet type='text/xsl' href='interface.xsl'?><interface uri="http://gfxmonk.net/dist/0install/shellshape.xml" xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
 	<name>shellshape</name>
 	<summary>tiling window manager extension for gnome-shell</summary>
 	<publish mode="featured" xmlns="http://gfxmonk.net/dist/0install"/>
@@ -74,6 +73,13 @@ GPLv3
 
 ## Changelog
 
+### version 0.6.1
+ - Fixed &quot;Shellshape settings&quot; indicator menu in gnome-shell 3.8
+
+### version 0.6
+ - Support for gnome-shell 3.8
+ - Support for localisation (plus german translation) thanks to @jonnius
+
 ### version 0.5.4
  - Support for gnome-shell 3.6
 
@@ -109,23 +115,19 @@ GPLv3
 			<p>This software is in-development. I use it daily, but it might break stuff. Use at your own risk. Multiple monitor support is not really present, and doing fancy things like &quot;always on top&quot; windows may or may not break it.</p>
 			<p>I must thank <a href="http://bluetile.org/">bluetile</a>, for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).</p>
 			<h2 id="running-it-on-gnome-shell-3.4">Running it on gnome-shell 3.4+</h2>
-			<p>Briefly, <code>0launch http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0launch</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/"><code class="url">http://gfxmonk.net/shellshape/</code></a></p>
+			<p>Briefly, <code>0launch http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0launch</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/">http://gfxmonk.net/shellshape/</a></p>
 			<p>To run your own checkout, you should be able to clone this repo and run <code>0launch shellshape-local.xml</code>. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:</p>
-			<pre>
-				<code>ln -s &quot;$PWD/shellshape&quot; &quot;~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net&quot;</code>
-			</pre>
+			<pre><code>ln -s &quot;$PWD/shellshape&quot; &quot;~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net&quot;</code></pre>
 			<h2 id="running-it-on-gnome-shell-3.2">Running it on gnome-shell 3.2*</h2>
 			<p>Is hard, error-prone, and no longer supported. Sorry!</p>
 			<h2 id="running-on-arch-linux">running on arch linux</h2>
 			<p>You may want to try <a href="https://aur.archlinux.org/packages.php?ID=50257">this user-maintained package</a> if the normal method doesn't work for you, but I have no idea what it will do to your system.</p>
 			<h2 id="it-doesnt-work">&quot;It doesn't work&quot;</h2>
 			<p>If you don't know why, here's some things to check:</p>
-			<pre>
-				<code>- Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of `gnome-tweak-tool`)
+			<pre><code>- Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of `gnome-tweak-tool`)
 - See if there are any errors in looking glass that mention shellshape (press alt-F2, type &quot;`lg`&quot; and then click the &quot;Errors&quot; tab)
 - Check the console output (if running in a console) for any messages that mention shellshape
-- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all</code>
-			</pre>
+- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all</code></pre>
 			<p>To report a bug or crash, please see the <a href="https://github.com/gfxmonk/shellshape/issues">github issues page</a>.</p>
 			<h2 id="replace-gnome-shell">Replace gnome-shell</h2>
 			<p>If you symlink the provided <code>gnome-shell.desktop</code> file to <code>~/.local/share/applications/</code>, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.</p>
@@ -151,6 +153,15 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.6.1">version 0.6.1</h3>
+			<ul>
+				<li>Fixed &quot;Shellshape settings&quot; indicator menu in gnome-shell 3.8</li>
+			</ul>
+			<h3 id="version-0.6">version 0.6</h3>
+			<ul>
+				<li>Support for gnome-shell 3.8</li>
+				<li>Support for localisation (plus german translation) thanks to @jonnius</li>
+			</ul>
 			<h3 id="version-0.5.4">version 0.5.4</h3>
 			<ul>
 				<li>Support for gnome-shell 3.6</li>
@@ -184,63 +195,6 @@ GPLv3
 			</ul>
 		</div>
 	</rich-description>
-	<group main="run-gnome-shell">
-		<command name="run" path="run-gnome-shell">
-			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.0.2"/>
-				<version before="3.0.3"/>
-			</requires>
-		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
-			<version not-before="0.1"/>
-			<version before="0.2"/>
-		</requires>
-		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		
-	</group>
-	<group>
-		<command name="run">
-			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
-				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
-				<arg>--plugin-command</arg>
-				<arg>run</arg>
-			</runner>
-			<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-				<version not-before="3.0.2"/>
-				<version before="3.3"/>
-			</requires>
-		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/shellshape-mutter.xml">
-			<version not-before="0.2"/>
-			<version before="0.4"/>
-		</requires>
-		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		
-		
-		
-		
-	</group>
-	<group>
-		<command name="run">
-			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
-				<arg>http://gfxmonk.net/dist/0install/gnome-shell.xml</arg>
-				<arg>--plugin-command</arg>
-				<arg>run</arg>
-			</runner>
-		</command>
-		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-			<version not-before="3.4"/>
-			<version before="3.5"/>
-		</requires>
-		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
-		
-		
-		
-		
-		
-	</group>
 	<group>
 		<command name="run">
 			<runner interface="http://gfxmonk.net/dist/0install/zeroinstall-plugin-manager.xml">
@@ -255,7 +209,5 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
-		
-		
-	<implementation id="." version="0.6-post"/></group>
+	<implementation id="." version="0.6.1-post"/></group>
 <feed-for interface="http://gfxmonk.net/dist/0install/shellshape.xml"/></interface>

@@ -68,6 +68,9 @@ GPLv3
 
 ## Changelog
 
+### version 0.6.1
+ - Fixed "Shellshape settings" indicator menu in gnome-shell 3.8
+
 ### version 0.6
  - Support for gnome-shell 3.8
  - Support for localisation (plus german translation) thanks to @jonnius
