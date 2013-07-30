@@ -3,3 +3,4 @@ tests/*.js
 0inst
 _coffee_specs
 video
+*.stamp
