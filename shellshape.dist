@@ -1,4 +1,6 @@
 --dereference
+--exclude=*.do
+--exclude=*.stamp
 gnome-shell.desktop
 xdg
 lib
