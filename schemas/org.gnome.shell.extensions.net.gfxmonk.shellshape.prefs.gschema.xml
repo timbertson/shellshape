@@ -16,6 +16,7 @@
 				<choice value="floating"/>
 				<choice value="horizontal"/>
 				<choice value="vertical"/>
+				<choice value="fullscreen"/>
 			</choices>
 			<default>"floating"</default>
 		</key>

@@ -87,12 +87,14 @@ function buildPrefsWidget() {
 		let r_floating = new Gtk.RadioButton(  { label: _("Floating") });
 		let r_vertical = new Gtk.RadioButton(  { label: _("Vertical"),   group: r_floating });
 		let r_horizontal = new Gtk.RadioButton({ label: _("Horizontal"), group: r_floating });
+		let r_fullscreen = new Gtk.RadioButton({ label: _("Full Screen"), group: r_floating });
 
 		let layout_radios =
 		{
 			'floating': r_floating,
 			'horizontal': r_horizontal,
-			'vertical': r_vertical
+			'vertical': r_vertical,
+			'fullscreen': r_fullscreen
 		};
 
 		var pref = config.DEFAULT_LAYOUT;
@@ -112,6 +114,7 @@ function buildPrefsWidget() {
 		init_radio('floating');
 		init_radio('vertical');
 		init_radio('horizontal');
+		init_radio('fullscreen');
 
 		hbox.add(label);
 		hbox.add(radio_box);

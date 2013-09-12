@@ -79,6 +79,11 @@ ShellshapeIndicator.prototype = {
 				label: 'Horizontal',
 				layout: Tiling.HorizontalTiledLayout,
 				icon: 'window-tile-horizontal-symbolic'
+			},
+			{
+				label: 'Full Screen',
+				layout: Tiling.FullScreenLayout,
+				icon: 'window-tile-full-symbolic'
 			}
 		];
 

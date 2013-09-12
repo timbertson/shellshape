@@ -18,6 +18,7 @@
 		<key type="as" name="set-layout-tiled-vertical">       <default>["&lt;Mod4&gt;d"]</default><summary>Switch workspace to vertical tiled mode</summary><description>Switch workspace to vertical tiled mode.</description></key>
 		<key type="as" name="set-layout-floating">             <default>["&lt;Mod4&gt;f"]</default><summary>Switch workspace to floating mode</summary><description>Switch workspace to floating mode.</description></key>
 		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;g"]</default><summary>Switch workspace to horizontal tiled mode</summary><description>Switch workspace to horizontal tiled mode.</description></key>
+		<key type="as" name="set-layout-fullscreen">     <default>["&lt;Mod4&gt;s"]</default><summary>Switch workspace to full screen mode</summary><description>Switch workspace to full screen mode.</description></key>
 
 		<key type="as" name="increase-main-split">             <default>["&lt;Mod4&gt;l"]</default><summary>Grow master area</summary><description>Grow master area.</description></key>
 		<key type="as" name="decrease-main-split">             <default>["&lt;Mod4&gt;h"]</default><summary>Shrink master area</summary><description>Shrink master area.</description></key>

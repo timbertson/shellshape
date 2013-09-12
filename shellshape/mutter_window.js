@@ -47,6 +47,9 @@ Window.prototype = {
 	,unminimize: function() {
 		this.meta_window.unminimize();
 	}
+	,maximize: function() {
+		this.meta_window.maximize(Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL);
+	}
 	,before_redraw: function(func) {
 		//TODO: idle seems to be the only LaterType that reliably works; but
 		// it causes a visual flash. before_redraw would be better, but that

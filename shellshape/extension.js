@@ -25,7 +25,8 @@ const KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybi
 const LAYOUTS = {
 	'floating': Tiling.FloatingLayout,
 	'vertical': Tiling.VerticalTiledLayout,
-	'horizontal': Tiling.HorizontalTiledLayout
+	'horizontal': Tiling.HorizontalTiledLayout,
+	'fullscreen': Tiling.FullScreenLayout
 };
 
 
@@ -372,6 +373,7 @@ const Ext = function Ext() {
 		handle('set-layout-tiled-vertical',     function() { self.change_layout(Tiling.VerticalTiledLayout); });
 		handle('set-layout-tiled-horizontal',   function() { self.change_layout(Tiling.HorizontalTiledLayout); });
 		handle('set-layout-floating',           function() { self.change_layout(Tiling.FloatingLayout); });
+		handle('set-layout-fullscreen',         function() { self.change_layout(Tiling.FullScreenLayout); });
 
 		// move a window's borders
 		// to resize it

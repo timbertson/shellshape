@@ -498,6 +498,18 @@ class FloatingLayout extends BaseLayout
 		# now don't bother laying out anything again!
 		@layout = (accommodate_window) -> null
 
+class FullScreenLayout extends BaseLayout
+	constructor: (a...) ->
+		@log = Log.getLogger("shellshape.tiling.FullScreenLayout")
+		super(a...)
+
+	toString: -> "[object FullScreenLayout]"
+
+	layout: (accommodate_window) ->
+		@each (tile) =>
+			tile.window.maximize()
+		@layout
+
 class BaseTiledLayout extends BaseLayout
 	constructor: (state) ->
 		super(state)
