@@ -2,7 +2,7 @@
 Type=Application
 Name=GNOME Shell
 Comment=Window management and application launching (shellshape variant)
-Exec=0launch -co -v http://gfxmonk.net/dist/0install/shellshape.xml
+Exec=0install run -co -v http://gfxmonk.net/dist/0install/shellshape.xml
 Categories=GNOME;GTK;Core;
 OnlyShowIn=GNOME;
 NoDisplay=true
