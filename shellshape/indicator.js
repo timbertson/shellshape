@@ -46,8 +46,8 @@ PopupImageMenuItem.prototype = {
 		this._icon = new St.Icon({
 			style_class: 'system-status-icon'
 		});
-		this.addActor(this._icon, { align: St.Align.START });
-		this.addActor(this.label);
+		this.actor.add(this._icon, { align: St.Align.START });
+		this.actor.add(this.label);
 		this.setIcon(iconName);
 	},
 
@@ -57,11 +57,15 @@ PopupImageMenuItem.prototype = {
 };
 
 ShellshapeIndicator.prototype = {
-	__proto__: PanelMenu.SystemStatusButton.prototype,
+	__proto__: PanelMenu.Button.prototype,
 	_init: function(ext) {
 		this.log = Log.getLogger("shellshape.indicator");
 		this.ext = ext;
-		PanelMenu.SystemStatusButton.prototype._init.call(this, 'folder', 'Shellshape Layout');
+		PanelMenu.Button.prototype._init.call(this,
+			0.0, // menuAlignment
+			'Shellshape Layout', // nameText
+			false // dontCreateMenu (so false means doCreateMenu)
+		);
 
 		// create menu
 		this.menu_entries = [
