@@ -210,5 +210,5 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
-	<implementation id="." version="0.6.2-post"/></group>
+	<implementation id="." version="0.7.0-post"/></group>
 </interface>

@@ -68,6 +68,10 @@ GPLv3
 
 ## Changelog
 
+### version 0.7
+ - API changes for gnome-shell 3.10.
+   This makes 0.7 incompatible with anything before 3.10.
+
 ### version 0.6.1
  - Fixed "Shellshape settings" indicator menu in gnome-shell 3.8
 
