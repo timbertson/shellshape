@@ -519,20 +519,21 @@ const Ext = function Ext() {
 		self._bound_keybindings = {};
 	};
 
-	var Bounds = function(monitor) {
-		this.monitor = monitor;
+	var Bounds = function(monitorIdx) {
+		this.monitorIdx = monitorIdx;
 		this.update();
 	};
 	Bounds.prototype.update = function()
 	{
+		let monitor = global.screen.get_monitor_geometry(monitorIdx);
 		let panel_height = Main.panel.actor.height;
 		this.pos = {
-			x: this.monitor.x,
-			y: this.monitor.y + panel_height
+			x: monitor.x,
+			y: monitor.y + panel_height
 		};
 		this.size = {
-			x: this.monitor.width,
-			y: this.monitor.height - panel_height
+			x: monitor.width,
+			y: monitor.height - panel_height
 		};
 	};
 
@@ -544,9 +545,7 @@ const Ext = function Ext() {
 		self.enabled = true;
 		let screen = self.screen = global.screen;
 		//TODO: multiple monitor support
-		var monitorIdx = screen.get_primary_monitor();
-		self.monitor = screen.get_monitor_geometry(monitorIdx);
-		self.bounds = new Bounds(self.monitor);
+		self.bounds = new Bounds(global.screen.get_primary_monitor());
 		self._do(self._init_prefs, "init preference bindings");
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_overview, "init overview ducking");
