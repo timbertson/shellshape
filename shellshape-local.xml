@@ -74,6 +74,10 @@ GPLv3
 
 ## Changelog
 
+### version 0.7
+ - API changes for gnome-shell 3.10.
+   This makes 0.7 incompatible with anything before 3.10.
+
 ### version 0.6.1
  - Fixed &quot;Shellshape settings&quot; indicator menu in gnome-shell 3.8
 
@@ -154,6 +158,10 @@ GPLv3
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
+			<h3 id="version-0.7">version 0.7</h3>
+			<ul>
+				<li>API changes for gnome-shell 3.10. This makes 0.7 incompatible with anything before 3.10.</li>
+			</ul>
 			<h3 id="version-0.6.1">version 0.6.1</h3>
 			<ul>
 				<li>Fixed &quot;Shellshape settings&quot; indicator menu in gnome-shell 3.8</li>
@@ -205,7 +213,7 @@ GPLv3
 			</runner>
 		</command>
 		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-			<version not-before="3.4"/>
+			<version not-before="3.10"/>
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
