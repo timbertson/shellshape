@@ -364,7 +364,9 @@ TileCollection = (function() {
   };
 
   TileCollection.prototype.indexOf = function(item) {
-    return this.items.indexOf(item);
+    return this.items.map(i(function() {
+      return i.id();
+    })).indexOf(item.id());
   };
 
   TileCollection.prototype.push = function(item) {
@@ -644,7 +646,7 @@ BaseLayout = (function() {
     var found, tile,
       _this = this;
     if (this.contains(win)) {
-      return;
+      return false;
     }
     tile = new TiledWindow(win, this.state);
     found = this.tile_for(active_win, function(active_tile, active_idx) {
@@ -652,8 +654,9 @@ BaseLayout = (function() {
       return _this.log.debug("spliced " + tile + " into tiles at idx " + (active_idx + 1));
     });
     if (!found) {
-      return this.tiles.push(tile);
+      this.tiles.push(tile);
     }
+    return true;
   };
 
   BaseLayout.prototype.active_tile = function(fn) {

@@ -82,6 +82,9 @@ const Ext = function Ext() {
 	// These are cached in the self.workspaces object and dynamically
 	// created by this method if not already cached.
 	self.get_workspace = function get_workspace(meta_workspace) {
+		if (!meta_workspace) {
+			return null;
+		}
 		let workspace = self.workspaces[meta_workspace];
 
 		// If this workspace hasn't been encountered before...
@@ -104,6 +107,10 @@ const Ext = function Ext() {
 			workspace = self.workspaces[meta_workspace] = new Workspace(meta_workspace, state, self);
 		}
 		return workspace;
+	};
+
+	self.get_workspace_by_index = function get_workspace_by_index(idx) {
+		return self.get_workspace(global.screen.get_workspace_by_index(idx));
 	};
 
 	// Remove a workspace from the extension's cache.  Disable it first.
@@ -188,6 +195,14 @@ const Ext = function Ext() {
 		return self.get_workspace(self.current_meta_workspace()).layout;
 	};
 
+	// Perform an action on each workspace
+	self.on_all_workspaces = function(cb) {
+		let num_workspaces = global.screen.get_n_workspaces();
+		for (var i=0; i< num_workspaces; i++) {
+			cb(self.get_workspace(global.screen.get_workspace_by_index(i)));
+		}
+	};
+
 	// Returns the gnome-shell meta-display that is currently active.
 	self.current_display = function current_display() {
 		return global.screen.get_display();
@@ -255,23 +270,17 @@ const Ext = function Ext() {
 		return; // NOTE: DISABLED until bugs are ironed out.
 		let src = imports.ui.workspaceThumbnail.ThumbnailsBox.prototype;
 		let orig = src.acceptDrop;
-		let ws_by_index = function(i) { return self.get_workspace(self.screen.get_workspace_by_index(i)); }
 		let replace = function(old_idx, new_idx) {
 			self.log.debug("copying layout from workspace[" + old_idx + "] to workspace[" + new_idx + "]");
 			if(old_idx == new_idx) return;
-			ws_by_index(new_idx)._take_layout_from(ws_by_index(old_idx));
-		};
-		let map_ws = function(f) {
-			for (let i = 0; i < self.screen.get_n_workspaces(); i++) {
-				f(ws_by_index(i));
-			}
+			self.get_workspace_by_index(new_idx)._take_layout_from(self.get_workspace_by_index(old_idx));
 		};
 
 		let replacement = function() {
 			if(!self.enabled) return orig.apply(this, arguments);
 
 			let _dropPlaceholderPos = this._dropPlaceholderPos;
-			map_ws(function(ws) { ws._turbulence.enter(); });
+			self.on_all_workspaces(function(ws) { ws._turbulence.enter(); });
 			self.log.debug("acceptDrop start");
 			let ret = orig.apply(this, arguments);
 			self.log.debug("acceptDrop returned: " + String(ret));
@@ -280,17 +289,17 @@ const Ext = function Ext() {
 				// a new workspace was inserted at _dropPlaceholderPos
 				_dropPlaceholderPos = _dropPlaceholderPos + 0; // just in case it's null or something daft.
 				self.log.debug("looks like a new workspace was inserted at position " + _dropPlaceholderPos);
-				let num_workspaces = self.screen.get_n_workspaces();
+				let num_workspaces = global.screen.get_n_workspaces();
 				for (var i=num_workspaces - 1; i > _dropPlaceholderPos; i--) {
 					replace(i-1, i);
 				}
-				ws_by_index(_dropPlaceholderPos)._take_layout_from(null);
+				self.get_workspace_by_index(_dropPlaceholderPos)._take_layout_from(null);
 
 				// confusing things will happen if we ever get two workspaces referencing the
 				// same layout, so make sure it hasn't happened:
 				var layouts = [];
 				for (var i=0; i<num_workspaces; i++) {
-					let layout = ws_by_index(i).layout;
+					let layout = self.get_workspace_by_index(i).layout;
 					if(layouts.indexOf(layout) != -1) {
 						throw new Error("Aliasing error! two workspaces ended up with the same layout: " + i + " and " + layouts.indexOf(layout));
 					}
@@ -299,7 +308,7 @@ const Ext = function Ext() {
 				self.emit('layout-changed');
 			};
 			self.log.debug("acceptDrop end");
-			map_ws(function(ws) { ws._turbulence.leave(); });
+			self.on_all_workspaces(function(ws) { ws._turbulence.leave(); });
 			return ret;
 		};
 		src.acceptDrop = replacement;
@@ -416,18 +425,16 @@ const Ext = function Ext() {
 
 	// Connect callbacks to all workspaces
 	self._init_workspaces = function() {
-		self.screen = global.screen;
 		function _init_workspace (i) {
 			self.log.debug("new workspace at index " + i);
-			self.get_workspace(self.screen.get_workspace_by_index(i));
+			self.get_workspace(global.screen.get_workspace_by_index(i));
 		};
 
-		// TODO - how will this play into multiple monitors
-		self.connect_and_track(self, self.screen, 'workspace-added', function(screen, i) { _init_workspace(i); });
-		self.connect_and_track(self, self.screen, 'workspace-removed', self.remove_workspace);
+		self.connect_and_track(self, global.screen, 'workspace-added', function(screen, i) { _init_workspace(i); });
+		self.connect_and_track(self, global.screen, 'workspace-removed', self.remove_workspace);
 
 		// add existing workspaces
-		for (let i = 0; i < self.screen.n_workspaces; i++) {
+		for (let i = 0; i < global.screen.n_workspaces; i++) {
 			_init_workspace(i);
 		}
 
@@ -519,21 +526,30 @@ const Ext = function Ext() {
 		self._bound_keybindings = {};
 	};
 
-	var Bounds = function(monitorIdx) {
-		this.monitorIdx = monitorIdx;
+	var Screen = function() {
+		this.bounds = new Bounds();
 		this.update();
 	};
-	Bounds.prototype.update = function()
+
+	Screen.prototype.update = function() {
+		this.count = global.screen.get_n_monitors();
+		this.idx = global.screen.get_primary_monitor();
+		this.bounds.update(global.screen.get_monitor_geometry(this.idx));
+	};
+
+	var Bounds = function() { };
+	Bounds.prototype.update = function(newMonitor)
 	{
-		let monitor = global.screen.get_monitor_geometry(monitorIdx);
+		if (newMonitor) this.monitor = newMonitor;
+		if (!this.monitor) throw new Error("monitor not yet set");
 		let panel_height = Main.panel.actor.height;
 		this.pos = {
-			x: monitor.x,
-			y: monitor.y + panel_height
+			x: this.monitor.x,
+			y: this.monitor.y + panel_height
 		};
 		this.size = {
-			x: monitor.width,
-			y: monitor.height - panel_height
+			x: this.monitor.width,
+			y: this.monitor.height - panel_height
 		};
 	};
 
@@ -543,15 +559,44 @@ const Ext = function Ext() {
 		self.log.info("shellshape enable() called");
 		self._reset_state();
 		self.enabled = true;
-		let screen = self.screen = global.screen;
-		//TODO: multiple monitor support
-		self.bounds = new Bounds(global.screen.get_primary_monitor());
+		self._do(self._init_screen, "init screen");
 		self._do(self._init_prefs, "init preference bindings");
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_overview, "init overview ducking");
-		self._do(self._init_workspaces, "init workspaces");
 		self._do(self._init_indicator, "init indicator");
+		self._do(self._init_workspaces, "init workspaces");
 		self.log.info("shellshape enabled");
+	};
+
+	self._init_screen = function() {
+		self.screen = new Screen();
+		self.bounds = self.screen.bounds;
+
+		var update_monitor = function() {
+			self.info("monitors changed");
+			self.screen.update();
+			self.on_all_workspaces(function(ws) {
+				ws.check_all_windows();
+				ws.relayout();
+			});
+		};
+
+		var update_workspace = function(screen, idx, meta_window) {
+			if (idx == self.screen.idx) {
+				var ws = self.get_workspace(meta_window.get_workspace());
+				if (ws) ws.check_all_windows();
+			}
+		};
+
+		// do a full update when monitors changed (dimensions, num_screens, main_screen_idx, relayout)
+		self.connect_and_track(self, global.screen, 'monitors-changed', update_monitor);
+
+		// window-entered-monitor and window-left-monitor seem really twitchy - they
+		// can fire a handful of times in a single atomic window placement.
+		// So we just use the hint to check window validity, rather than assuming
+		// it's actually a new or removed window.
+		self.connect_and_track(self, global.screen, 'window-entered-monitor', update_workspace);
+		self.connect_and_track(self, global.screen, 'window-left-monitor', update_workspace);
 	};
 
 	// Unbinds keybindings

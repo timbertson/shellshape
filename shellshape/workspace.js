@@ -27,6 +27,30 @@ let _duck_turbulence = function(fn) {
 	};
 };
 
+let _duck_grab_op = function(fn) {
+	return function() {
+		let _this = this;
+		let _args = arguments;
+		return this._duck_grab_op(function() {
+			return fn.apply(_this, _args);
+		});
+	};
+};
+
+let move_ops = [Meta.GrabOp.MOVING];
+let resize_ops = [
+		Meta.GrabOp.RESIZING_SE,
+		Meta.GrabOp.RESIZING_S,
+		Meta.GrabOp.RESIZING_SW,
+		Meta.GrabOp.RESIZING_N,
+		Meta.GrabOp.RESIZING_NE,
+		Meta.GrabOp.RESIZING_NW,
+		Meta.GrabOp.RESIZING_W,
+		Meta.GrabOp.RESIZING_E
+];
+let all_grab_ops = move_ops.concat(resize_ops);
+
+
 // TubulentState allows actions to be delayed - applied when the turbulence is
 // over, but ONLY if this instance was not affected ("shaken").
 function TurbulentState() {
@@ -74,12 +98,16 @@ Workspace.prototype = {
 		this.log = Log.getLogger("shellshape.workspace");
 		this.layout_state = layout_state;
 		this.meta_workspace = meta_workspace;
+		if (!meta_workspace) {
+			throw new Error("meta_workspace is null");
+		}
 		this.extension = ext;
+		this.screen = ext.screen;
 		this.set_layout(this.default_layout);
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
 		this._turbulence = new TurbulentState();
-		this._turbulence.cleanup = Lang.bind(this, this._check_all_windows);
+		this._turbulence.cleanup = Lang.bind(this, this.check_all_windows);
 		// add all initial windows
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 	},
@@ -116,13 +144,12 @@ Workspace.prototype = {
 
 	// after turbulence, windows may have shuffled. we best make sure we own all windows that we should,
 	// and that we don't own any windows that have moved to other workspaces.
-	_check_all_windows: function() {
+	check_all_windows: _duck_grab_op(function() {
 		let expected_meta_windows = this.meta_windows();
 		let layout_meta_windows = [];
 		this.layout.each(function(tile) {
 			layout_meta_windows.push(tile.window.meta_window);
 		});
-		this.log.debug("workspace " + this + " is checking its window members...");
 
 		// check for windows in layout but not workspace window list
 		for (var i=0; i<layout_meta_windows.length; i++) {
@@ -146,9 +173,7 @@ Workspace.prototype = {
 				}));
 			}
 		}
-
-		this.log.debug("check complete");
-	},
+	}),
 
 	set_layout: function(cls) {
 		this.log.debug("Instantiating new layout class");
@@ -160,6 +185,38 @@ Workspace.prototype = {
 
 	toString: function() {
 		return "<# Workspace at idx " + this.meta_workspace.index() + ">";
+	},
+
+	_grab_op_signal_handler : function(change, relevant_grabs, cb) {
+		var handler = Lang.bind(this, function() {
+			let grab_op = global.screen.get_display().get_grab_op();
+			if(relevant_grabs.indexOf(grab_op) != -1) {
+				//wait for the operation to end...
+				change.pending = true;
+				Mainloop.idle_add(handler);
+			} else {
+				let change_happened = change.pending;
+				// it's critical that this flag be reset before cb() happens, otherwise the
+				// callback will (frequently) trigger a stream of feedback events.
+				change.pending = false;
+				if(grab_op == Meta.GrabOp.NONE && change_happened) {
+					this.log.debug("change event completed");
+					cb.call(this);
+				}
+			}
+			return false;
+		});
+		return handler;
+	},
+
+	_duck_grab_op: function(cb) {
+		let change = {};
+		let handler = this._grab_op_signal_handler(change, all_grab_ops, cb);
+		// fire handler immediately
+		handler();
+		// if it isn't waiting, call the function immediately
+		if (!change.pending) cb.call(this);
+		else this.log.debug("ducking grab op...");
 	},
 
 	on_window_create: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
@@ -190,53 +247,44 @@ Workspace.prototype = {
 			return;
 		}
 
-		var win = this.extension.get_window(meta_window);
-		if(!win.can_be_tiled()) {
+		if (!this.is_on_main_screen(meta_window)) {
+			this.log.debug("not on main"); // NOCOMMIT
 			return;
 		}
+
+		var win = this.extension.get_window(meta_window);
+		if(!win.can_be_tiled()) {
+			this.log.debug("can't be tiled"); // NOCOMMIT
+			return;
+		}
+
 		this.log.debug("on_window_create for " + win);
-		this.layout.add(win, this.extension.focus_window);
+		var added = this.layout.add(win, this.extension.focus_window);
+		if (!added) {
+			this.log.debug("window not added to layout (probably a duplicate)");
+			return;
+		}
+
+		if (win.workspace_signals) {
+			this.log.error("win.workspace_signals is already defined");
+			this.disconnect_workspace_signals(win);
+		}
 		win.workspace_signals = [];
 
 		let bind_to_window_change = Lang.bind(this, function(event_name, relevant_grabs, cb) {
 			// we only care about events *after* at least one relevant grab_op,
-			// this flag keeps track of that
-			let change_pending = false;
-			let signal_handler = Lang.bind(this, function() {
-				let grab_op = global.screen.get_display().get_grab_op();
-				if(relevant_grabs.indexOf(grab_op) != -1) {
-					//wait for the operation to end...
-					change_pending = true;
-					Mainloop.idle_add(signal_handler);
-				} else {
-					let change_happened = change_pending;
-					// it's critical that this flag be reset before cb() happens, otherwise the
-					// callback will (frequently) trigger a stream of feedback events.
-					change_pending = false;
-					if(grab_op == Meta.GrabOp.NONE && change_happened) {
-						this.log.debug("change event [" + event_name + "] happened for window " + win);
-						cb(win);
-					}
+			var self = this;
+			let signal_handler = this._grab_op_signal_handler({}, relevant_grabs, function() {
+				if (self.screen.count > 1) {
+					self.check_all_windows();
 				}
-				return false;
+				cb(win);
 			});
 			win.workspace_signals.push([actor, actor.connect(event_name + '-changed', signal_handler)]);
 		});
 
-
-		let move_ops = [Meta.GrabOp.MOVING];
-		let resize_ops = [
-				Meta.GrabOp.RESIZING_SE,
-				Meta.GrabOp.RESIZING_S,
-				Meta.GrabOp.RESIZING_SW,
-				Meta.GrabOp.RESIZING_N,
-				Meta.GrabOp.RESIZING_NE,
-				Meta.GrabOp.RESIZING_NW,
-				Meta.GrabOp.RESIZING_W,
-				Meta.GrabOp.RESIZING_E
-		];
-		bind_to_window_change('position', move_ops,     Lang.bind(this, this.on_window_moved));
-		bind_to_window_change('size',     resize_ops,   Lang.bind(this, this.on_window_resized));
+		bind_to_window_change('position', move_ops,     Lang.bind(this, this.on_window_moved, win));
+		bind_to_window_change('size',     resize_ops,   Lang.bind(this, this.on_window_resized, win));
 		win.workspace_signals.push([meta_window, meta_window.connect('notify::minimized', Lang.bind(this, this.on_window_minimize_changed))]);
 
 		let tile_pref = win.tile_preference;
@@ -274,22 +322,38 @@ Workspace.prototype = {
 		this.layout.layout();
 	},
 
-	on_window_remove: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
-		let window = this.extension.get_window(meta_window);
-		this.log.debug("on_window_remove for " + window);
-		if(window.workspace_signals !== undefined) {
-			this.log.debug("Disconnecting " + window.workspace_signals.length + " workspace-managed signals from window");
-			window.workspace_signals.map(Lang.bind(this, function(signal) {
+	disconnect_workspace_signals: function(win) {
+		if(win.workspace_signals) {
+			this.log.debug("Disconnecting " + win.workspace_signals.length + " workspace-managed signals from window");
+			win.workspace_signals.map(Lang.bind(this, function(signal) {
 				this.log.debug("Signal is " + signal + ", disconnecting from " + signal[0]);
 				signal[0].disconnect(signal[1]);
 			}));
+			delete win.workspace_signals;
 		}
-		this.layout.on_window_killed(window);
-		this.extension.remove_window(window);
+	},
+
+	on_window_remove: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
+		let win = this.extension.get_window(meta_window);
+		this.log.debug("on_window_remove for " + win + " (" + this +")");
+		this.disconnect_workspace_signals(meta_window);
+		this.layout.on_window_killed(win);
+		this.extension.remove_window(win);
 	})),
 
 	meta_windows: function() {
 		var wins = this.meta_workspace.list_windows();
+		wins = wins.filter(Lang.bind(this, this.is_on_main_screen));
+		this.log.debug("Windows on " + this + " = [" + wins.join(", ") + "]");
 		return wins;
+	},
+
+	is_on_main_screen: function(meta_window) {
+		if (this.screen.count <= 1 || meta_window.get_monitor() == this.screen.idx) {
+			return true;
+		} else {
+			this.log.debug("ignoring window on non-primary monitor");
+			return false;
+		}
 	}
 }

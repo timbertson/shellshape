@@ -246,7 +246,7 @@ class TileCollection
 		return @indexOf(item) != -1
 	
 	indexOf: (item) ->
-		return @items.indexOf(item)
+		return @items.map(i -> i.id()).indexOf(item.id())
 
 	push: (item) ->
 		return if @contains(item)
@@ -409,7 +409,7 @@ class BaseLayout
 	select_cycle: (offset) -> @tiles.select_cycle(offset)
 
 	add: (win, active_win) ->
-		return if @contains(win)
+		return false if @contains(win)
 		tile = new TiledWindow(win, @state)
 		found = @tile_for active_win, (active_tile, active_idx) =>
 			@tiles.insert_at(active_idx+1, tile)
@@ -417,6 +417,7 @@ class BaseLayout
 		if not found
 			# no active tile, just add the new window at the end
 			@tiles.push(tile)
+		return true
 
 	active_tile: (fn) -> return @tiles.active(fn)
 	cycle: (diff) ->
