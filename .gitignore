@@ -4,3 +4,4 @@ tests/*.js
 _coffee_specs
 video
 *.stamp
+/*-git/

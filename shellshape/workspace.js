@@ -101,6 +101,7 @@ Workspace.prototype = {
 		if (!meta_workspace) {
 			throw new Error("meta_workspace is null");
 		}
+		this.workspace_idx = this.meta_workspace.index();
 		this.extension = ext;
 		this.screen = ext.screen;
 		this.set_layout(this.default_layout);
@@ -184,7 +185,7 @@ Workspace.prototype = {
 	},
 
 	toString: function() {
-		return "<# Workspace at idx " + this.meta_workspace.index() + ">";
+		return "<# Workspace at idx " + this.workspace_idx + ">";
 	},
 
 	_grab_op_signal_handler : function(change, relevant_grabs, cb) {
