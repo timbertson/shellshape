@@ -246,7 +246,14 @@ class TileCollection
 		return @indexOf(item) != -1
 	
 	indexOf: (item) ->
-		return @items.map(i -> i.id()).indexOf(item.id())
+		id = item.id()
+		idx = -1
+		@each (tile, _idx) =>
+			if tile.id() == id
+				@log.debug("found id #{id}")
+				idx = _idx
+				return STOP
+		return idx
 
 	push: (item) ->
 		return if @contains(item)
@@ -776,6 +783,8 @@ class TiledWindow
 		@minimized_order = 0
 		@rect = {pos:{x:0, y:0}, size:{x:0, y:0}}
 		@update_original_rect()
+	
+	id: () -> @window.id()
 	
 	update_original_rect: () ->
 		@original_rect = @window_rect()

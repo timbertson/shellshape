@@ -364,9 +364,18 @@ TileCollection = (function() {
   };
 
   TileCollection.prototype.indexOf = function(item) {
-    return this.items.map(i(function() {
-      return i.id();
-    })).indexOf(item.id());
+    var id, idx,
+      _this = this;
+    id = item.id();
+    idx = -1;
+    this.each(function(tile, _idx) {
+      if (tile.id() === id) {
+        _this.log.debug("found id " + id);
+        idx = _idx;
+        return STOP;
+      }
+    });
+    return idx;
   };
 
   TileCollection.prototype.push = function(item) {
@@ -1247,6 +1256,10 @@ TiledWindow = (function() {
     };
     this.update_original_rect();
   }
+
+  TiledWindow.prototype.id = function() {
+    return this.window.id();
+  };
 
   TiledWindow.prototype.update_original_rect = function() {
     this.original_rect = this.window_rect();
