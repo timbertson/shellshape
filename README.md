@@ -10,10 +10,6 @@ I must thank [bluetile][bluetile], for it was the inspiration for this extension
 Briefly, `0launch http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0launch`, you should install the `zeroinstall-injector` package first.
 For more details, please see instructions on <http://gfxmonk.net/shellshape/>
 
-To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:
-
-	ln -s "$PWD/shellshape" "~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"
-
 ## Running it on gnome-shell 3.2*
 
 Is hard, error-prone, and no longer supported. Sorry!
