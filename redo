@@ -1,2 +1,0 @@
-#!/bin/sh
-exec 0install run http://gfxmonk.net/dist/0install/redo.xml "$@"

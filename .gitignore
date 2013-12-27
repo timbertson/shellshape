@@ -5,3 +5,4 @@ _coffee_specs
 video
 *.stamp
 /*-git/
+/gup

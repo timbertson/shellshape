@@ -1,5 +1,5 @@
-set -eu
-redo compile
+#!bash -eu
+gup compile
 exec >&2
 ZIP_FILE=0inst/shellshape.zip
 rm -f $ZIP_FILE

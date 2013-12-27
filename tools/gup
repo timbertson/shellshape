@@ -1,0 +1,1742 @@
+#!/usr/bin/env python
+# Gup build tool
+# VERSION: 0.1
+# Copyright (C) 2013  Tim Cuthbertson, Avery Pennarun
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+from __future__ import print_function
+## --- log.py --- ##
+import os, sys
+import logging
+
+RED    = ""
+GREEN  = ""
+YELLOW = ""
+BOLD   = ""
+PLAIN  = ""
+
+_log_want_color = os.environ.get('GUP_COLOR', 'auto')
+if _log_want_color == '1' or (
+			_log_want_color == 'auto' and
+			sys.stderr.isatty() and
+			(os.environ.get('TERM') or 'dumb') != 'dumb'
+		):
+	# ...use ANSI formatting codes.
+	RED    = "\x1b[31m"
+	GREEN  = "\x1b[32m"
+	YELLOW = "\x1b[33m"
+	BOLD   = "\x1b[1m"
+	PLAIN  = "\x1b[m"
+
+_log_colors = {
+	logging.INFO: GREEN,
+	logging.WARN: YELLOW,
+	logging.ERROR: RED,
+	logging.CRITICAL: RED,
+}
+
+class _ColorFilter(logging.Filter):
+	def filter(self, record):
+		record.color = _log_colors.get(record.levelno, '')
+		if record.levelno > logging.DEBUG:
+			record.bold = BOLD
+		else:
+			record.bold = ''
+		return True
+
+_log_color_filter = _ColorFilter()
+
+TRACE_LVL = 5
+def _log_trace(_self, message, *args, **kws):
+	_self.log(TRACE_LVL, message, *args, **kws)
+logging.addLevelName(TRACE_LVL, "TRACE")
+logging.Logger.trace = _log_trace
+
+def getLogger(*a):
+	logger = logging.getLogger(*a)
+	logger.addFilter(_log_color_filter)
+	return logger
+
+
+
+## --- var.py --- ##
+import os, sys
+import time
+
+IS_WINDOWS = sys.platform.startswith('win')
+
+INDENT = os.environ.get('GUP_INDENT', '')
+os.environ['GUP_INDENT'] = INDENT + '  '
+
+def init_root(is_root):
+	global IS_ROOT, ROOT_CWD, RUN_ID
+	IS_ROOT = is_root
+	if is_root:
+		RUN_ID = os.environ['GUP_RUNID'] = str(int(time.time() * 1000))
+		ROOT_CWD = os.environ['GUP_ROOT'] = os.getcwd()
+	else:
+		ROOT_CWD = os.environ['GUP_ROOT']
+		assert 'GUP_RUNID' in os.environ, "GUP_ROOT is set (to %s), but not GUP_RUNID" % (ROOT_CWD)
+		RUN_ID = os.environ['GUP_RUNID']
+
+init_root('GUP_ROOT' not in os.environ)
+
+XTRACE = os.environ.get('GUP_XTRACE', '0') == '1'
+def set_trace():
+	global XTRACE
+	XTRACE = True
+	os.environ['GUP_XTRACE'] = '1'
+
+DEFAULT_VERBOSITY = int(os.environ.get('GUP_VERBOSE', '0'))
+def set_verbosity(val):
+	os.environ['GUP_VERBOSE'] = str(val)
+
+## --- error.py --- ##
+UNKNOWN_ERROR_CODE = 1
+
+class SafeError(Exception):
+	exitcode = 10
+	pass
+
+class TargetFailed(SafeError):
+	def __init__(self, target, status):
+		self.target = target
+		self.status = status
+		super(TargetFailed, self).__init__("Target `%s` failed with exit status %s" % (self.target, self.status))
+
+
+class Unbuildable(SafeError):
+	def __init__(self, path):
+		super(Unbuildable, self).__init__("Don't know how to build %s" % (path,))
+
+
+## --- util.py --- ##
+import os
+import errno
+import logging
+
+
+def mkdirp(p):
+	try:
+		os.makedirs(p)
+	except OSError as e:
+		if e.errno != errno.EEXIST: raise
+
+def get_mtime(path):
+	'''
+	Note: we return a microsecond int as this serializes to / from strings better
+	'''
+	try:
+		return int(os.lstat(path).st_mtime * (10 ** 6))
+	except OSError as e:
+		if e.errno == errno.ENOENT:
+			return None
+		raise e
+
+def try_remove(path):
+	'''Remove a file. Ignore if it doesn't exist'''
+	try:
+		os.remove(path)
+	except OSError as e:
+		if e.errno != errno.ENOENT: raise
+
+try:
+	samefile = os.path.samefile
+except AttributeError:
+	# Windows
+	def samefile(path1, path2):
+		return os.path.normcase(os.path.normpath(path1)) == \
+		       os.path.normcase(os.path.normpath(path2))
+
+if IS_WINDOWS:
+	def rename(src, dest):
+		assert not os.path.isdir(dest)
+		if os.path.exists(dest):
+			os.remove(dest)
+		os.rename(src, dest)
+else:
+	rename = os.rename
+
+## --- parallel.py --- ##
+_parallel_log = getLogger('gup.parallel')
+
+try:
+	import fcntl
+except ImportError:
+	_parallel_log.debug("fcntl not available - falling back to serial execution mode")
+	jwack_fallback = True
+	def _setup_jobserver(maxjobs): pass
+	def _start_job(jobfunc, donefunc):
+		# execute immediately
+		jobfunc()
+		donefunc(0)
+	def _wait_all(): pass
+	def _extend_build_env(env): pass
+
+	class NoopContext:
+		def __enter__(self): pass
+		def __exit__(self, type, value, traceback): pass
+	_noop_context = NoopContext()
+
+	class _Lock(object):
+		def __init__(self, name): pass
+		def read(self): return _noop_context
+		def write(self): return _noop_context
+
+	#XXX workaround for pychecker complaining
+	# about symbol redefinition even though they're
+	# in a separate if / else branch
+	globs = globals()
+	globs['setup_jobserver'] = _setup_jobserver
+	globs['start_job'] = _start_job
+	globs['wait_all'] = _wait_all
+	globs['extend_build_env'] = _extend_build_env
+	globs['Lock'] = _Lock
+else:
+	jwack_fallback = False
+	import os, errno, select, signal
+
+	_toplevel = 0
+	_mytokens = 1
+	_fds = None
+	_waitfds = {}
+	_makeflags = None
+
+
+	def _close_on_exec(fd, yes):
+		fl = fcntl.fcntl(fd, fcntl.F_GETFD)
+		fl &= ~fcntl.FD_CLOEXEC
+		if yes:
+			fl |= fcntl.FD_CLOEXEC
+		fcntl.fcntl(fd, fcntl.F_SETFD, fl)
+
+	def atoi(v):
+		try:
+			return int(v or 0)
+		except ValueError:
+			return 0
+
+
+	def _debug(s):
+		if 0:
+			import sys
+			sys.stderr.write('jwack#%d: %s\n' % (os.getpid(),s))
+
+
+	def _release(n):
+		global _mytokens
+		_debug('release(%d)' % n)
+		_mytokens += n
+		if _mytokens > 1:
+			os.write(_fds[1], 't' * (_mytokens-1))
+			_mytokens = 1
+
+
+	def _release_mine():
+		global _mytokens
+		assert(_mytokens >= 1)
+		os.write(_fds[1], 't')
+		_mytokens -= 1
+
+
+	def _timeout(sig, frame):
+		pass
+
+
+	def _make_pipe(startfd):
+		(a,b) = os.pipe()
+		fds = (fcntl.fcntl(a, fcntl.F_DUPFD, startfd),
+				fcntl.fcntl(b, fcntl.F_DUPFD, startfd+1))
+		os.close(a)
+		os.close(b)
+		return fds
+
+
+	def _try_read(fd, n):
+		# using djb's suggested way of doing non-blocking reads from a blocking
+		# socket: http://cr.yp.to/unix/nonblock.html
+		# We can't just make the socket non-blocking, because we want to be
+		# compatible with GNU Make, and they can't handle it.
+		r,w,x = select.select([fd], [], [], 0)
+		if not r:
+			return ''  # try again
+		# ok, the socket is readable - but some other process might get there
+		# first.  We have to set an alarm() in case our read() gets stuck.
+		oldh = signal.signal(signal.SIGALRM, _timeout)
+		try:
+			signal.alarm(1)  # emergency fallback
+			try:
+				b = os.read(_fds[0], 1)
+			except OSError, e:
+				if e.errno in (errno.EAGAIN, errno.EINTR):
+					# interrupted or it was nonblocking
+					return ''  # try again
+				else:
+					raise
+		finally:
+			signal.alarm(0)
+			signal.signal(signal.SIGALRM, oldh)
+		return b and b or None	# None means EOF
+
+
+	def extend_build_env(env):
+		if _makeflags:
+			_debug("setting MAKEFLAGS=%s" % (_makeflags,))
+			env['MAKEFLAGS'] = _makeflags
+		else:
+			_debug('extend_env: no MAKEFLAGS!')
+
+	def setup_jobserver(maxjobs):
+		"Start the job server"
+		global _fds, _toplevel, _makeflags
+		if _fds:
+			_debug("already set up")
+			return	# already set up
+		_debug('setup_jobserver(%d)' % maxjobs)
+		flags = ' ' + os.getenv('MAKEFLAGS', '') + ' '
+		FIND = ' --jobserver-fds='
+		ofs = flags.find(FIND)
+		if ofs >= 0:
+			s = flags[ofs+len(FIND):]
+			(arg,junk) = s.split(' ', 1)
+			(a,b) = arg.split(',', 1)
+			a = atoi(a)
+			b = atoi(b)
+			if a <= 0 or b <= 0:
+				raise ValueError('invalid --jobserver-fds: %r' % arg)
+			try:
+				fcntl.fcntl(a, fcntl.F_GETFL)
+				fcntl.fcntl(b, fcntl.F_GETFL)
+			except IOError, e:
+				if e.errno == errno.EBADF:
+					_parallel_log.debug("--jobserver-fds error (flags=%r, a=%r, b=%r)", flags, a, b, exc_info=True)
+					raise ValueError('broken --jobserver-fds from make; prefix your Makefile rule with a "+"')
+				else:
+					raise
+			_fds = (a,b)
+		if maxjobs and not _fds:
+			# need to start a new server
+			_debug("new jobserver! %s" % (maxjobs))
+			_toplevel = maxjobs
+			_fds = _make_pipe(100)
+			_release(maxjobs-1)
+			_makeflags = (
+				'%s --jobserver-fds=%d,%d -j'
+				% (os.getenv('MAKEFLAGS'), _fds[0], _fds[1]))
+
+
+	def wait(want_token):
+		rfds = _waitfds.keys()
+		if _fds and want_token:
+			rfds.append(_fds[0])
+		assert(rfds)
+		r,w,x = select.select(rfds, [], [])
+		_debug('_fds=%r; wfds=%r; readable: %r' % (_fds, _waitfds, r))
+		for fd in r:
+			if _fds and fd == _fds[0]:
+				pass
+			else:
+				pd = _waitfds[fd]
+				_debug("done: %r" % pd.name)
+				_release(1)
+				os.close(fd)
+				del _waitfds[fd]
+				rv = os.waitpid(pd.pid, 0)
+				assert(rv[0] == pd.pid)
+				_debug("done1: rv=%r" % (rv,))
+				rv = rv[1]
+				if os.WIFEXITED(rv):
+					pd.rv = os.WEXITSTATUS(rv)
+				else:
+					pd.rv = -os.WTERMSIG(rv)
+				_debug("done2: rv=%d" % pd.rv)
+				pd.donefunc(pd.rv)
+
+
+	def _has_token():
+		"Return True if we have one or more tokens available"
+		if _mytokens >= 1:
+			return True
+
+
+	def _get_token(reason):
+		"Ensure we have one token available."
+		global _mytokens
+		assert(_mytokens <= 1)
+		setup_jobserver(1)
+		while 1:
+			if _mytokens >= 1:
+				_debug("_mytokens is %d" % _mytokens)
+				assert(_mytokens == 1)
+				_debug('(%r) used my own token...' % reason)
+				break
+			assert(_mytokens < 1)
+			_debug('(%r) waiting for tokens...' % reason)
+			wait(want_token=1)
+			if _mytokens >= 1:
+				break
+			assert(_mytokens < 1)
+			if _fds:
+				b = _try_read(_fds[0], 1)
+				if b == None:
+					raise Exception('unexpected EOF on token read')
+				if b:
+					_mytokens += 1
+					_debug('(%r) got a token (%r).' % (reason, b))
+					break
+		assert(_mytokens <= 1)
+
+
+	def _running():
+		"Tell if jobs are running"
+		return len(_waitfds)
+
+
+	def wait_all():
+		"Wait for all jobs to be finished"
+		_debug("wait_all")
+		while _running():
+			while _mytokens >= 1:
+				_release_mine()
+			_debug("wait_all: wait()")
+			wait(want_token=0)
+		_debug("wait_all: empty list")
+		_get_token('self')	# get my token back
+		if _toplevel:
+			bb = ''
+			while 1:
+				b = _try_read(_fds[0], 8192)
+				bb += b
+				if not b: break
+			if len(bb) != _toplevel-1:
+				raise Exception('on exit: expected %d tokens; found only %r'
+								% (_toplevel-1, len(bb)))
+			os.write(_fds[1], bb)
+
+
+	def _force_return_tokens():
+		n = len(_waitfds)
+		if n:
+			_debug('%d tokens left in force_return_tokens' % n)
+		_debug('returning %d tokens' % n)
+		for k in _waitfds.keys():
+			del _waitfds[k]
+		if _fds:
+			_release(n)
+
+
+	def _pre_job(r, w, pfn):
+		os.close(r)
+		if pfn:
+			pfn()
+
+
+	class Job:
+		def __init__(self, name, pid, donefunc):
+			self.name = name
+			self.pid = pid
+			self.rv = None
+			self.donefunc = donefunc
+
+		def __repr__(self):
+			return 'Job(%s,%d)' % (self.name, self.pid)
+
+
+	def start_job(jobfunc, donefunc):
+		"""
+		Start a job
+		jobfunc:  executed in the child process
+		doncfunc: executed in the parent process during a wait or wait_all call
+		"""
+		reason = 'build'
+		global _mytokens
+		assert(_mytokens <= 1)
+		_get_token(reason)
+		assert(_mytokens >= 1)
+		assert(_mytokens == 1)
+		_mytokens -= 1
+		r,w = _make_pipe(50)
+		pid = os.fork()
+		if pid == 0:
+			# child
+			os.close(r)
+			rv = 201
+			#TODO: remove logging handlers when run in tests
+			try:
+				try:
+					rv = jobfunc() or 0
+					_debug('jobfunc completed (%r, %r)' % (jobfunc,rv))
+				except SafeError as e:
+					_parallel_log.error("%s" % (str(e),))
+					rv = SafeError.exitcode
+				except KeyboardInterrupt:
+					rv = SafeError.exitcode
+				except Exception:
+					import traceback
+					traceback.print_exc()
+					rv = UNKNOWN_ERROR_CODE
+			finally:
+				_debug('exit: %d' % rv)
+				os._exit(rv)
+		_close_on_exec(r, True)
+		os.close(w)
+		pd = Job(reason, pid, donefunc)
+		_waitfds[r] = pd
+
+
+
+	# FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
+	# doesn't do the lockdata structure in a portable way, so we have to use
+	# fcntl.lockf() instead.  Usually this is just a wrapper for fcntl, so it's
+	# ok, but it doesn't have F_GETLK, so we can't report which pid owns the lock.
+	# The makes debugging a bit harder.  When we someday port to C, we can do that.
+	class LockHelper:
+		def __init__(self, lock, kind):
+			self.lock = lock
+			self.kind = kind
+
+		def __enter__(self):
+			self.oldkind = self.lock.owned
+			if self.kind != self.oldkind:
+				self.lock.waitlock(self.kind)
+
+		def __exit__(self, type, value, traceback):
+			if self.kind == self.oldkind:
+				pass
+			elif self.oldkind:
+				self.lock.waitlock(self.oldkind)
+			else:
+				self.lock.unlock()
+
+	LOCK_EX = fcntl.LOCK_EX
+	LOCK_SH = fcntl.LOCK_SH
+
+	class Lock:
+		def __init__(self, name):
+			self.owned = False
+			self.name  = name
+			self.lockfile = os.open(self.name, os.O_RDWR | os.O_CREAT, 0666)
+			_close_on_exec(self.lockfile, True)
+			self.shared = fcntl.LOCK_SH
+			self.exclusive = fcntl.LOCK_EX
+
+		def __del__(self):
+			if self.owned:
+				self.unlock()
+			os.close(self.lockfile)
+
+		def read(self):
+			return LockHelper(self, fcntl.LOCK_SH)
+
+		def write(self):
+			return LockHelper(self, fcntl.LOCK_EX)
+
+		def trylock(self, kind=fcntl.LOCK_EX):
+			assert(self.owned != kind)
+			try:
+				fcntl.lockf(self.lockfile, kind|fcntl.LOCK_NB, 0, 0)
+			except IOError, e:
+				if e.errno in (errno.EAGAIN, errno.EACCES):
+					_parallel_log.trace("%s lock failed", self.name)
+					pass  # someone else has it locked
+				else:
+					raise
+			else:
+				_parallel_log.trace("%s lock (try)", self.name)
+				self.owned = kind
+
+		def waitlock(self, kind=fcntl.LOCK_EX):
+			assert(self.owned != kind)
+			_parallel_log.trace("%s lock (wait)", self.name)
+			fcntl.lockf(self.lockfile, kind, 0, 0)
+			self.owned = kind
+
+		def unlock(self):
+			if not self.owned:
+				raise Exception("can't unlock %r - we don't own it" % self.name)
+			fcntl.lockf(self.lockfile, fcntl.LOCK_UN, 0, 0)
+			_parallel_log.trace("%s unlock", self.name)
+			self.owned = False
+
+## --- gupfile.py --- ##
+import os
+from os import path
+import re
+import itertools
+
+_gupfile_log = getLogger('gup.gupfile')
+
+def _gupfile_default_gup_files(filename):
+	l = filename.split('.')
+	for i in range(1,len(l)+1):
+		ext = '.'.join(l[i:])
+		if ext: ext = '.' + ext
+		yield ("default%s.gup" % ext), ext
+
+def _gupfile_up_path(n):
+	return os.path.sep.join(itertools.repeat('..',n))
+
+GUPFILE = 'Gupfile'
+
+class BuildCandidate(object):
+	'''
+	A potential builder for a given target.
+
+	This could be a target.gup file or a Gupfile.
+	It may not exist, and if it does exist
+	it may not contain a definition for the given target.
+
+	get_builder() returns the actual Builder, if there is one
+	'''
+
+	def __init__(self, root, suffix, indirect, target):
+		self.root = os.path.normpath(root)
+		self.suffix = suffix
+		self.gupfile = GUPFILE if indirect else target + '.gup'
+		self.target = target
+		self.indirect = indirect
+
+	@property
+	def guppath(self):
+		return os.path.join(*(self._base_parts(True) + [self.gupfile]))
+
+	def __repr__(self):
+		parts = ['[gup]' if part == 'gup' else part for part in self._base_parts(True)]
+		parts.append(self.gupfile)
+		return "%s (%s)" % (os.path.join(*parts), self.target)
+
+	def _base_parts(self, include_gup):
+		parts = [self.root]
+		if self.suffix is not None:
+			if include_gup:
+				parts.append('gup')
+			if self.suffix is not True:
+				parts.append(self.suffix)
+		return parts
+
+	def get_builder(self):
+		path = self.guppath
+		if not os.path.exists(path):
+			return None
+		if os.path.isdir(path):
+			_gupfile_log.trace("skipping directory: %s", path)
+			return None
+
+		_gupfile_log.trace("candidate exists: %s" % (path,))
+
+		target_base = os.path.join(*self._base_parts(False))
+		_gupfile_log.trace("target_base: %s" % (target_base,))
+
+		if not self.indirect:
+			return Builder(path, self.target, target_base)
+		else:
+			target_name = os.path.basename(self.target)
+			if target_name == GUPFILE or os.path.splitext(target_name)[1].lower() == '.gup':
+				# gupfiles cannot be built by implicit targets
+				_gupfile_log.debug("indirect build not supported for target %s", target_name)
+				return None
+
+		with open(path) as f:
+			try:
+				rules = parse_gupfile(f)
+			except AssertionError as e:
+				reason = " (%s)" % (e.message,) if e.message else ""
+				raise SafeError("Invalid %s: %s%s" % (GUPFILE, path, reason))
+			_gupfile_log.trace("Parsed gupfile: %r" % rules)
+
+		match_target = self.target
+		# always use `/` as path sep in gupfile patterns
+		if os.path.sep != '/':
+			match_target = self.target.replace(os.path.sep, '/')
+
+		for script, ruleset in rules:
+			if ruleset.match(match_target):
+				base = os.path.join(target_base, os.path.dirname(script))
+				script_path = os.path.join(os.path.dirname(path), script)
+				if not os.path.exists(script_path):
+					raise SafeError("Build script not found: %s\n     %s(specified in %s)" % (script_path, INDENT, path))
+
+				return Builder(
+					script_path,
+					os.path.relpath(os.path.join(target_base, self.target), base),
+					base)
+		return None
+
+class Builder(object):
+	'''
+	The canonical builder for a target.
+	`path` is the path to the .gup file, even if this
+	builder was obtained indirectly (via a Gupfile match)
+	'''
+	def __init__(self, script_path, target, basedir):
+		self.path = script_path
+		self.target = target
+		self.basedir = basedir
+		self.target_path = os.path.join(self.basedir, self.target)
+
+	def __repr__(self):
+		return "Builder(path=%r, target=%r, basedir=%r)" % (self.path, self.target, self.basedir)
+
+	@staticmethod
+	def for_target(path):
+		for candidate in possible_gup_files(path):
+			builder = candidate.get_builder()
+			if builder is not None:
+				return builder
+		return None
+
+def possible_gup_files(p):
+	r'''
+	Finds all direct gup files for a target.
+
+	Each entry yields:
+		gupdir:	  folder containing .gup file
+		gupfile:   filename of .gup file
+
+	>>> for g in possible_gup_files('/a/b/c/d/e'): print(g)
+	/a/b/c/d/e.gup (e)
+	/a/b/c/d/[gup]/e.gup (e)
+	/a/b/c/[gup]/d/e.gup (e)
+	/a/b/[gup]/c/d/e.gup (e)
+	/a/[gup]/b/c/d/e.gup (e)
+	/[gup]/a/b/c/d/e.gup (e)
+	/a/b/c/d/Gupfile (e)
+	/a/b/c/d/[gup]/Gupfile (e)
+	/a/b/c/[gup]/d/Gupfile (e)
+	/a/b/[gup]/c/d/Gupfile (e)
+	/a/[gup]/b/c/d/Gupfile (e)
+	/[gup]/a/b/c/d/Gupfile (e)
+	/a/b/c/Gupfile (d/e)
+	/a/b/c/[gup]/Gupfile (d/e)
+	/a/b/[gup]/c/Gupfile (d/e)
+	/a/[gup]/b/c/Gupfile (d/e)
+	/[gup]/a/b/c/Gupfile (d/e)
+	/a/b/Gupfile (c/d/e)
+	/a/b/[gup]/Gupfile (c/d/e)
+	/a/[gup]/b/Gupfile (c/d/e)
+	/[gup]/a/b/Gupfile (c/d/e)
+	/a/Gupfile (b/c/d/e)
+	/a/[gup]/Gupfile (b/c/d/e)
+	/[gup]/a/Gupfile (b/c/d/e)
+	/Gupfile (a/b/c/d/e)
+	/[gup]/Gupfile (a/b/c/d/e)
+
+	>>> for g in itertools.islice(possible_gup_files('x/y/somefile'), 0, 3): print(g)
+	x/y/somefile.gup (somefile)
+	x/y/[gup]/somefile.gup (somefile)
+	x/[gup]/y/somefile.gup (somefile)
+
+	>>> for g in itertools.islice(possible_gup_files('/x/y/somefile'), 0, 3): print(g)
+	/x/y/somefile.gup (somefile)
+	/x/y/[gup]/somefile.gup (somefile)
+	/x/[gup]/y/somefile.gup (somefile)
+	'''
+	# we need an absolute path to tell how far up the tree we should go
+	dirname,filename = os.path.split(p)
+	dirparts = os.path.normpath(os.path.join(os.getcwd(), dirname)).split(os.path.sep)
+	dirdepth = len(dirparts)
+
+	# find direct match for `{target}.gup` in all possible `/gup` dirs
+	yield BuildCandidate(dirname, None, False, filename)
+	for i in xrange(0, dirdepth):
+		suff = os.path.sep.join(dirparts[dirdepth - i:])
+		base = path.join(dirname, _gupfile_up_path(i))
+		yield BuildCandidate(base, suff, False, filename)
+
+	for up in xrange(0, dirdepth):
+		# `up` controls how "fuzzy" the match is, in terms
+		# of how specific the path is - least fuzzy wins.
+		#
+		# As `up` increments, we discard a folder on the base path.
+		base_suff = os.path.sep.join(dirparts[dirdepth - up:])
+		parent_base = path.join(dirname, _gupfile_up_path(up))
+		target_id = os.path.join(base_suff, filename)
+		yield BuildCandidate(parent_base, None, True, target_id)
+		for i in xrange(0, dirdepth - up):
+			# `i` is how far up the directory tree we're looking for the gup/ directory
+			suff = os.path.sep.join(dirparts[dirdepth - i - up:dirdepth - up])
+			base = path.join(parent_base, _gupfile_up_path(i))
+			yield BuildCandidate(base, suff, True, target_id)
+
+class Guprules(object):
+	def __init__(self, rules):
+		self.includes = []
+		self.excludes = []
+		for r in rules:
+			(self.excludes if r.invert else self.includes).append(r)
+
+	def match(self, p):
+		return (
+			any((rule.match(p) for rule in self.includes))
+				and not
+			any((rule.match(p) for rule in self.excludes))
+		)
+
+	def __repr__(self):
+		return repr(self.includes + self.excludes)
+
+def parse_gupfile(f):
+	r'''
+	>>> parse_gupfile([
+	...   "foo.gup:",
+	...   " foo1",
+	...   "# comment",
+	...   "",
+	...   "\t foo2",
+	...   "# comment",
+	...   "ignoreme:",
+	...   "bar.gup :",
+	...   " bar1\t ",
+	...   "    bar2",
+	... ])
+	[('foo.gup', [MatchRule('foo1'), MatchRule('foo2')]), ('bar.gup', [MatchRule('bar1'), MatchRule('bar2')])]
+	'''
+	rules = []
+	current_gupfile = None
+	current_matches = None
+	lineno = 1
+	for line in f:
+		lineno += 1
+		if line.startswith('#'): continue
+		new_rule = not re.match('^\s', line)
+		line = line.strip()
+		if not line: continue
+		if new_rule:
+			if current_matches:
+				rules.append([current_gupfile, current_matches])
+			current_matches = []
+			assert line.endswith(':'), "line %s" % lineno
+			line = line[:-1]
+			current_gupfile = line.strip()
+		else:
+			assert current_matches is not None, "line %s" % lineno
+			current_matches.append(MatchRule(line))
+
+	if current_matches:
+		rules.append([current_gupfile, current_matches])
+	return [(gupfile, Guprules(guprules)) for gupfile, guprules in rules]
+
+class MatchRule(object):
+	_splitter = re.compile(r'(\*+)')
+	def __init__(self, text):
+		self._match = None
+		self.invert = text.startswith('!')
+		if self.invert:
+			text = text[1:]
+		self.text = text
+
+	def __call__(self, f):
+		return self.match(f)
+
+	def match(self, f):
+		regexp = '^'
+		for i, part in enumerate(re.split(self._splitter, self.text)):
+			if i % 2 == 0:
+				# raw part
+				regexp += re.escape(part)
+			else:
+				if part == '*':
+					regexp += "([^/]*)"
+				elif part == '**':
+					regexp += "(.*)"
+				else:
+					raise ValueError("Invalid pattern: %s" % (self.text))
+		regexp += '$'
+		regexp = re.compile(regexp)
+		_gupfile_log.trace("Compiled %r -> %r" % (self.text, regexp.pattern))
+		def match(f):
+			_gupfile_log.trace("Matching %r against %r" % (f, regexp.pattern))
+			return bool(regexp.match(f))
+		self.match = match
+		return self.match(f)
+
+	def __repr__(self):
+		text = self.text
+		if self.invert:
+			text = '!' + text
+		return 'MatchRule(%r)' % (text,)
+
+
+
+## --- state.py --- ##
+import os
+import logging
+import errno
+
+_state_log = getLogger('gup.state')
+
+META_DIR = '.gup'
+
+class _dirty_args(object):
+	def __init__(self, deps, base, builder_path, built):
+		self.deps = deps
+		self.base = base
+		self.builder_path = builder_path
+		self.built = built
+
+class TargetState(object):
+	_dep_lock = None
+
+	def __init__(self, p):
+		self.path = p
+
+	def __repr__(self):
+		return 'TargetState(%r)' % (self.path,)
+
+	@staticmethod
+	def built_targets(dir):
+		'''
+		Returns the target names which have metadata stored in `dir`
+		'''
+		return [f[:-5] for f in os.listdir(dir) if f.endswith('.deps')]
+
+	def meta_path(self, ext):
+		base, target = os.path.split(self.path)
+		meta_dir = os.path.join(base, META_DIR)
+		return os.path.join(meta_dir, "%s.%s" % (target, ext))
+
+	def _ensure_meta_path(self, ext):
+		p = self.meta_path(ext)
+		mkdirp(os.path.dirname(p))
+		return p
+
+	def _ensure_dep_lock(self):
+		if not self._dep_lock:
+			self._dep_lock = Lock(self._ensure_meta_path('deps.lock'))
+		return self._dep_lock
+
+	def deps(self):
+		rv = None
+		if not os.path.exists(self.meta_path('deps')):
+			# don't even bother trying to lock deps file
+			return rv
+
+		with self._ensure_dep_lock().read():
+			try:
+				f = open(self.meta_path('deps'))
+			except IOError as e:
+				if e.errno != errno.ENOENT: raise
+			else:
+				with f:
+					rv = Dependencies(self.path, f)
+		_state_log.trace("Loaded serialized state: %r" % (rv,))
+		return rv
+
+	def create_lock(self):
+		if self.lockfile is None:
+			self.lockfile = Lock(self.meta_path('lock'))
+
+	def add_dependency(self, dep):
+		lock = Lock(self.meta_path('deps2.lock'))
+		_state_log.debug('add dep: %s -> %s' % (self.path, dep))
+		with lock.write():
+			with open(self.meta_path('deps2'), 'a') as f:
+				dep.append_to(f)
+
+	def perform_build(self, exe, do_build):
+		assert os.path.exists(exe)
+		with self._ensure_dep_lock().write():
+			builder_dep = BuilderDependency(
+				path=os.path.relpath(exe, os.path.dirname(self.path)),
+				checksum=None,
+				mtime=get_mtime(exe))
+
+			_state_log.trace("created dep %s from builder %r" % (builder_dep, exe))
+			temp = self._ensure_meta_path('deps2')
+			with open(temp, 'w') as f:
+				Dependencies.init_file(f)
+				builder_dep.append_to(f)
+			try:
+				built = do_build()
+			except:
+				os.remove(temp)
+				raise
+			else:
+				if built:
+					# always track the build time
+					built_time = get_mtime(self.path)
+					if built_time is not None:
+						with open(temp, 'a') as f:
+							BuildTime(built_time).append_to(f)
+					rename(temp, self.meta_path('deps'))
+				return built
+
+class Dependencies(object):
+	FORMAT_VERSION = 1
+	def __init__(self, path, file):
+		self.path = path
+		self.rules = []
+		self.checksum = None
+		self.runid = None
+
+		if file is None:
+			self.rules.append(NeverBuilt())
+		else:
+			version_line = file.readline().strip()
+			_state_log.trace("version_line: %s" % (version_line,))
+			if not version_line.startswith('version:'): raise ValueError("Invalid file")
+			_, file_version = version_line.split(' ')
+			if int(file_version) != self.FORMAT_VERSION:
+				raise ValueError("version mismatch: can't read format version %s" % (file_version,))
+
+			while True:
+				line = file.readline()
+				if not line: break
+				dep = Dependency.parse(line.rstrip())
+				if isinstance(dep, Checksum):
+					assert self.checksum is None
+					self.checksum = dep.value
+				elif isinstance(dep, RunId):
+					assert self.runid is None
+					self.runid = dep
+				else:
+					self.rules.append(dep)
+
+	def is_dirty(self, builder, built):
+		assert isinstance(builder, Builder)
+		if not os.path.exists(self.path):
+			_state_log.debug("DIRTY: %s (target does not exist)", self.path)
+			return True
+
+		base = os.path.dirname(self.path)
+		builder_path = os.path.relpath(builder.path, base)
+
+		unknown_states = []
+		dirty_args = _dirty_args(deps=self, base=base, builder_path=builder_path, built=built)
+		for rule in self.rules:
+			d = rule.is_dirty(dirty_args)
+			if d is True:
+				_state_log.trace('DIRTY: %s (from rule %r)', self.path, rule)
+				return True
+			elif d is False:
+				continue
+			else:
+				unknown_states.append(d)
+		_state_log.trace('is_dirty: %s returning %r', self.path, unknown_states or False)
+		return unknown_states or False
+
+	def already_built(self):
+		return self.runid.is_current()
+
+	def children(self):
+		base = os.path.dirname(self.path)
+		for rule in self.rules:
+			if rule.recursive:
+				yield rule.full_path(base)
+
+	@classmethod
+	def init_file(cls, f):
+		f.write('version: %s\n' % (cls.FORMAT_VERSION,))
+		RunId.current().append_to(f)
+
+	def __repr__(self):
+		return 'Dependencies<runid=%r, checksum=%s, %r>' % (self.runid, self.checksum, self.rules)
+
+class Dependency(object):
+	recursive = False
+	@staticmethod
+	def parse(line):
+		_state_log.trace("parsing line: %s" % (line,))
+		for candidate in [
+				FileDependency,
+				BuilderDependency,
+				AlwaysRebuild,
+				Checksum,
+				RunId,
+				BuildTime]:
+			if line.startswith(candidate.tag):
+				cls = candidate
+				break
+		else:
+			raise ValueError("unknown dependency line: %r" % (line,))
+		fields = line.split(' ', cls.num_fields)[1:]
+		return getattr(cls, 'deserialize', cls)(*fields)
+
+	def append_to(self, file):
+		line = self.tag + ' ' + ' '.join(self.fields)
+		assert "\n" not in line
+		file.write(line + "\n")
+
+	def __repr__(self):
+		return '%s(%s)' % (type(self).__name__, ', '.join(map(repr, self.fields)))
+
+class NeverBuilt(object):
+	fields = []
+	def is_dirty(self, args):
+		_state_log.debug('DIRTY: never built')
+		return True
+	def append_to(self, file): pass
+
+class AlwaysRebuild(Dependency):
+	tag = 'always:'
+	num_fields = 0
+	fields = []
+	def is_dirty(self, _):
+		_state_log.debug('DIRTY: always rebuild')
+		return True
+
+class UnknownState(object):
+	def __init__(self, target, children):
+		self.target = target
+		self.children = children
+
+class FileDependency(Dependency):
+	num_fields = 3
+	tag = 'filedep:'
+	recursive = True
+
+	def __init__(self, mtime, checksum, path):
+		self.path = path
+		self.checksum = checksum
+		self.mtime = mtime
+
+	@classmethod
+	def relative_to_target(cls, target, mtime, checksum, path):
+		base = os.path.dirname(target)
+		relpath = os.path.relpath(path, base)
+		return cls(mtime=mtime, checksum=checksum, path=relpath)
+
+	@classmethod
+	def deserialize(cls, mtime, checksum, path):
+		return cls(
+			int(mtime) or None,
+			None if checksum == '-' else checksum,
+			path)
+
+	@property
+	def fields(self):
+		return [
+			str(self.mtime or 0),
+			self.checksum or '-',
+			self.path]
+
+	def full_path(self, base):
+		return os.path.join(base, self.path)
+
+	def is_dirty(self, args):
+		base = args.base
+		built = args.built
+
+		path = self.full_path(base)
+		self._target = path
+
+		if self.checksum is not None:
+			_state_log.trace("%s: comparing using checksum", self.path)
+			# use checksum only
+			state = TargetState(path)
+			deps = state.deps()
+			checksum = deps and deps.checksum
+			if checksum != self.checksum:
+				_state_log.debug("DIRTY: %s (stored checksum is %s, current is %s)", self.path, self.checksum, deps.checksum)
+				return True
+			if built:
+				return False
+			# if not built, we don't actually know whether this dep is dirty
+			_state_log.trace("%s: might be dirty - returning %r", self.path, state)
+			return state
+
+		else:
+			# use mtime only
+			current_mtime = get_mtime(path)
+			if current_mtime != self.mtime:
+				_state_log.debug("DIRTY: %s (stored mtime is %r, current is %r)" % (self.path, self.mtime, current_mtime))
+				return True
+			return False
+
+class BuilderDependency(FileDependency):
+	tag = 'builder:'
+	recursive = False
+
+	def is_dirty(self, args):
+		builder_path = args.builder_path
+
+		assert not os.path.isabs(builder_path)
+		assert not os.path.isabs(self.path)
+		if builder_path != self.path:
+			_state_log.debug("DIRTY: builder changed from %s -> %s" % (self.path, builder_path))
+			return True
+		return super(BuilderDependency, self).is_dirty(args)
+
+class Checksum(Dependency):
+	tag = 'checksum:'
+	num_fields = 1
+
+	def __init__(self, cs):
+		self.value = cs
+		self.fields = [cs]
+
+	@staticmethod
+	def _add_file(sh, f):
+		if sh is None:
+			import hashlib
+			sh = hashlib.sha1()
+		while True:
+			b = f.read(4096)
+			if not b: break
+			sh.update(b)
+		return sh
+
+	@classmethod
+	def from_stream(cls, f):
+		sh = cls._add_file(None, f)
+		return cls(sh.hexdigest())
+
+	@classmethod
+	def from_files(cls, filenames):
+		sh = None
+		for filename in filenames:
+			with open(filename) as f:
+				sh = cls._add_file(sh, f)
+		return cls(sh.hexdigest())
+
+class BuildTime(Dependency):
+	tag = 'built:'
+	num_fields = 1
+
+	def __init__(self, mtime):
+		assert mtime is not None
+		self.value = mtime
+		self.fields = [str(mtime)]
+
+	@classmethod
+	def deserialize(cls, mtime):
+		return cls(int(mtime))
+
+	def is_dirty(self, args):
+		path = args.deps.path
+
+		mtime = get_mtime(path)
+		assert mtime is not None
+		if mtime != self.value:
+			log_method = _state_log.warn
+			if os.path.isdir(path):
+				# dirs are modified externally for various reasons, not worth warning
+				log_method = _state_log.debug
+			log_method("%s was externally modified - rebuilding" % (path,))
+			return True
+		return False
+
+class RunId(Dependency):
+	tag = 'run:'
+	num_fields = 1
+
+	def __init__(self, runid):
+		self.value = runid
+		self.fields = [runid]
+
+	@classmethod
+	def current(cls):
+		return cls(RUN_ID)
+
+	def is_current(self):
+		return self.value == RUN_ID
+
+## --- builder.py --- ##
+import os
+from os import path
+import errno
+import subprocess
+import logging
+import shutil
+
+_builder_log = getLogger('gup.builder')
+
+try:
+	from pipes import quote
+except ImportError:
+	from shlex import quote
+
+def prepare_build(p):
+	builder = Builder.for_target(p)
+	_builder_log.trace('prepare_build(%r) -> %r' % (p, builder))
+	if builder is not None:
+		return Target(builder)
+	return None
+
+def _builder_is_dirty(state):
+	'''
+	Returns whether the dependency is dirty.
+	Builds any targets required to check dirtiness
+	'''
+	deps = state.deps()
+	builder = Builder.for_target(state.path)
+
+	if deps is None:
+		if builder is None:
+			# not a target
+			return False
+		else:
+			_builder_log.debug("DIRTY: %s (is buildable but has no stored deps)", state.path)
+			return True
+
+	if deps.already_built():
+		_builder_log.trace("CLEAN: %s has already been built in this invocation", state.path)
+		return False
+
+	dirty = deps.is_dirty(builder, built = False)
+	_builder_log.trace("deps.is_dirty(%r) -> %r", state.path, dirty)
+
+	if dirty is True:
+		return True
+
+	if isinstance(dirty, list):
+		for target in dirty:
+			_builder_log.trace("MAYBE_DIRTY: %s (unknown state - building it to find out)", target.path)
+			target = prepare_build(target.path)
+			if target is None:
+				_builder_log.trace("%s turned out not to be a target - skipping", target)
+				continue
+			target.build(update=True)
+
+		dirty = deps.is_dirty(builder, built = True)
+		assert dirty in (True, False)
+		_builder_log.trace("after rebuilding unknown targets, deps.is_dirty(%r) -> %r", state.path, dirty)
+
+	if dirty is False:
+		# not directly dirty - recurse children
+		for path in deps.children():
+			_builder_log.trace("Recursing over dependency: %s", path)
+			child = TargetState(path)
+			if _builder_is_dirty(child):
+				_builder_log.trace("_builder_is_dirty(%r) -> True", child.path)
+				return True
+	return dirty
+
+class Target(object):
+	def __init__(self, builder):
+		self.builder = builder
+		self.path = self.builder.target_path
+		self.state = TargetState(self.path)
+
+	def __repr__(self):
+		return 'Target(%r)' % (self.path,)
+
+	def build(self, update):
+		return self.state.perform_build(self.builder.path, lambda: self._perform_build(update))
+
+	def _perform_build(self, update):
+		'''
+		Assumes locks are held (by state.perform_build)
+		'''
+		assert self.builder is not None
+		assert os.path.exists(self.builder.path)
+		if update:
+			if not _builder_is_dirty(self.state):
+				_builder_log.trace("no build needed")
+				return False
+		exe_path = self.builder.path
+
+		# dest may not exist, if a /gup/ directory is in use
+		basedir = self.builder.basedir
+		mkdirp(basedir)
+
+		env = os.environ.copy()
+		env['GUP_TARGET'] = os.path.abspath(self.path)
+		extend_build_env(env)
+
+		target_relative_to_cwd = os.path.relpath(self.path, ROOT_CWD)
+
+
+		output_file = os.path.abspath(self.state.meta_path('out'))
+		MOVED = False
+		try:
+			args = [os.path.abspath(exe_path), output_file, self.builder.target]
+			_builder_log.info(target_relative_to_cwd)
+			mtime = get_mtime(self.path)
+
+			exe = _builder_guess_executable(exe_path)
+
+			if exe is not None:
+				args = exe + args
+
+			if XTRACE:
+				_builder_log.info(' # %s'% (os.path.abspath(basedir),))
+				_builder_log.info(' + ' + ' '.join(map(quote, args)))
+			else:
+				_builder_log.trace(' from cwd: %s'% (os.path.abspath(basedir),))
+				_builder_log.trace('executing: ' + ' '.join(map(quote, args)))
+
+			try:
+				ret = self._run_process(args, cwd = basedir, env = env)
+			except OSError:
+				if exe: raise # we only expect errors when we could deduce no executable
+				raise SafeError("%s is not executable and has no shebang line" % (exe_path,))
+
+			new_mtime = get_mtime(self.path)
+			if mtime != new_mtime:
+				_builder_log.trace("old_mtime=%r, new_mtime=%r" % (mtime, new_mtime))
+				if not os.path.isdir(self.path):
+					# directories often need to be created directly
+					_builder_log.warn("%s modified %s directly" % (exe_path, self.path))
+			if ret == 0:
+				if os.path.exists(output_file):
+					if os.path.isdir(self.path):
+						_builder_log.trace("calling rmtree() on previous %s", self.path)
+						shutil.rmtree(self.path)
+					rename(output_file, self.path)
+				MOVED = True
+			else:
+				_builder_log.trace("builder exited with status %s" % (ret,))
+				raise TargetFailed(target_relative_to_cwd, ret)
+		finally:
+			if not MOVED:
+				try_remove(output_file)
+		return True
+
+
+	def _run_process(self, args, cwd, env):
+		return subprocess.Popen(args, cwd = cwd, env = env).wait()
+
+def _builder_guess_executable(p):
+	with open(p) as f:
+		line = f.readline(255)
+	if not line.startswith('#!'):
+		return None
+	args = line[2:].strip().split()
+	if not args: return None
+
+	bin = args[0]
+	if bin.startswith('.'):
+		# resolve relative paths relative to containing dir
+		bin = args[0] = os.path.join(os.path.dirname(p), args[0])
+	if os.path.isabs(bin) and not os.path.exists(bin):
+		raise SafeError("No such interpreter: %s" % (os.path.abspath(bin),))
+	return args
+
+
+## --- task.py --- ##
+import os
+
+_task_log = getLogger('gup.task')
+
+class Task(object):
+	'''
+	Each target we're asked to build is represented as a Task,
+	so that they can be invoked in parallel
+	'''
+	def __init__(self, opts, parent_target, target_path):
+		self.target_path = target_path
+		self.opts = opts
+		self.parent_target = parent_target
+
+	def prepare(self):
+		target_path = self.target_path
+		opts = self.opts
+
+		target = self.target = prepare_build(target_path)
+		if target is None:
+			if opts.update and os.path.exists(target_path):
+				self.report_nobuild()
+				return None
+			raise Unbuildable(target_path)
+		return target
+
+	def build(self):
+		'''
+		run in a child process
+		'''
+		self.built = self.target.build(update=self.opts.update)
+		self.complete()
+
+	def complete(self):
+		if self.parent_target is not None:
+			target_path = self.target_path
+			mtime = get_mtime(target_path)
+
+			checksum = None
+			if self.target:
+				deps = self.target.state.deps()
+				if deps:
+					checksum = deps.checksum
+
+			dep = FileDependency.relative_to_target(self.parent_target, mtime=mtime, path=target_path, checksum=checksum)
+			TargetState(self.parent_target).add_dependency(dep)
+
+	def handle_result(self, rv):
+		_task_log.trace("build process exited with status: %r" % (rv,))
+		if rv == 0:
+			return
+		if rv == SafeError.exitcode:
+			# already logged - just raise an empty exception to propagate exit code
+			raise SafeError(None)
+		else:
+			raise RuntimeError("unknown error in child process - exit status %s" % rv)
+
+	def report_nobuild(self):
+		if IS_ROOT:
+			_task_log.info("%s: up to date", self.target_path)
+		else:
+			_task_log.trace("%s: up to date", self.target_path)
+
+
+class TaskRunner(object):
+	def __init__(self):
+		self.tasks = []
+
+	def add(self, fn):
+		self.tasks.append(fn)
+
+	def run(self):
+		while self.tasks:
+			task = self.tasks.pop(0)
+			start_job(task.build, task.handle_result)
+		wait_all()
+
+
+## --- cmd.py --- ##
+import sys
+import logging
+import optparse
+import os
+
+
+_cmd_log = getLogger('gup.cmd')
+
+def _cmd_init_logging(verbosity):
+	lvl = logging.INFO
+	fmt = '%(color)sgup  ' + INDENT + '%(bold)s%(message)s' + PLAIN
+
+	if verbosity < 0:
+		lvl = logging.ERROR
+	elif verbosity == 1:
+		lvl = logging.DEBUG
+	elif verbosity > 1:
+		fmt = '%(color)sgup[%(process)s %(name)-12s %(levelname)-5s]  ' + INDENT + '%(bold)s%(message)s' + PLAIN
+		lvl = TRACE_LVL
+
+	if 'GUP_IN_TESTS' in os.environ:
+		lvl = TRACE_LVL
+		fmt = fmt = '%(color)s' + INDENT + '%(bold)s%(message)s' + PLAIN
+
+	# persist for child processes
+	set_verbosity(verbosity)
+
+	baseLogger = getLogger('gup')
+	handler = logging.StreamHandler()
+	handler.setFormatter(logging.Formatter(fmt))
+	baseLogger.propagate = False
+	baseLogger.setLevel(lvl)
+	baseLogger.addHandler(handler)
+
+def _cmd_bin_init():
+	'''
+	Ensure `gup` is present on $PATH
+	'''
+	progname = sys.argv[0]
+	_cmd_log.trace('run as: %s' % (progname,))
+	if os.path.sep in progname and os.environ.get('GUP_IN_PATH', '0') != '1':
+		# gup may have been run as a relative / absolute script - check
+		# whether our directory is in $PATH
+		here, filename = os.path.split(__file__)
+		if filename.startswith('cmd.py'):
+			# we're being run in-place
+			_cmd_log.trace("Run from gup/ package - assuming gup in $PATH")
+		else:
+			path_entries = os.environ.get('PATH', '').split(os.pathsep)
+			for entry in path_entries:
+				if not entry: continue
+				try:
+					if samefile(entry, here):
+						_cmd_log.trace('found `gup` in $PATH')
+						# ok, we're in path
+						break
+				except OSError: pass
+			else:
+				# not found
+				here = os.path.abspath(here)
+				_cmd_log.trace('`gup` not in $PATH - adding %s' % (here,))
+				os.environ['PATH'] = os.pathsep.join([here] + path_entries)
+
+		# don't bother checking next time
+		os.environ['GUP_IN_PATH'] = '1'
+
+def _cmd_main(argv):
+	p = None
+	action = None
+
+	try:
+		cmd = argv[0]
+	except IndexError:
+		pass
+	else:
+		if cmd == '--clean':
+			p = optparse.OptionParser('Usage: gup --clean [OPTIONS] [dir [...]]')
+			p.add_option('-i', '--interactive', action='store_true', help='Ask for confirmation before removing files', default=False)
+			p.add_option('-n', '--dry-run', action='store_false', dest='force', help='Just print files that would be removed')
+			p.add_option('-f', '--force', action='store_true', help='Actually remove files')
+			p.add_option('-m', '--metadata', action='store_true', help='Remove .gup metadata directories, but leave targets')
+			action = _cmd_clean_targets
+		elif cmd == '--contents':
+			p = optparse.OptionParser('Usage: gup --contents')
+			action = _cmd_mark_contents
+		elif cmd == '--always':
+			p = optparse.OptionParser('Usage: gup --always')
+			action = _cmd_mark_always
+		elif cmd == '--ifcreate':
+			p = optparse.OptionParser('Usage: gup --ifcreate [file [...]]')
+			action = _cmd_mark_ifcreate
+
+	if action is None:
+		# default parser
+		p = optparse.OptionParser('Usage: gup [action] [OPTIONS] [target [...]]\n\n' +
+			'Actions: (if present, the action must be the first argument)\n'
+			'  --always     Mark this target as always-dirty\n' +
+			'  --ifcreate   Rebuild the current target if the given file(s) are created\n' +
+			'  --contents   Checksum the contents of stdin\n' +
+			'  --clean      Clean any gup-built targets\n' +
+			'  (use gup <action> --help) for further details')
+
+		p.add_option('-u', '--update', '--ifchange', dest='update', action='store_true', help='Only rebuild stale targets', default=False)
+		p.add_option('-j', '--jobs', type='int', default=1, help="Number of concurrent jobs to run")
+		p.add_option('-x', '--trace', action='store_true', help='Trace build script invocations (also sets $GUP_XTRACE=1)')
+		p.add_option('-q', '--quiet', action='count', default=0, help='Decrease verbosity')
+		p.add_option('-v', '--verbose', action='count', default=DEFAULT_VERBOSITY, help='Increase verbosity')
+		action = _cmd_build
+		verbosity = None
+	else:
+		argv.pop(0)
+		verbosity = 0
+
+	opts, args = p.parse_args(argv)
+
+	if verbosity is None:
+		verbosity = opts.verbose - opts.quiet
+
+	_cmd_init_logging(verbosity)
+	_cmd_bin_init()
+
+	_cmd_log.trace('argv: %r, action=%r', argv, action)
+	args = [arg.rstrip(os.path.sep) for arg in args]
+	action(opts, args)
+
+def _cmd_get_parent_target():
+	t = os.environ.get('GUP_TARGET', None)
+	if t is not None:
+		assert os.path.isabs(t)
+	return t
+
+def _cmd_assert_parent_target(action):
+	p = _cmd_get_parent_target()
+	if p is None:
+		raise SafeError("%s was used outside of a gup target" % (action,))
+	return p
+
+def _cmd_mark_always(opts, targets):
+	assert len(targets) == 0, "no arguments expected"
+	parent_target = _cmd_assert_parent_target('--always')
+	TargetState(parent_target).add_dependency(AlwaysRebuild())
+
+def _cmd_mark_ifcreate(opts, files):
+	assert len(files) > 0, "at least one file expected"
+	parent_target = _cmd_assert_parent_target('--ifcreate')
+	parent_state = TargetState(parent_target)
+	for filename in files:
+		if os.path.exists(filename):
+			raise SafeError("File already exists: %s" % (filename,))
+		parent_state.add_dependency(FileDependency.relative_to_target(parent_target, mtime=None, checksum=None, path = filename))
+
+def _cmd_mark_contents(opts, targets):
+	parent_target = _cmd_assert_parent_target('--content')
+	if len(targets) == 0:
+		assert not sys.stdin.isatty()
+		checksum = Checksum.from_stream(sys.stdin)
+	else:
+		checksum = Checksum.from_files(targets)
+	TargetState(parent_target).add_dependency(checksum)
+
+def _cmd_clean_targets(opts, dests):
+	import shutil
+	if opts.force is None:
+		raise SafeError("Either --force (-f) or --dry-run (-n) must be given")
+
+	def rm(path, isdir=False):
+		if not opts.force:
+			print("Would remove: %s" % (path))
+			return
+
+		print("Removing: %s" % (path,), file=sys.stderr)
+		if opts.interactive:
+			print("   [Y/n]: ", file=sys.stderr, end='')
+			if raw_input().strip() not in ('','y','Y'):
+				print("Skipped.", file=sys.stderr)
+				return
+
+		if not isdir:
+			try:
+				os.remove(path)
+				return
+			except OSError:
+				pass
+		shutil.rmtree(path)
+
+	if len(dests) == 0: dests = ['.']
+	for dest in dests:
+		for dirpath, dirnames, filenames in os.walk(dest, followlinks=False):
+			if META_DIR in dirnames:
+				gupdir = os.path.join(dirpath, META_DIR)
+				if not opts.metadata:
+					deps = TargetState.built_targets(gupdir)
+					for dep in deps:
+						if dep in filenames:
+							target = os.path.join(dirpath, dep)
+							if Builder.for_target(target) is not None:
+								rm(target)
+				rm(gupdir, isdir=True)
+			# filter out hidden directories
+			dirnames = [d for d in dirnames if not d.startswith('.')]
+
+def _cmd_build(opts, targets):
+	if opts.trace:
+		set_trace()
+
+	if len(targets) == 0:
+		targets = ['all']
+
+	parent_target = _cmd_get_parent_target()
+
+	jobs = opts.jobs
+	assert jobs > 0 and jobs < 1000
+	setup_jobserver(jobs)
+
+	runner = TaskRunner()
+	for target_path in targets:
+		if os.path.abspath(target_path) == parent_target:
+			raise SafeError("Target `%s` attempted to build itself" % (target_path,))
+
+		task = Task(opts, parent_target, target_path)
+		target = task.prepare()
+		if target is not None:
+			# only add a task if it's a buildable target
+			runner.add(task)
+		else:
+			# otherwise, perform post-build actions (like updating parent dependencies)
+			task.complete()
+
+	# wait for all tasks to complete
+	runner.run()
+
+def main():
+	try:
+		_cmd_main(sys.argv[1:])
+	except KeyboardInterrupt:
+		sys.exit(1)
+	except SafeError as e:
+		if e.message is not None:
+			_cmd_log.error("%s" % (str(e),))
+		sys.exit(1)
+
+if __name__ == '__main__':
+	main()
