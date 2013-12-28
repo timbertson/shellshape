@@ -4,6 +4,7 @@ const Meta = imports.gi.Meta;
 const Extension = imports.misc.extensionUtils.getCurrentExtension();
 const Log = Extension.imports.log4javascript.log4javascript;
 const Tiling = Extension.imports.tiling;
+const MutterWindow = Extension.imports.mutter_window;
 const ShellshapeSettings = Extension.imports.shellshape_settings;
 
 
@@ -105,20 +106,75 @@ Workspace.prototype = {
 		this.extension = ext;
 		this.screen = ext.screen;
 		this.set_layout(this.default_layout);
-		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
-		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+
 		this._turbulence = new TurbulentState();
 		this._turbulence.cleanup = Lang.bind(this, this.check_all_windows);
-		// add all initial windows
-		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
+
+		this.enable(true);
 	},
 
-	_disable: function() {
-		var self = this;
+	destroy: function() {
+		this.disable();
 		this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_remove(null, win); }));
-		this.extension.disconnect_tracked_signals(this);
 		this.meta_workspace = null;
 		this.extension = null;
+	},
+
+	disable: function() {
+		this.meta_windows().map(Lang.bind(this, function(win) { this.disconnect_workspace_signals(win); }));
+		this.extension.disconnect_tracked_signals(this);
+	},
+
+	enable: function(initial) {
+		this.log.info("workspace[" + this.workspace_idx + "].enable()");
+		this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
+		this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+
+		if(initial) {
+			// add all initial windows
+			this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
+		} else {
+			// check windows & reattach signals
+			this.check_all_windows();
+			this.meta_windows().map(Lang.bind(this, function(win) { this._attach_window_signals(win); }));
+		}
+	},
+
+	_ensure_shellshape_window: function(win) {
+		if (win instanceof MutterWindow.Window) return win;
+		return this.extension.get_window(win);
+	},
+
+	_attach_window_signals: function(win, actor) {
+		win = this._ensure_shellshape_window(win);
+		var meta_window = win.meta_window;
+		var attach = Lang.bind(this, function(actor) {
+			// win is a window we we previously disabled
+			if (win.workspace_signals) {
+				this.log.error("win.workspace_signals is already defined: " + win);
+				this.disconnect_workspace_signals(win);
+			}
+			win.workspace_signals = [];
+
+			let bind_to_window_change = Lang.bind(this, function(event_name, relevant_grabs, cb) {
+				// we only care about events *after* at least one relevant grab_op,
+				var self = this;
+				let signal_handler = this._grab_op_signal_handler({}, relevant_grabs, function() {
+					if (self.screen.count > 1) {
+						self.check_all_windows();
+					}
+					cb(win);
+				});
+				win.workspace_signals.push([actor, actor.connect(event_name + '-changed', signal_handler)]);
+			});
+
+			bind_to_window_change('position', move_ops,     Lang.bind(this, this.on_window_moved, win));
+			bind_to_window_change('size',     resize_ops,   Lang.bind(this, this.on_window_resized, win));
+			win.workspace_signals.push([meta_window, meta_window.connect('notify::minimized', Lang.bind(this, this.on_window_minimize_changed))]);
+		});
+
+		if (actor) attach(actor);
+		else this._with_window_actor(meta_window, attach);
 	},
 
 	_reset_layout: function() {
@@ -137,6 +193,28 @@ Workspace.prototype = {
 			this[keys[i]] = other[keys[i]];
 		}
 		this.relayout();
+	},
+
+	_with_window_actor: function(meta_window, cb) {
+		var actor;
+		try {
+			// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
+			actor = meta_window.get_compositor_private();
+		} catch (e) {
+			// not implemented for some special windows - ignore them
+			this.log.warn("couldn't call get_compositor_private for window " + meta_window, e);
+			if(meta_window.get_compositor_private) {
+				this.log.error("But the function exists! aborting...");
+				throw(e);
+			}
+		}
+		if (actor) {
+			cb(actor);
+		} else {
+			Mainloop.idle_add(Lang.bind(this, function() {
+				this._with_window_actor(meta_window, cb);
+			}));
+		}
 	},
 
 	relayout: _duck_overview(function() {
@@ -221,87 +299,44 @@ Workspace.prototype = {
 	},
 
 	on_window_create: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
-		var get_actor = Lang.bind(this, function() {
-			try {
-				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
-				return meta_window.get_compositor_private();
-			} catch (e) {
-				// not implemented for some special windows - ignore them
-				this.log.warn("couldn't call get_compositor_private for window " + meta_window, e);
-				if(meta_window.get_compositor_private) {
-					this.log.error("But the function exists! aborting...");
-					throw(e);
-				}
+		this._with_window_actor(meta_window, Lang.bind(this, function(actor) {
+			if (meta_window.get_workspace() != this.meta_workspace) {
+				return;
 			}
-			return null;
-		});
-		let actor = get_actor();
-		if (!actor) {
-			// Newly-created windows are added to a workspace before
-			// the compositor finds out about them...
-			Mainloop.idle_add(Lang.bind(this, function () {
-				if (get_actor() && meta_window.get_workspace() == this.meta_workspace) {
-					this.on_window_create(workspace, meta_window);
-				}
-				return false;
-			}));
-			return;
-		}
 
-		if (!this.is_on_main_screen(meta_window)) {
-			this.log.debug("not on main"); // NOCOMMIT
-			return;
-		}
+			if (!this.is_on_main_screen(meta_window)) {
+				return;
+			}
 
-		var win = this.extension.get_window(meta_window);
-		if(!win.can_be_tiled()) {
-			this.log.debug("can't be tiled"); // NOCOMMIT
-			return;
-		}
+			var win = this.extension.get_window(meta_window);
+			if(!win.can_be_tiled()) {
+				return;
+			}
 
-		this.log.debug("on_window_create for " + win);
-		var added = this.layout.add(win, this.extension.focus_window);
-		if (!added) {
-			this.log.debug("window not added to layout (probably a duplicate)");
-			return;
-		}
+			this.log.debug("on_window_create for " + win);
+			var added = this.layout.add(win, this.extension.focus_window);
+			if (!added) {
+				this.log.debug("window not added to layout (probably a duplicate)");
+				return;
+			}
 
-		if (win.workspace_signals) {
-			this.log.error("win.workspace_signals is already defined");
-			this.disconnect_workspace_signals(win);
-		}
-		win.workspace_signals = [];
+			this._attach_window_signals(win, actor);
 
-		let bind_to_window_change = Lang.bind(this, function(event_name, relevant_grabs, cb) {
-			// we only care about events *after* at least one relevant grab_op,
-			var self = this;
-			let signal_handler = this._grab_op_signal_handler({}, relevant_grabs, function() {
-				if (self.screen.count > 1) {
-					self.check_all_windows();
-				}
-				cb(win);
-			});
-			win.workspace_signals.push([actor, actor.connect(event_name + '-changed', signal_handler)]);
-		});
+			let tile_pref = win.tile_preference;
+			let should_auto_tile;
 
-		bind_to_window_change('position', move_ops,     Lang.bind(this, this.on_window_moved, win));
-		bind_to_window_change('size',     resize_ops,   Lang.bind(this, this.on_window_resized, win));
-		win.workspace_signals.push([meta_window, meta_window.connect('notify::minimized', Lang.bind(this, this.on_window_minimize_changed))]);
-
-		let tile_pref = win.tile_preference;
-		let should_auto_tile;
-
-		if(tile_pref === null) {
-			should_auto_tile = win.should_auto_tile();
-		} else {
-			// if the window has a tiling preference (given by a previous user tile/untile action),
-			// that overrides the default should_auto_tile logic
-			this.log.debug("window has a tile preference, and it is " + String(tile_pref));
-			should_auto_tile = tile_pref;
-		}
-		if(should_auto_tile && this.has_tile_space_left()) {
-			this.layout.tile(win);
-		}
+			if(tile_pref === null) {
+				should_auto_tile = win.should_auto_tile();
+			} else {
+				// if the window has a tiling preference (given by a previous user tile/untile action),
+				// that overrides the default should_auto_tile logic
+				this.log.debug("window has a tile preference, and it is " + String(tile_pref));
+				should_auto_tile = tile_pref;
+			}
+			if(should_auto_tile && this.has_tile_space_left()) {
+				this.layout.tile(win);
+			}
+		}));
 	})),
 
 	has_tile_space_left: function() {
@@ -324,6 +359,7 @@ Workspace.prototype = {
 	},
 
 	disconnect_workspace_signals: function(win) {
+		win = this._ensure_shellshape_window(win);
 		if(win.workspace_signals) {
 			this.log.debug("Disconnecting " + win.workspace_signals.length + " workspace-managed signals from window");
 			win.workspace_signals.map(Lang.bind(this, function(signal) {
@@ -337,7 +373,7 @@ Workspace.prototype = {
 	on_window_remove: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
 		let win = this.extension.get_window(meta_window);
 		this.log.debug("on_window_remove for " + win + " (" + this +")");
-		this.disconnect_workspace_signals(meta_window);
+		this.disconnect_workspace_signals(win);
 		this.layout.on_window_killed(win);
 		this.extension.remove_window(win);
 	})),
