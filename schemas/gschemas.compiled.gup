@@ -1,7 +1,6 @@
-set -eux
-exec >&2
+#!bash -eux
 mkdir -p compiled
-redo-ifchange inputs
+gup -u inputs
 glib-compile-schemas . --targetdir="compiled"
-mv compiled/gschemas.compiled "$3"
+mv compiled/gschemas.compiled "$1"
 rm -rf compiled
