@@ -236,7 +236,7 @@ GPLv3
 			</runner>
 		</command>
 		<requires interface="http://gfxmonk.net/dist/0install/gnome-shell.xml">
-			<version not-before="3.10"/>
+			<version not-before="3.4"/>
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
