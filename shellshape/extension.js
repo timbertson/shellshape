@@ -43,6 +43,7 @@ const Ext = function Ext() {
 	self.windows = {};
 	self.dead_windows = [];
 	self.bounds = {};
+	self._bound_keybindings = {};
 
 	self.log = Log.getLogger("shellshape.extension");
 	self.prefs = new ShellshapeSettings.Prefs();
@@ -343,6 +344,9 @@ const Ext = function Ext() {
 
 		// Utility method that binds a callback to a named keypress-action.
 		function handle(name, func) {
+			if (self._bound_keybindings.hasOwnProperty(name)) {
+				throw new Error("keybinding " + name + " is already bound!");
+			}
 			self._bound_keybindings[name] = true;
 			var added;
 			var handler = function() { self._do(func, "handler for binding " + name); };
@@ -528,7 +532,6 @@ const Ext = function Ext() {
 	self._reset_state = function() {
 		self.enabled = false;
 		// reset stateful variables
-		self._bound_keybindings = {};
 	};
 
 	var Screen = function() {
@@ -621,6 +624,7 @@ const Ext = function Ext() {
 				} else {
 					display.remove_keybinding(k);
 				}
+				delete self._bound_keybindings[k];
 			}, desc);
 		}
 	};
