@@ -35,15 +35,6 @@ const LAYOUTS = {
 const Ext = function Ext() {
 	let self = this;
 	self.enabled = false;
-
-	// These _should_ be reset on enable/disable, but we have to persist
-	// them forever to recover from shellshape being disabled during
-	// the lockscreen.
-	self.workspaces = {};
-	self.windows = {};
-	self.dead_windows = [];
-	self.bounds = {};
-
 	self.log = Log.getLogger("shellshape.extension");
 	self.prefs = new ShellshapeSettings.Prefs();
 	ShellshapeSettings.initTranslations();
@@ -124,10 +115,10 @@ const Ext = function Ext() {
 
 	// Remove a workspace from the extension's cache.  Disable it first.
 	self.remove_workspace = function(meta_workspace) {
-		self.log.debug("removing workspace...");
+		self.log.debug("disabling workspace...");
 		var ws = self.workspaces[meta_workspace];
 		if(ws != null) {
-			self._do(function() {ws.destroy();}, 'remove workspace');
+			self._do(function() {ws._disable();}, 'disable workspace');
 			delete self.workspaces[meta_workspace];
 		}
 	};
@@ -528,6 +519,10 @@ const Ext = function Ext() {
 	self._reset_state = function() {
 		self.enabled = false;
 		// reset stateful variables
+		self.workspaces = {};
+		self.windows = {};
+		self.dead_windows = [];
+		self.bounds = {};
 		self._bound_keybindings = {};
 	};
 
@@ -569,7 +564,6 @@ const Ext = function Ext() {
 		self._do(self._init_keybindings, "init keybindings");
 		self._do(self._init_overview, "init overview ducking");
 		self._do(self._init_indicator, "init indicator");
-		self._do(self._enable_workspaces, "enable workspaces");
 		self._do(self._init_workspaces, "init workspaces");
 		self.log.info("shellshape enabled");
 	};
@@ -638,30 +632,12 @@ const Ext = function Ext() {
 		delete owner._bound_signals;
 	};
 
-	// Disconnects signals from all workspaces. Leaves `self.workspaces`
-	// so we can re-enable them in self._enable_workspaces
-	self._disable_workspaces = function() {
+	// Disconnects from *all* workspaces.  Disables and removes
+	// them from our cache
+	self._disconnect_workspaces = function() {
 		for (var k in self.workspaces) {
 			if (self.workspaces.hasOwnProperty(k)) {
-				self.workspaces[k].disable();
-			}
-		}
-	};
-
-	// Re-activate all stored (and still valid) workspaces.
-	self._enable_workspaces = function() {
-		for (var k in self.workspaces) {
-			if (self.workspaces.hasOwnProperty(k)) {
-				var ws = self.workspaces[k];
-				var meta_ws = global.screen.get_workspace_by_index(ws.workspace_idx);
-				if (ws.meta_workspace !== meta_ws) {
-					self.log.info("removing stale workspace " + ws.workspace_idx);
-					self.remove_workspace(ws.meta_workspace);
-				} else {
-					// reenable workspace. This will perform a window membership check,
-					// and update its state with all added/removed windows
-					ws.enable();
-				}
+				self.remove_workspace(k);
 			}
 		}
 	};
@@ -670,7 +646,7 @@ const Ext = function Ext() {
 	self.disable = function() {
 		self.log.info("shellshape disable() called");
 		self._do(function() { ShellshapeIndicator.disable();}, "disable indicator");
-		self._do(self._disable_workspaces, "disable workspaces");
+		self._do(self._disconnect_workspaces, "disable workspaces");
 		self._do(self._unbind_keys, "unbind keys");
 		self._do(function() { self.disconnect_tracked_signals(self); }, "disconnect signals");
 		self._reset_state();
