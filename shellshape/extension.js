@@ -611,7 +611,7 @@ const Ext = function Ext() {
 	// see: https://bugzilla.gnome.org/show_bug.cgi?id=666513
 	self._unbind_keys = function() {
 		var display = self.current_display();
-		for (k in self._bound_keybindings) {
+		for (var k in self._bound_keybindings) {
 			if(!self._bound_keybindings.hasOwnProperty(k)) continue;
 			var desc = "unbinding key " + k;
 			self._do(function() {
