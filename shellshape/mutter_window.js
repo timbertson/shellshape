@@ -23,7 +23,6 @@ Window.blacklist_classes = [
 
 Window.prototype = {
 	_init: function(meta_window, ext) {
-		this._windowTracker = Shell.WindowTracker.get_default();
 		this.meta_window = meta_window;
 		this.ext = ext;
 		this.log = Log.getLogger("shellshape.window");
@@ -112,7 +111,7 @@ Window.prototype = {
 			!(this.floating_window() || this.on_all_workspaces());
 	}
 	,can_be_tiled: function() {
-		if(!this._windowTracker.is_window_interesting(this.meta_window)) {
+		if (this.meta_window.skip_taskbar) {
 			// this.log.debug("uninteresting window: " + this);
 			return false;
 		}
