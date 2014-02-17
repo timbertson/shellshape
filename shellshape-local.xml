@@ -11,14 +11,25 @@ This software is in-development. I use it daily, but it might break stuff. Use a
 
 I must thank [bluetile][bluetile], for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).
 
-## Running it on gnome-shell 3.4+
+## Running it
 
-Briefly, `0launch http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0launch`, you should install the `zeroinstall-injector` package first.
+Briefly, `0install run http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0install`, you should install the `zeroinstall-injector` package first.
 For more details, please see instructions on &lt;http://gfxmonk.net/shellshape/&gt;
 
-To run your own checkout, you should be able to clone this repo and run `0launch shellshape-local.xml`. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:
+You can also install it from [the official gnome shell extensions site](https://extensions.gnome.org/extension/294/shellshape/).
+This may lag (sometimes months) behind the development release, as they perform manual approval of all updates.
 
-	ln -s &quot;$PWD/shellshape&quot; &quot;~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net&quot;
+### Running a local version
+
+To run your own checkout, you should be able to clone this repo and run `0install run shellshape-local.xml`.
+
+As of gnome-shell 3.4.1, you can also / instead install the development version locally. You will need to:
+
+ - build it (`./tools/gup compile`. You _may_ be able to get by with just `make -C schemas`)
+ - copy (or symlink) `./shellshape/` to `~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net`
+ - copy or merge the contents of `glib-2.0` and `icons` within the `./xdg/data/` directory the the appropriate location, typically either `~/.local/share/` or `/usr/lib/`.
+
+Manual install is *not* recommended, it should be a last resort for those who cannot use other methods. There are no manual uninstallation instructions.
 
 ## Running it on gnome-shell 3.2*
 
@@ -32,10 +43,10 @@ You may want to try [this user-maintained package](https://aur.archlinux.org/pac
 
 If you don't know why, here's some things to check:
 
-	- Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of `gnome-tweak-tool`)
-	- See if there are any errors in looking glass that mention shellshape (press alt-F2, type &quot;`lg`&quot; and then click the &quot;Errors&quot; tab)
-	- Check the console output (if running in a console) for any messages that mention shellshape
-	- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all
+ - Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of `gnome-tweak-tool`)
+ - See if there are any errors in looking glass that mention shellshape (press alt-F2, type &quot;`lg`&quot; and then click the &quot;Errors&quot; tab)
+ - Check the console output (if running in a console) for any messages that mention shellshape
+ - Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all
 
 To report a bug or crash, please see the [github issues page](https://github.com/gfxmonk/shellshape/issues).
 
@@ -67,7 +78,7 @@ The core layout stuff is in `tiling.coffee`. This should run in both the shell a
 ## Debugging
 If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/shellshape.log`. You can set values other than `all` if you want to debug on specific topics (available topics include `extension`, `indicator`, `tiling`, `workspace` and `window`) - they should be set as a comma-delimited string, e.g `SHELLSHAPE_DEBUG=workspace,tiling`.
 
-**Note** debugging like this won't work unless you run using `0launch`.
+**Note** debugging like this won't work unless you run using `0install`.
 
 ## Licence
 GPLv3
@@ -119,20 +130,30 @@ GPLv3
 			<p>A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.</p>
 			<p>This software is in-development. I use it daily, but it might break stuff. Use at your own risk. Multiple monitor support is not really present, and doing fancy things like &quot;always on top&quot; windows may or may not break it.</p>
 			<p>I must thank <a href="http://bluetile.org/">bluetile</a>, for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).</p>
-			<h2 id="running-it-on-gnome-shell-3.4">Running it on gnome-shell 3.4+</h2>
-			<p>Briefly, <code>0launch http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0launch</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/">http://gfxmonk.net/shellshape/</a></p>
-			<p>To run your own checkout, you should be able to clone this repo and run <code>0launch shellshape-local.xml</code>. As of gnome-shell 3.4.1, you can also / instead install the development version locally. In the root of the repo, run:</p>
-			<pre><code>ln -s &quot;$PWD/shellshape&quot; &quot;~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net&quot;</code></pre>
+			<h2 id="running-it">Running it</h2>
+			<p>Briefly, <code>0install run http://gfxmonk.net/dist/0install/shellshape.xml</code>. If you don't have <code>0install</code>, you should install the <code>zeroinstall-injector</code> package first. For more details, please see instructions on <a href="http://gfxmonk.net/shellshape/">http://gfxmonk.net/shellshape/</a></p>
+			<p>You can also install it from <a href="https://extensions.gnome.org/extension/294/shellshape/">the official gnome shell extensions site</a>. This may lag (sometimes months) behind the development release, as they perform manual approval of all updates.</p>
+			<h3 id="running-a-local-version">Running a local version</h3>
+			<p>To run your own checkout, you should be able to clone this repo and run <code>0install run shellshape-local.xml</code>.</p>
+			<p>As of gnome-shell 3.4.1, you can also / instead install the development version locally. You will need to:</p>
+			<ul>
+				<li>build it (<code>./tools/gup compile</code>. You <em>may</em> be able to get by with just <code>make -C schemas</code>)</li>
+				<li>copy (or symlink) <code>./shellshape/</code> to <code>~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net</code></li>
+				<li>copy or merge the contents of <code>glib-2.0</code> and <code>icons</code> within the <code>./xdg/data/</code> directory the the appropriate location, typically either <code>~/.local/share/</code> or <code>/usr/lib/</code>.</li>
+			</ul>
+			<p>Manual install is <em>not</em> recommended, it should be a last resort for those who cannot use other methods. There are no manual uninstallation instructions.</p>
 			<h2 id="running-it-on-gnome-shell-3.2">Running it on gnome-shell 3.2*</h2>
 			<p>Is hard, error-prone, and no longer supported. Sorry!</p>
 			<h2 id="running-on-arch-linux">running on arch linux</h2>
 			<p>You may want to try <a href="https://aur.archlinux.org/packages.php?ID=50257">this user-maintained package</a> if the normal method doesn't work for you, but I have no idea what it will do to your system.</p>
 			<h2 id="it-doesnt-work">&quot;It doesn't work&quot;</h2>
 			<p>If you don't know why, here's some things to check:</p>
-			<pre><code>- Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of `gnome-tweak-tool`)
-- See if there are any errors in looking glass that mention shellshape (press alt-F2, type &quot;`lg`&quot; and then click the &quot;Errors&quot; tab)
-- Check the console output (if running in a console) for any messages that mention shellshape
-- Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all</code></pre>
+			<ul>
+				<li>Check the extension is enabled (you can see this in the &quot;Shell Extensions&quot; section of <code>gnome-tweak-tool</code>)</li>
+				<li>See if there are any errors in looking glass that mention shellshape (press alt-F2, type &quot;<code>lg</code>&quot; and then click the &quot;Errors&quot; tab)</li>
+				<li>Check the console output (if running in a console) for any messages that mention shellshape</li>
+				<li>Check /tmp/shellshape.log after launching with $SHELLSHAPE_DEBUG=all</li>
+			</ul>
 			<p>To report a bug or crash, please see the <a href="https://github.com/gfxmonk/shellshape/issues">github issues page</a>.</p>
 			<h2 id="replace-gnome-shell">Replace gnome-shell</h2>
 			<p>If you symlink the provided <code>gnome-shell.desktop</code> file to <code>~/.local/share/applications/</code>, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.</p>
@@ -154,7 +175,7 @@ GPLv3
 			<p>The core layout stuff is in <code>tiling.coffee</code>. This should run in both the shell and in the web browser (see <code>interactive/index.html</code>; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for <code>tiling.js</code>, it is generated from <code>tiling.coffee</code>).</p>
 			<h2 id="debugging">Debugging</h2>
 			<p>If you export <code>SHELLSHAPE_DEBUG=all</code>, you will get a debug log written to <code>/tmp/shellshape.log</code>. You can set values other than <code>all</code> if you want to debug on specific topics (available topics include <code>extension</code>, <code>indicator</code>, <code>tiling</code>, <code>workspace</code> and <code>window</code>) - they should be set as a comma-delimited string, e.g <code>SHELLSHAPE_DEBUG=workspace,tiling</code>.</p>
-			<p><strong>Note</strong> debugging like this won't work unless you run using <code>0launch</code>.</p>
+			<p><strong>Note</strong> debugging like this won't work unless you run using <code>0install</code>.</p>
 			<h2 id="licence">Licence</h2>
 			<p>GPLv3</p>
 			<h2 id="changelog">Changelog</h2>
@@ -169,7 +190,7 @@ GPLv3
 			<h3 id="version-0.6">version 0.6</h3>
 			<ul>
 				<li>Support for gnome-shell 3.8</li>
-				<li>Support for localisation (plus german translation) thanks to @jonnius</li>
+				<li>Support for localisation (plus german translation) thanks to <span class="citation">@jonnius</span></li>
 			</ul>
 			<h3 id="version-0.5.4">version 0.5.4</h3>
 			<ul>
@@ -218,5 +239,5 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
-	<implementation id="." version="0.7.0-post"/></group>
+	<implementation id="." version="0.8.0-post"/></group>
 </interface>
