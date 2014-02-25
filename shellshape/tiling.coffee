@@ -385,6 +385,7 @@ class MultiSplit extends BaseSplit
 
 class BaseLayout
 	padding: 0
+
 	constructor: (state) ->
 		@state = state
 		@tiles = state.tiles

@@ -156,6 +156,39 @@ function buildPrefsWidget() {
 		});
 	})();
 
+	//screenpadding
+	(function() {
+		let hbox = new Gtk.Box({
+			orientation: Gtk.Orientation.HORIZONTAL,
+			spacing: 20
+		});
+
+		let label = new Gtk.Label({ label: _("Padding around screen edge (px)") });
+		let adjustment = new Gtk.Adjustment({
+			lower: 0,
+			upper: 20,
+			step_increment: 1
+		});
+		let scale = new Gtk.HScale({
+			digits:0,
+			adjustment: adjustment,
+			value_pos: Gtk.PositionType.RIGHT
+		});
+
+		hbox.add(label);
+		hbox.pack_end(scale, true, true, 0);
+		vbox.add(hbox);
+
+		var pref = config.SCREEN_PADDING;
+		scale.set_value(pref.get());
+		scale.connect('value-changed', function(sw) {
+			var oldval = pref.get();
+			var newval = sw.get_value();
+			if (newval != pref.get()) {
+				pref.set(newval);
+			}
+		});
+	})();
 
 
 	let label = new Gtk.HSeparator();

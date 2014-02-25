@@ -1,0 +1,70 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-05-17 19:18+0200\n"
+"PO-Revision-Date: 2014-02-20 10:45+0100\n"
+"Last-Translator: Julien Humbert <julroy67@gmail.com>\n"
+"Language-Team: French <julroy67@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.6.4\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Language: fr\n"
+
+#: prefs.js:49
+msgid "<b>Tiling:</b>"
+msgstr "<b>Tiling :</b>"
+
+#: prefs.js:61
+msgid "Maximum number of windows to auto-tile:"
+msgstr "Nombre maximum de fenêtres à placer en tuiles automatiquement :"
+
+#: prefs.js:96
+msgid "Default layout:"
+msgstr "Disposition par défaut :"
+
+#: prefs.js:96
+msgid ""
+"NOTE: only affects newly-created workspaces,\n"
+"restart the shell to apply globally."
+msgstr ""
+"NOTE : cela n'affecte que les nouveaux espaces de travail,\n"
+"redémmarez le shell pour appliquer globalement."
+
+#: prefs.js:103
+msgid "Floating"
+msgstr "Flottantes"
+
+#: prefs.js:104
+msgid "Vertical"
+msgstr "Verticales"
+
+#: prefs.js:105
+msgid "Horizontal"
+msgstr "Horizontales"
+
+#: prefs.js:145
+msgid "Padding between tiles (px)"
+msgstr "Marges entre les tuiles (px)"
+
+#: prefs.js:178
+msgid "<b>Advanced settings:</b>"
+msgstr "<b>Paramètres avancés :</b>"
+
+#: prefs.js:190
+msgid "Edit keyboard settings"
+msgstr "Modifier les paramètres du clavier"
+
+#: prefs.js:191
+msgid "(make sure you have dconf-editor installed)"
+msgstr "(assurez-vous que dconf-editor soit installé)"
+
+#: prefs.js:192
+msgid "Navigate to"
+msgstr "Naviguer vers"
+
+#: prefs.js:204
+msgid "ERROR: Could not launch dconf-editor. Is it installed?"
+msgstr "ERREUR : Impossible de lancer dconf-editor. Est-il installé ?"
