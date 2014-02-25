@@ -897,18 +897,7 @@ class TiledWindow
 
 	maximized_rect: () ->
 		return null unless @maximized
-		bounds = @bounds
-		border = 20
-		return {
-			pos: {
-				x: bounds.pos.x + border,
-				y: bounds.pos.y + border
-			},
-			size: {
-				x: bounds.size.x - border * 2,
-				y: bounds.size.y - border * 2
-			}
-		}
+		return Tile.shrink(@bounds, 20)
 	
 	scale_by: (amount, axis) ->
 		window_rect = @window_rect()
