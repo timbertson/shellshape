@@ -504,7 +504,7 @@ const Ext = function Ext() {
 
 		// screenpadding
 		(function() {
-			let pref = self.prefs.SCREENPADDING;
+			let pref = self.prefs.SCREEN_PADDING;
 			let update = function() {
 				let val = pref.get();
 				self.log.debug("setting screenpadding to " + val);
@@ -557,12 +557,12 @@ const Ext = function Ext() {
 		if (!this.monitor) throw new Error("monitor not yet set");
 		let panel_height = Main.panel.actor.height;
 		this.pos = {
-			x: this.monitor.x + (2 * self.prefs.SCREENPADDING.get()),
-			y: this.monitor.y + panel_height + (2 * self.prefs.SCREENPADDING.get())
+			x: this.monitor.x + (2 * self.prefs.SCREEN_PADDING.get()),
+			y: this.monitor.y + panel_height + (2 * self.prefs.SCREEN_PADDING.get())
 		};
 		this.size = {
-			x: this.monitor.width - (4 * self.prefs.SCREENPADDING.get()),
-			y: this.monitor.height - panel_height - (4 * self.prefs.SCREENPADDING.get())
+			x: this.monitor.width - (4 * self.prefs.SCREEN_PADDING.get()),
+			y: this.monitor.height - panel_height - (4 * self.prefs.SCREEN_PADDING.get())
 		};
 	};
 

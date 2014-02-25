@@ -599,8 +599,6 @@ BaseLayout = (function() {
 
   BaseLayout.prototype.padding = 0;
 
-  BaseLayout.prototype.screenpadding = 0;
-
   function BaseLayout(state) {
     this.state = state;
     this.tiles = state.tiles;

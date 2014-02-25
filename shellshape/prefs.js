@@ -163,7 +163,7 @@ function buildPrefsWidget() {
 			spacing: 20
 		});
 
-		let label = new Gtk.Label({ label: _("Padding between screenedge (px)") });
+		let label = new Gtk.Label({ label: _("Padding around screen edge (px)") });
 		let adjustment = new Gtk.Adjustment({
 			lower: 0,
 			upper: 20,
@@ -179,7 +179,7 @@ function buildPrefsWidget() {
 		hbox.pack_end(scale, true, true, 0);
 		vbox.add(hbox);
 
-		var pref = config.SCREENPADDING;
+		var pref = config.SCREEN_PADDING;
 		scale.set_value(pref.get());
 		scale.connect('value-changed', function(sw) {
 			var oldval = pref.get();

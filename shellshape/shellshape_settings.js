@@ -113,7 +113,7 @@ function Prefs() {
 		get: function() { return settings.get_int(this.key); },
 		set: function(v) { settings.set_int(this.key, v); },
 	};
-	this.SCREENPADDING = {
+	this.SCREEN_PADDING = {
 		key: 'screen-padding',
 		gsettings: settings,
 		get: function() { return settings.get_int(this.key); },
