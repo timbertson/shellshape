@@ -38,6 +38,7 @@ const Ext = function Ext() {
 	self.log = Log.getLogger("shellshape.extension");
 	self.prefs = new ShellshapeSettings.Prefs();
 	ShellshapeSettings.initTranslations();
+	self.screen_padding = 0;
 
 	/* -------------------------------------------------------------
 	 *                 Utility functions
@@ -502,13 +503,15 @@ const Ext = function Ext() {
 			update();
 		})();
 
-		// screenpadding
+		// screen padding
 		(function() {
 			let pref = self.prefs.SCREEN_PADDING;
 			let update = function() {
 				let val = pref.get();
-				self.log.debug("setting screenpadding to " + val);
-				Tiling.BaseLayout.prototype.screenpadding = val;
+				self.log.debug("setting screen padding to " + val);
+				// TODO: this is 2* to maintain consistency with inter-window padding (which is applied twice).
+				// inter-window padding should be applied only once so that this isn't required.
+				self.screen_padding = 2*val;
 				self.current_workspace().relayout();
 			};
 			self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
@@ -557,12 +560,12 @@ const Ext = function Ext() {
 		if (!this.monitor) throw new Error("monitor not yet set");
 		let panel_height = Main.panel.actor.height;
 		this.pos = {
-			x: this.monitor.x + (2 * self.prefs.SCREEN_PADDING.get()),
-			y: this.monitor.y + panel_height + (2 * self.prefs.SCREEN_PADDING.get())
+			x: this.monitor.x + self.screen_padding,
+			y: this.monitor.y + panel_height + self.screen_padding
 		};
 		this.size = {
-			x: this.monitor.width - (4 * self.prefs.SCREEN_PADDING.get()),
-			y: this.monitor.height - panel_height - (4 * self.prefs.SCREEN_PADDING.get())
+			x: this.monitor.width - (2 * self.screen_padding),
+			y: this.monitor.height - panel_height - (2 * self.screen_padding)
 		};
 	};
 
