@@ -79,6 +79,10 @@ GPLv3
 
 ## Changelog
 
+### version 0.8
+ - Preliminary support for multiple monitors
+ - Update screen bounds every time we do a layout
+
 ### version 0.7
  - API changes for gnome-shell 3.10.
    This makes 0.7 incompatible with anything before 3.10.
