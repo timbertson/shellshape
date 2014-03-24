@@ -189,25 +189,36 @@ Workspace.prototype = {
 	},
 
 	_grab_op_signal_handler : function(change, relevant_grabs, cb) {
-		var handler = Lang.bind(this, function() {
-			let grab_op = global.screen.get_display().get_grab_op();
-			if(relevant_grabs.indexOf(grab_op) != -1) {
-				//wait for the operation to end...
-				change.pending = true;
-				Mainloop.idle_add(handler);
-			} else {
-				let change_happened = change.pending;
-				// it's critical that this flag be reset before cb() happens, otherwise the
-				// callback will (frequently) trigger a stream of feedback events.
-				change.pending = false;
-				if(grab_op == Meta.GrabOp.NONE && change_happened) {
-					this.log.debug("change event completed");
-					cb.call(this);
+		// grab_ops occur continually throughout the course of a move / resize.
+		// Unfortunately, there's no grab_op "end" signal. So on the first
+		// grab_op we set change.pending, and keep triggering checks
+		// (at the next available idle point) until the grab_op is over.
+		var _handler = function(idle) {
+			return Lang.bind(this, function() {
+				let grab_op = global.screen.get_display().get_grab_op();
+				if(relevant_grabs.indexOf(grab_op) != -1) {
+					//wait for the operation to end...
+					if(idle || !change.pending) {
+						Mainloop.idle_add(idle_handler);
+					}
+					change.pending = true;
+				} else {
+					let change_happened = change.pending;
+					// it's critical that this flag be reset before cb() happens, otherwise the
+					// callback will (frequently) trigger a stream of feedback events.
+					change.pending = false;
+					if(grab_op == Meta.GrabOp.NONE && change_happened) {
+						this.log.debug("change event completed");
+						cb.call(this);
+					}
 				}
-			}
-			return false;
-		});
-		return handler;
+				return false;
+			})
+		};
+
+		var op_handler = _handler.call(this, false);
+		var idle_handler = _handler.call(this, true);
+		return op_handler;
 	},
 
 	_duck_grab_op: function(cb) {
