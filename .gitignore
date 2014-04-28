@@ -6,3 +6,4 @@ video
 *.stamp
 /*-git/
 /gup
+/cruft

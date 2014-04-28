@@ -17,17 +17,13 @@ This may lag (sometimes months) behind the development release, as they perform 
 
 To run your own checkout, you should be able to clone this repo and run `0install run shellshape-local.xml`.
 
-As of gnome-shell 3.4.1, you can also / instead install the development version locally. You will need to:
+To compile stuff (if you change things), run `make` or `tools/gup`.
 
- - build it (`make`. You _may_ be able to get by with just `make -C schemas`)
- - copy (or symlink) `./shellshape/` to `~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net`
- - copy or merge the contents of `glib-2.0` and `icons` within the `./xdg/data/` directory the the appropriate location, typically either `~/.local/share/` or `/usr/lib/`.
+If you don't want to (or can't) use 0install, you can instead install the development version locally (using a symlink in ~/.local/share/gnome-shell/extensions):
 
-Manual install is *not* recommended, it should be a last resort for those who cannot use other methods. There are no manual uninstallation instructions.
+    make dev-install
 
-## Running it on gnome-shell 3.2*
-
-Is hard, error-prone, and no longer supported. Sorry!
+If you're shy about that and want to see what it does, take a peek in `dev-install.gup`.
 
 ## running on arch linux
 
