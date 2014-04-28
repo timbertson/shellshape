@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Gup build tool
-# VERSION: 0.1
+# VERSION: 0.3.0
 # Copyright (C) 2013  Tim Cuthbertson, Avery Pennarun
 #
 # This library is free software; you can redistribute it and/or
@@ -18,6 +18,40 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from __future__ import print_function
+## --- var.py --- ##
+import os, sys
+import time
+
+IS_WINDOWS = sys.platform.startswith('win')
+
+PY3 = sys.version_info >= (3,0)
+
+INDENT = os.environ.get('GUP_INDENT', '')
+os.environ['GUP_INDENT'] = INDENT + '  '
+
+def init_root(is_root):
+	global IS_ROOT, ROOT_CWD, RUN_ID
+	IS_ROOT = is_root
+	if is_root:
+		RUN_ID = os.environ['GUP_RUNID'] = str(int(time.time() * 1000))
+		ROOT_CWD = os.environ['GUP_ROOT'] = os.getcwd()
+	else:
+		ROOT_CWD = os.environ['GUP_ROOT']
+		assert 'GUP_RUNID' in os.environ, "GUP_ROOT is set (to %s), but not GUP_RUNID" % (ROOT_CWD)
+		RUN_ID = os.environ['GUP_RUNID']
+
+init_root('GUP_ROOT' not in os.environ)
+
+XTRACE = os.environ.get('GUP_XTRACE', '0') == '1'
+def set_trace():
+	global XTRACE
+	XTRACE = True
+	os.environ['GUP_XTRACE'] = '1'
+
+DEFAULT_VERBOSITY = int(os.environ.get('GUP_VERBOSE', '0'))
+def set_verbosity(val):
+	os.environ['GUP_VERBOSE'] = str(val)
+
 ## --- log.py --- ##
 import os, sys
 import logging
@@ -31,6 +65,7 @@ PLAIN  = ""
 _log_want_color = os.environ.get('GUP_COLOR', 'auto')
 if _log_want_color == '1' or (
 			_log_want_color == 'auto' and
+			not IS_WINDOWS and
 			sys.stderr.isatty() and
 			(os.environ.get('TERM') or 'dumb') != 'dumb'
 		):
@@ -72,37 +107,8 @@ def getLogger(*a):
 
 
 
-## --- var.py --- ##
-import os, sys
-import time
-
-IS_WINDOWS = sys.platform.startswith('win')
-
-INDENT = os.environ.get('GUP_INDENT', '')
-os.environ['GUP_INDENT'] = INDENT + '  '
-
-def init_root(is_root):
-	global IS_ROOT, ROOT_CWD, RUN_ID
-	IS_ROOT = is_root
-	if is_root:
-		RUN_ID = os.environ['GUP_RUNID'] = str(int(time.time() * 1000))
-		ROOT_CWD = os.environ['GUP_ROOT'] = os.getcwd()
-	else:
-		ROOT_CWD = os.environ['GUP_ROOT']
-		assert 'GUP_RUNID' in os.environ, "GUP_ROOT is set (to %s), but not GUP_RUNID" % (ROOT_CWD)
-		RUN_ID = os.environ['GUP_RUNID']
-
-init_root('GUP_ROOT' not in os.environ)
-
-XTRACE = os.environ.get('GUP_XTRACE', '0') == '1'
-def set_trace():
-	global XTRACE
-	XTRACE = True
-	os.environ['GUP_XTRACE'] = '1'
-
-DEFAULT_VERBOSITY = int(os.environ.get('GUP_VERBOSE', '0'))
-def set_verbosity(val):
-	os.environ['GUP_VERBOSE'] = str(val)
+## --- version.py --- ##
+VERSION = "0.3.0"
 
 ## --- error.py --- ##
 UNKNOWN_ERROR_CODE = 1
@@ -127,6 +133,7 @@ class Unbuildable(SafeError):
 import os
 import errno
 import logging
+import shutil
 
 
 def mkdirp(p):
@@ -140,18 +147,31 @@ def get_mtime(path):
 	Note: we return a microsecond int as this serializes to / from strings better
 	'''
 	try:
-		return int(os.lstat(path).st_mtime * (10 ** 6))
+		return int(os.lstat(path).st_mtime * (10 ** 3))
 	except OSError as e:
 		if e.errno == errno.ENOENT:
 			return None
 		raise e
 
 def try_remove(path):
-	'''Remove a file. Ignore if it doesn't exist'''
+	'''
+	Remove a file or directory (including contents).
+	Ignore if it doesn't exist.
+	'''
 	try:
 		os.remove(path)
 	except OSError as e:
-		if e.errno != errno.ENOENT: raise
+		if e.errno == errno.ENOENT:
+			pass
+		elif e.errno == errno.EISDIR or (
+			# Windows gives EACCES when you try to unlink a directory,
+			# because ERROR_DIRECTORY_NOT_SUPPORTED ("An operation is
+			# not supported on a directory") might accidentally be useful.
+			IS_WINDOWS and e.errno == errno.EACCES and os.path.isdir(path)
+		):
+			shutil.rmtree(path)
+		else:
+			raise
 
 try:
 	samefile = os.path.samefile
@@ -171,119 +191,145 @@ else:
 	rename = os.rename
 
 ## --- parallel.py --- ##
+import tempfile
+
 _parallel_log = getLogger('gup.parallel')
+_parallel_debug = _parallel_log.trace
 
-try:
-	import fcntl
-except ImportError:
-	_parallel_log.debug("fcntl not available - falling back to serial execution mode")
-	jwack_fallback = True
-	def _setup_jobserver(maxjobs): pass
-	def _start_job(jobfunc, donefunc):
-		# execute immediately
-		jobfunc()
-		donefunc(0)
-	def _wait_all(): pass
-	def _extend_build_env(env): pass
+_parallel_jobserver = None
 
-	class NoopContext:
-		def __enter__(self): pass
-		def __exit__(self, type, value, traceback): pass
-	_noop_context = NoopContext()
+def _parallel_close_on_exec(fd, yes):
+	fl = fcntl.fcntl(fd, fcntl.F_GETFD)
+	fl &= ~fcntl.FD_CLOEXEC
+	if yes:
+		fl |= fcntl.FD_CLOEXEC
+	fcntl.fcntl(fd, fcntl.F_SETFD, fl)
 
-	class _Lock(object):
-		def __init__(self, name): pass
-		def read(self): return _noop_context
-		def write(self): return _noop_context
+def atoi(v):
+	try:
+		return int(v or 0)
+	except ValueError:
+		return 0
 
-	#XXX workaround for pychecker complaining
-	# about symbol redefinition even though they're
-	# in a separate if / else branch
-	globs = globals()
-	globs['setup_jobserver'] = _setup_jobserver
-	globs['start_job'] = _start_job
-	globs['wait_all'] = _wait_all
-	globs['extend_build_env'] = _extend_build_env
-	globs['Lock'] = _Lock
-else:
-	jwack_fallback = False
-	import os, errno, select, signal
+def _parallel_timeout(sig, frame):
+	pass
 
-	_toplevel = 0
-	_mytokens = 1
-	_fds = None
-	_waitfds = {}
-	_makeflags = None
+class SerialJobserver(object):
+	env = None
+	def __init__(self, toplevel):
+		if toplevel is not None:
+			self.env = {'GUP_JOBSERVER':'0'}
 
-
-	def _close_on_exec(fd, yes):
-		fl = fcntl.fcntl(fd, fcntl.F_GETFD)
-		fl &= ~fcntl.FD_CLOEXEC
-		if yes:
-			fl |= fcntl.FD_CLOEXEC
-		fcntl.fcntl(fd, fcntl.F_SETFD, fl)
-
-	def atoi(v):
-		try:
-			return int(v or 0)
-		except ValueError:
-			return 0
-
-
-	def _debug(s):
-		if 0:
-			import sys
-			sys.stderr.write('jwack#%d: %s\n' % (os.getpid(),s))
-
-
-	def _release(n):
-		global _mytokens
-		_debug('release(%d)' % n)
-		_mytokens += n
-		if _mytokens > 1:
-			os.write(_fds[1], 't' * (_mytokens-1))
-			_mytokens = 1
-
-
-	def _release_mine():
-		global _mytokens
-		assert(_mytokens >= 1)
-		os.write(_fds[1], 't')
-		_mytokens -= 1
-
-
-	def _timeout(sig, frame):
+	def wait_all(self):
 		pass
 
+	def start_job(self, jobfn, done):
+		jobfn()
+		done(0)
 
-	def _make_pipe(startfd):
-		(a,b) = os.pipe()
-		fds = (fcntl.fcntl(a, fcntl.F_DUPFD, startfd),
-				fcntl.fcntl(b, fcntl.F_DUPFD, startfd+1))
-		os.close(a)
-		os.close(b)
-		return fds
+class Job:
+	def __init__(self, name, pid, donefunc):
+		self.name = name
+		self.pid = pid
+		self.rv = None
+		self.donefunc = donefunc
 
+	def __repr__(self):
+		return 'Job(%s,%d)' % (self.name, self.pid)
 
-	def _try_read(fd, n):
+class FDJobserver(object):
+	env = None
+	def __init__(self, fds, toplevel):
+		self.toplevel = toplevel
+		self.tokens = 1
+		self.fds = fds
+		self.waitfds = {}
+		if toplevel is not None:
+			self._release(toplevel - 1)
+
+	def _release(self, n):
+		_parallel_debug('release(%d)' % n)
+		self.tokens += n
+		if self.tokens > 1:
+			os.write(self.fds[1], b't' * (self.tokens-1))
+			self.tokens = 1
+
+	def _release_mine(self):
+		assert(self.tokens >= 1)
+		os.write(self.fds[1], b't')
+		self.tokens -= 1
+
+	def wait(self, want_token):
+		rfds = list(self.waitfds.keys())
+		if want_token:
+			rfds.append(self.fds[0])
+		assert(rfds)
+		r,w,x = select.select(rfds, [], [])
+		_parallel_debug('self.fds=%r; wfds=%r; readable: %r' % (self.fds, self.waitfds, r))
+		for fd in r:
+			if self.fds and fd == self.fds[0]:
+				pass
+			else:
+				pd = self.waitfds[fd]
+				_parallel_debug("done: %r" % pd.name)
+				self._release(1)
+				os.close(fd)
+				del self.waitfds[fd]
+				rv = os.waitpid(pd.pid, 0)
+				assert(rv[0] == pd.pid)
+				_parallel_debug("done1: rv=%r" % (rv,))
+				rv = rv[1]
+				if os.WIFEXITED(rv):
+					pd.rv = os.WEXITSTATUS(rv)
+				else:
+					pd.rv = -os.WTERMSIG(rv)
+				_parallel_debug("done2: rv=%d" % pd.rv)
+				pd.donefunc(pd.rv)
+
+	def _get_token(self, reason):
+		"Ensure we have one token available."
+		assert(self.tokens <= 1)
+		while 1:
+			if self.tokens >= 1:
+				_parallel_debug("self.tokens is %d" % self.tokens)
+				assert(self.tokens == 1)
+				_parallel_debug('(%r) used my own token...' % reason)
+				break
+			assert(self.tokens < 1)
+			_parallel_debug('(%r) waiting for tokens...' % reason)
+			self.wait(want_token=1)
+			if self.tokens >= 1:
+				break
+			assert(self.tokens < 1)
+			b = self._try_read(1)
+			if b == None:
+				raise Exception('unexpected EOF on token read')
+			if b:
+				self.tokens += 1
+				_parallel_debug('(%r) got a token (%r).' % (reason, b))
+				break
+		assert(self.tokens <= 1)
+
+	def _try_read(self, n):
 		# using djb's suggested way of doing non-blocking reads from a blocking
 		# socket: http://cr.yp.to/unix/nonblock.html
 		# We can't just make the socket non-blocking, because we want to be
 		# compatible with GNU Make, and they can't handle it.
+		fd = self.fds[0]
 		r,w,x = select.select([fd], [], [], 0)
 		if not r:
-			return ''  # try again
+			return b''  # try again
 		# ok, the socket is readable - but some other process might get there
 		# first.  We have to set an alarm() in case our read() gets stuck.
-		oldh = signal.signal(signal.SIGALRM, _timeout)
+		oldh = signal.signal(signal.SIGALRM, _parallel_timeout)
 		try:
 			signal.alarm(1)  # emergency fallback
 			try:
-				b = os.read(_fds[0], 1)
-			except OSError, e:
+				b = os.read(fd, 1)
+			except OSError as e:
 				if e.errno in (errno.EAGAIN, errno.EINTR):
 					# interrupted or it was nonblocking
-					return ''  # try again
+					return b''  # try again
 				else:
 					raise
 		finally:
@@ -291,194 +337,32 @@ else:
 			signal.signal(signal.SIGALRM, oldh)
 		return b and b or None	# None means EOF
 
-
-	def extend_build_env(env):
-		if _makeflags:
-			_debug("setting MAKEFLAGS=%s" % (_makeflags,))
-			env['MAKEFLAGS'] = _makeflags
-		else:
-			_debug('extend_env: no MAKEFLAGS!')
-
-	def setup_jobserver(maxjobs):
-		"Start the job server"
-		global _fds, _toplevel, _makeflags
-		if _fds:
-			_debug("already set up")
-			return	# already set up
-		_debug('setup_jobserver(%d)' % maxjobs)
-		flags = ' ' + os.getenv('MAKEFLAGS', '') + ' '
-		FIND = ' --jobserver-fds='
-		ofs = flags.find(FIND)
-		if ofs >= 0:
-			s = flags[ofs+len(FIND):]
-			(arg,junk) = s.split(' ', 1)
-			(a,b) = arg.split(',', 1)
-			a = atoi(a)
-			b = atoi(b)
-			if a <= 0 or b <= 0:
-				raise ValueError('invalid --jobserver-fds: %r' % arg)
-			try:
-				fcntl.fcntl(a, fcntl.F_GETFL)
-				fcntl.fcntl(b, fcntl.F_GETFL)
-			except IOError, e:
-				if e.errno == errno.EBADF:
-					_parallel_log.debug("--jobserver-fds error (flags=%r, a=%r, b=%r)", flags, a, b, exc_info=True)
-					raise ValueError('broken --jobserver-fds from make; prefix your Makefile rule with a "+"')
-				else:
-					raise
-			_fds = (a,b)
-		if maxjobs and not _fds:
-			# need to start a new server
-			_debug("new jobserver! %s" % (maxjobs))
-			_toplevel = maxjobs
-			_fds = _make_pipe(100)
-			_release(maxjobs-1)
-			_makeflags = (
-				'%s --jobserver-fds=%d,%d -j'
-				% (os.getenv('MAKEFLAGS'), _fds[0], _fds[1]))
-
-
-	def wait(want_token):
-		rfds = _waitfds.keys()
-		if _fds and want_token:
-			rfds.append(_fds[0])
-		assert(rfds)
-		r,w,x = select.select(rfds, [], [])
-		_debug('_fds=%r; wfds=%r; readable: %r' % (_fds, _waitfds, r))
-		for fd in r:
-			if _fds and fd == _fds[0]:
-				pass
-			else:
-				pd = _waitfds[fd]
-				_debug("done: %r" % pd.name)
-				_release(1)
-				os.close(fd)
-				del _waitfds[fd]
-				rv = os.waitpid(pd.pid, 0)
-				assert(rv[0] == pd.pid)
-				_debug("done1: rv=%r" % (rv,))
-				rv = rv[1]
-				if os.WIFEXITED(rv):
-					pd.rv = os.WEXITSTATUS(rv)
-				else:
-					pd.rv = -os.WTERMSIG(rv)
-				_debug("done2: rv=%d" % pd.rv)
-				pd.donefunc(pd.rv)
-
-
-	def _has_token():
-		"Return True if we have one or more tokens available"
-		if _mytokens >= 1:
-			return True
-
-
-	def _get_token(reason):
-		"Ensure we have one token available."
-		global _mytokens
-		assert(_mytokens <= 1)
-		setup_jobserver(1)
-		while 1:
-			if _mytokens >= 1:
-				_debug("_mytokens is %d" % _mytokens)
-				assert(_mytokens == 1)
-				_debug('(%r) used my own token...' % reason)
-				break
-			assert(_mytokens < 1)
-			_debug('(%r) waiting for tokens...' % reason)
-			wait(want_token=1)
-			if _mytokens >= 1:
-				break
-			assert(_mytokens < 1)
-			if _fds:
-				b = _try_read(_fds[0], 1)
-				if b == None:
-					raise Exception('unexpected EOF on token read')
-				if b:
-					_mytokens += 1
-					_debug('(%r) got a token (%r).' % (reason, b))
-					break
-		assert(_mytokens <= 1)
-
-
-	def _running():
+	def _running(self):
 		"Tell if jobs are running"
-		return len(_waitfds)
+		return len(self.waitfds)
 
-
-	def wait_all():
-		"Wait for all jobs to be finished"
-		_debug("wait_all")
-		while _running():
-			while _mytokens >= 1:
-				_release_mine()
-			_debug("wait_all: wait()")
-			wait(want_token=0)
-		_debug("wait_all: empty list")
-		_get_token('self')	# get my token back
-		if _toplevel:
-			bb = ''
-			while 1:
-				b = _try_read(_fds[0], 8192)
-				bb += b
-				if not b: break
-			if len(bb) != _toplevel-1:
-				raise Exception('on exit: expected %d tokens; found only %r'
-								% (_toplevel-1, len(bb)))
-			os.write(_fds[1], bb)
-
-
-	def _force_return_tokens():
-		n = len(_waitfds)
-		if n:
-			_debug('%d tokens left in force_return_tokens' % n)
-		_debug('returning %d tokens' % n)
-		for k in _waitfds.keys():
-			del _waitfds[k]
-		if _fds:
-			_release(n)
-
-
-	def _pre_job(r, w, pfn):
-		os.close(r)
-		if pfn:
-			pfn()
-
-
-	class Job:
-		def __init__(self, name, pid, donefunc):
-			self.name = name
-			self.pid = pid
-			self.rv = None
-			self.donefunc = donefunc
-
-		def __repr__(self):
-			return 'Job(%s,%d)' % (self.name, self.pid)
-
-
-	def start_job(jobfunc, donefunc):
+	def start_job(self, jobfunc, donefunc):
 		"""
 		Start a job
 		jobfunc:  executed in the child process
 		doncfunc: executed in the parent process during a wait or wait_all call
 		"""
 		reason = 'build'
-		global _mytokens
-		assert(_mytokens <= 1)
-		_get_token(reason)
-		assert(_mytokens >= 1)
-		assert(_mytokens == 1)
-		_mytokens -= 1
-		r,w = _make_pipe(50)
+		assert(self.tokens <= 1)
+		self._get_token(reason)
+		assert(self.tokens >= 1)
+		assert(self.tokens == 1)
+		self.tokens -= 1
+		r,w = os.pipe()
 		pid = os.fork()
 		if pid == 0:
 			# child
 			os.close(r)
 			rv = 201
-			#TODO: remove logging handlers when run in tests
 			try:
 				try:
 					rv = jobfunc() or 0
-					_debug('jobfunc completed (%r, %r)' % (jobfunc,rv))
+					_parallel_debug('jobfunc completed (%r, %r)' % (jobfunc,rv))
 				except SafeError as e:
 					_parallel_log.error("%s" % (str(e),))
 					rv = SafeError.exitcode
@@ -489,13 +373,191 @@ else:
 					traceback.print_exc()
 					rv = UNKNOWN_ERROR_CODE
 			finally:
-				_debug('exit: %d' % rv)
+				_parallel_debug('exit: %d' % rv)
 				os._exit(rv)
-		_close_on_exec(r, True)
+		_parallel_close_on_exec(r, True)
 		os.close(w)
 		pd = Job(reason, pid, donefunc)
-		_waitfds[r] = pd
+		self.waitfds[r] = pd
 
+	def wait_all(self):
+		"Wait for all jobs to be finished"
+		failure = None
+		try:
+			while self._running():
+				while self.tokens >= 1:
+					self._release_mine()
+				_parallel_debug("wait_all: wait()")
+				self.wait(want_token=0)
+			_parallel_debug("wait_all: empty list")
+		except SafeError as e:
+			failure = e
+
+		self._get_token('self')	# get my token back
+		if self.toplevel is not None:
+			remaining = self.toplevel - 1
+			_parallel_debug("awaiting %d free tokens" % remaining)
+			while remaining > 0:
+				b = self._try_read(remaining)
+				remaining -= len(b)
+				if not b:
+					# maybe we still have outstanding jobs?
+					try:
+						self.wait(want_token=0)
+					except SafeError as e:
+						if failure is None: failure = e
+			if remaining != 0:
+				raise Exception('on exit: expected %d more tokens' % (remaining))
+
+		if failure is not None:
+			raise failure
+
+class NamedPipeJobserver(object):
+	env = None
+	def __init__(self, path, toplevel):
+		self.path = path
+		self.toplevel = toplevel
+		if toplevel is not None:
+			self.env = {'GUP_JOBSERVER':path}
+
+		_parallel_log.trace("opening jobserver at %s" % path)
+		r = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+		w = os.open(path, os.O_WRONLY)
+
+		# clear nonblocking flag after both ends are open:
+		rflags = fcntl.fcntl(r, fcntl.F_GETFL)
+		fcntl.fcntl(r, fcntl.F_SETFL, rflags & (~os.O_NONBLOCK))
+
+		_parallel_close_on_exec(r, True)
+		_parallel_close_on_exec(w, True)
+
+		self.server = FDJobserver((r,w), toplevel)
+
+	def wait_all(self):
+		try:
+			self.server.wait_all()
+		finally:
+			for fd in self.server.fds:
+				os.close(fd)
+			if self.toplevel is not None:
+				_parallel_log.debug("removing jobserver (%s)" % self.path)
+				os.remove(self.path)
+
+	def start_job(self, *a): self.server.start_job(*a)
+
+
+
+def _parallel_discover_jobserver():
+	gup_server = os.getenv('GUP_JOBSERVER', None)
+	if gup_server is not None:
+		return SerialJobserver(None) if gup_server == '0' else NamedPipeJobserver(gup_server, None)
+	# use a make jobserver, if present
+	flags = ' ' + os.getenv('MAKEFLAGS', '') + ' '
+	FIND = ' --jobserver-fds='
+	ofs = flags.find(FIND)
+	if ofs >= 0:
+		s = flags[ofs+len(FIND):]
+		(arg,junk) = s.split(' ', 1)
+		(a,b) = arg.split(',', 1)
+		try:
+			a = atoi(a)
+			b = atoi(b)
+		except ValueError:
+			_parallel_log.warn('invalid --jobserver-fds: %r' % arg)
+			return None
+
+		if a <= 0 or b <= 0:
+			_parallel_log.warn('invalid --jobserver-fds: %r' % arg)
+			return None
+		try:
+			fcntl.fcntl(a, fcntl.F_GETFL)
+			fcntl.fcntl(b, fcntl.F_GETFL)
+		except IOError as e:
+			if e.errno == errno.EBADF:
+				_parallel_log.debug("--jobserver-fds error (flags=%r, a=%r, b=%r)", flags, a, b, exc_info=True)
+				_parallel_log.warn('broken --jobserver-fds from make; prefix your Makefile rule with a "+"')
+				return None
+			else:
+				raise
+		return FDJobserver((a,b), None)
+
+def _parallel_create_named_pipe():
+	path = os.path.join(tempfile.gettempdir(), 'gup-job-%d' % (os.getpid()))
+	def create():
+		os.mkfifo(path, 0o600)
+
+	try:
+		create()
+	except OSError as e:
+		if e.errno == errno.EEXIST:
+			# if pipe already exists it must be old, so remove it
+			_parallel_log.warn("removing stale jobserver file: %s" % path)
+			os.remove(path)
+			create()
+		else: raise
+
+	_parallel_log.trace("created jobserver at %s" % path)
+	return path
+
+def extend_build_env(env):
+	if _parallel_jobserver.env is not None:
+		env.update(_parallel_jobserver.env)
+
+
+def wait_all():
+	_parallel_jobserver.wait_all()
+
+def start_job(jobfunc, donefunc):
+	return _parallel_jobserver.start_job(jobfunc, donefunc)
+
+
+try:
+	import fcntl
+except ImportError:
+	_parallel_log.debug("fcntl not available - falling back to serial execution mode")
+	class NoopContext:
+		def __enter__(self): pass
+		def __exit__(self, type, value, traceback): pass
+	_noop_context = NoopContext()
+
+	class _Lock(object):
+		def __init__(self, name): pass
+		def read(self): return _noop_context
+		def write(self): return _noop_context
+
+	def _setup_jobserver(*a):
+		global _parallel_jobserver
+		_parallel_jobserver = SerialJobserver(None)
+
+	#XXX workaround for pychecker complaining
+	# about symbol redefinition even though they're
+	# in a separate if / else branch
+	globs = globals()
+	globs['setup_jobserver'] = _setup_jobserver
+	globs['Lock'] = _Lock
+else:
+	import os, errno, select, signal
+
+	def setup_jobserver(maxjobs):
+		"Start the job server"
+		global _parallel_jobserver
+		if _parallel_jobserver is not None:
+			_parallel_log.warn("tried to set up jobserver multiple times")
+			return
+
+		_parallel_debug('setup_jobserver(%s)' % maxjobs)
+		if maxjobs is None:
+			_parallel_jobserver = _parallel_discover_jobserver()
+
+		if _parallel_jobserver is None:
+			maxjobs = maxjobs or 1
+			if maxjobs == 1:
+				_parallel_debug("no need for a jobserver (--jobs=1)")
+				_parallel_jobserver = SerialJobserver(maxjobs)
+			else:
+				_parallel_debug("new jobserver! %s" % (maxjobs))
+				path = _parallel_create_named_pipe()
+				_parallel_jobserver = NamedPipeJobserver(path, maxjobs)
 
 
 	# FIXME: I really want to use fcntl F_SETLK, F_SETLKW, etc here.  But python
@@ -528,8 +590,8 @@ else:
 		def __init__(self, name):
 			self.owned = False
 			self.name  = name
-			self.lockfile = os.open(self.name, os.O_RDWR | os.O_CREAT, 0666)
-			_close_on_exec(self.lockfile, True)
+			self.lockfile = os.open(self.name, os.O_RDWR | os.O_CREAT, 0o666)
+			_parallel_close_on_exec(self.lockfile, True)
 			self.shared = fcntl.LOCK_SH
 			self.exclusive = fcntl.LOCK_EX
 
@@ -548,7 +610,7 @@ else:
 			assert(self.owned != kind)
 			try:
 				fcntl.lockf(self.lockfile, kind|fcntl.LOCK_NB, 0, 0)
-			except IOError, e:
+			except IOError as e:
 				if e.errno in (errno.EAGAIN, errno.EACCES):
 					_parallel_log.trace("%s lock failed", self.name)
 					pass  # someone else has it locked
@@ -578,6 +640,9 @@ import re
 import itertools
 
 _gupfile_log = getLogger('gup.gupfile')
+
+if PY3:
+	xrange = range
 
 def _gupfile_default_gup_files(filename):
 	l = filename.split('.')
@@ -880,6 +945,8 @@ _state_log = getLogger('gup.state')
 
 META_DIR = '.gup'
 
+class VersionMismatch(ValueError): pass
+
 class _dirty_args(object):
 	def __init__(self, deps, base, builder_path, built):
 		self.deps = deps
@@ -925,13 +992,19 @@ class TargetState(object):
 			return rv
 
 		with self._ensure_dep_lock().read():
+			deps_path = self.meta_path('deps')
 			try:
-				f = open(self.meta_path('deps'))
+				f = open(deps_path)
 			except IOError as e:
 				if e.errno != errno.ENOENT: raise
 			else:
-				with f:
-					rv = Dependencies(self.path, f)
+				try:
+					with f:
+						rv = Dependencies(self.path, f)
+				except VersionMismatch as e:
+					_state_log.debug("Ignoring stored dependencies from incompatible version: %s", deps_path)
+				except Exception as e:
+					_state_log.debug("Error loading %s: %s (assuming dirty)", deps_path, e)
 		_state_log.trace("Loaded serialized state: %r" % (rv,))
 		return rv
 
@@ -975,7 +1048,7 @@ class TargetState(object):
 				return built
 
 class Dependencies(object):
-	FORMAT_VERSION = 1
+	FORMAT_VERSION = 2
 	def __init__(self, path, file):
 		self.path = path
 		self.rules = []
@@ -990,7 +1063,7 @@ class Dependencies(object):
 			if not version_line.startswith('version:'): raise ValueError("Invalid file")
 			_, file_version = version_line.split(' ')
 			if int(file_version) != self.FORMAT_VERSION:
-				raise ValueError("version mismatch: can't read format version %s" % (file_version,))
+				raise VersionMismatch("can't read format version %s" % (file_version,))
 
 			while True:
 				line = file.readline()
@@ -1007,7 +1080,7 @@ class Dependencies(object):
 
 	def is_dirty(self, builder, built):
 		assert isinstance(builder, Builder)
-		if not os.path.exists(self.path):
+		if not os.path.lexists(self.path):
 			_state_log.debug("DIRTY: %s (target does not exist)", self.path)
 			return True
 
@@ -1088,14 +1161,9 @@ class AlwaysRebuild(Dependency):
 		_state_log.debug('DIRTY: always rebuild')
 		return True
 
-class UnknownState(object):
-	def __init__(self, target, children):
-		self.target = target
-		self.children = children
-
 class FileDependency(Dependency):
 	num_fields = 3
-	tag = 'filedep:'
+	tag = 'file:'
 	recursive = True
 
 	def __init__(self, mtime, checksum, path):
@@ -1112,14 +1180,14 @@ class FileDependency(Dependency):
 	@classmethod
 	def deserialize(cls, mtime, checksum, path):
 		return cls(
-			int(mtime) or None,
+			None if mtime == '-' else int(mtime),
 			None if checksum == '-' else checksum,
 			path)
 
 	@property
 	def fields(self):
 		return [
-			str(self.mtime or 0),
+			'-' if self.mtime is None else str(self.mtime),
 			self.checksum or '-',
 			self.path]
 
@@ -1140,7 +1208,7 @@ class FileDependency(Dependency):
 			deps = state.deps()
 			checksum = deps and deps.checksum
 			if checksum != self.checksum:
-				_state_log.debug("DIRTY: %s (stored checksum is %s, current is %s)", self.path, self.checksum, deps.checksum)
+				_state_log.debug("DIRTY: %s (stored checksum is %s, current is %s)", self.path, self.checksum, checksum)
 				return True
 			if built:
 				return False
@@ -1198,7 +1266,7 @@ class Checksum(Dependency):
 	def from_files(cls, filenames):
 		sh = None
 		for filename in filenames:
-			with open(filename) as f:
+			with open(filename, 'rb') as f:
 				sh = cls._add_file(sh, f)
 		return cls(sh.hexdigest())
 
@@ -1337,7 +1405,8 @@ class Target(object):
 			if not _builder_is_dirty(self.state):
 				_builder_log.trace("no build needed")
 				return False
-		exe_path = self.builder.path
+		exe_path = os.path.abspath(self.builder.path)
+		exe_path_relative_to_cwd = os.path.relpath(exe_path,ROOT_CWD)
 
 		# dest may not exist, if a /gup/ directory is in use
 		basedir = self.builder.basedir
@@ -1353,7 +1422,7 @@ class Target(object):
 		output_file = os.path.abspath(self.state.meta_path('out'))
 		MOVED = False
 		try:
-			args = [os.path.abspath(exe_path), output_file, self.builder.target]
+			args = [exe_path, output_file, self.builder.target]
 			_builder_log.info(target_relative_to_cwd)
 			mtime = get_mtime(self.path)
 
@@ -1373,20 +1442,24 @@ class Target(object):
 				ret = self._run_process(args, cwd = basedir, env = env)
 			except OSError:
 				if exe: raise # we only expect errors when we could deduce no executable
-				raise SafeError("%s is not executable and has no shebang line" % (exe_path,))
+				raise SafeError("%s is not executable and has no shebang line" % (exe_path_relative_to_cwd))
 
 			new_mtime = get_mtime(self.path)
-			if mtime != new_mtime:
+			target_changed = mtime != new_mtime
+			if target_changed:
 				_builder_log.trace("old_mtime=%r, new_mtime=%r" % (mtime, new_mtime))
 				if not os.path.isdir(self.path):
 					# directories often need to be created directly
-					_builder_log.warn("%s modified %s directly" % (exe_path, self.path))
+					_builder_log.warn("%s modified %s directly" % (exe_path_relative_to_cwd, self.path))
 			if ret == 0:
-				if os.path.exists(output_file):
-					if os.path.isdir(self.path):
+				if os.path.lexists(output_file):
+					if os.path.isdir(self.path) and not os.path.islink(self.path):
 						_builder_log.trace("calling rmtree() on previous %s", self.path)
 						shutil.rmtree(self.path)
 					rename(output_file, self.path)
+				else:
+					if (not target_changed) and os.path.exists(self.path) and not os.path.isdir(self.path):
+						os.remove(self.path)
 				MOVED = True
 			else:
 				_builder_log.trace("builder exited with status %s" % (ret,))
@@ -1398,7 +1471,13 @@ class Target(object):
 
 
 	def _run_process(self, args, cwd, env):
-		return subprocess.Popen(args, cwd = cwd, env = env).wait()
+		try:
+			proc = subprocess.Popen(args, cwd = cwd, env = env, close_fds=False)
+		except OSError as e:
+			if e.errno == errno.ENOENT:
+				raise SafeError("Executable not found: %s" % (args[0],))
+			raise e
+		return proc.wait()
 
 def _builder_guess_executable(p):
 	with open(p) as f:
@@ -1412,10 +1491,39 @@ def _builder_guess_executable(p):
 	if bin.startswith('.'):
 		# resolve relative paths relative to containing dir
 		bin = args[0] = os.path.join(os.path.dirname(p), args[0])
+	if IS_WINDOWS:
+		bin = _builder_resolve_windows_binary(bin)
+
 	if os.path.isabs(bin) and not os.path.exists(bin):
 		raise SafeError("No such interpreter: %s" % (os.path.abspath(bin),))
+
+	args[0] = bin
 	return args
 
+def _builder_resolve_windows_binary(name):
+	exts = os.environ.get('PATHEXT', '').split(os.pathsep)
+	def possible_file_extensions(path):
+		for ext in exts:
+			yield path + ext
+		yield path
+
+	def possible_paths():
+		if os.path.isabs(name):
+			for path in possible_file_extensions(name):
+				yield path
+		else:
+			for prefix in os.environ['PATH'].split(os.pathsep):
+				for path in possible_file_extensions(os.path.join(prefix, name)):
+					yield path
+
+	for path in possible_paths():
+		if os.path.isfile(path) and os.access(path, os.X_OK):
+			return path
+
+	# If we found nothing, just return the original name.
+	# It's probably not going to work, but Windows does
+	# some nutty stuff with the registry.
+	return name
 
 ## --- task.py --- ##
 import os
@@ -1438,7 +1546,7 @@ class Task(object):
 
 		target = self.target = prepare_build(target_path)
 		if target is None:
-			if opts.update and os.path.exists(target_path):
+			if opts.update and os.path.lexists(target_path):
 				self.report_nobuild()
 				return None
 			raise Unbuildable(target_path)
@@ -1519,7 +1627,7 @@ def _cmd_init_logging(verbosity):
 
 	if 'GUP_IN_TESTS' in os.environ:
 		lvl = TRACE_LVL
-		fmt = fmt = '%(color)s' + INDENT + '%(bold)s%(message)s' + PLAIN
+		fmt = fmt = '# %(color)s%(levelname)-5s ' + INDENT + '%(bold)s%(message)s' + PLAIN
 
 	# persist for child processes
 	set_verbosity(verbosity)
@@ -1537,31 +1645,40 @@ def _cmd_bin_init():
 	'''
 	progname = sys.argv[0]
 	_cmd_log.trace('run as: %s' % (progname,))
-	if os.path.sep in progname and os.environ.get('GUP_IN_PATH', '0') != '1':
-		# gup may have been run as a relative / absolute script - check
-		# whether our directory is in $PATH
-		here, filename = os.path.split(__file__)
-		if filename.startswith('cmd.py'):
-			# we're being run in-place
-			_cmd_log.trace("Run from gup/ package - assuming gup in $PATH")
-		else:
-			path_entries = os.environ.get('PATH', '').split(os.pathsep)
-			for entry in path_entries:
-				if not entry: continue
-				try:
-					if samefile(entry, here):
-						_cmd_log.trace('found `gup` in $PATH')
-						# ok, we're in path
-						break
-				except OSError: pass
-			else:
-				# not found
-				here = os.path.abspath(here)
-				_cmd_log.trace('`gup` not in $PATH - adding %s' % (here,))
-				os.environ['PATH'] = os.pathsep.join([here] + path_entries)
-
-		# don't bother checking next time
+	if os.environ.get('GUP_IN_PATH', '0') != '1':
+		# only do this check once
 		os.environ['GUP_IN_PATH'] = '1'
+
+		# XXX on non-Windows OSes, recursive invocations may not find `gup`
+		# if the toplevel was found via a "." entry on $PATH. Let's assume
+		# only Windows is dumb enough to do that.
+		if IS_WINDOWS or os.path.sep in progname:
+			# gup may have been run as a relative / absolute script - check
+			# whether our directory is in $PATH
+			here, filename = os.path.split(__file__)
+			if filename.startswith('cmd.py'):
+				# we're being run in-place
+				_cmd_log.trace("Run from gup/ package - assuming gup in $PATH")
+			else:
+				path_entries = os.environ.get('PATH', '').split(os.pathsep)
+				for entry in path_entries:
+					if not entry: continue
+
+					# If we're found via a relative entry (like ".") on
+					# $PATH, we can't rely on that:
+					if not os.path.isabs(entry): continue
+
+					try:
+						if samefile(entry, here):
+							_cmd_log.trace('found `gup` in $PATH')
+							# ok, we're in path
+							break
+					except OSError: pass
+				else:
+					# not found
+					here = os.path.abspath(here)
+					_cmd_log.trace('`gup` not in $PATH - adding %s' % (here,))
+					os.environ['PATH'] = os.pathsep.join([here] + path_entries)
 
 def _cmd_main(argv):
 	p = None
@@ -1588,6 +1705,12 @@ def _cmd_main(argv):
 		elif cmd == '--ifcreate':
 			p = optparse.OptionParser('Usage: gup --ifcreate [file [...]]')
 			action = _cmd_mark_ifcreate
+		elif cmd == '--buildable':
+			p = optparse.OptionParser('Usage: gup --buildable')
+			action = _cmd_test_buildable
+		elif cmd == '--features':
+			p = optparse.OptionParser('Usage: gup --features')
+			action = _cmd_list_features
 
 	if action is None:
 		# default parser
@@ -1600,7 +1723,7 @@ def _cmd_main(argv):
 			'  (use gup <action> --help) for further details')
 
 		p.add_option('-u', '--update', '--ifchange', dest='update', action='store_true', help='Only rebuild stale targets', default=False)
-		p.add_option('-j', '--jobs', type='int', default=1, help="Number of concurrent jobs to run")
+		p.add_option('-j', '--jobs', type='int', default=None, help="Number of concurrent jobs to run")
 		p.add_option('-x', '--trace', action='store_true', help='Trace build script invocations (also sets $GUP_XTRACE=1)')
 		p.add_option('-q', '--quiet', action='count', default=0, help='Decrease verbosity')
 		p.add_option('-v', '--verbose', action='count', default=DEFAULT_VERBOSITY, help='Increase verbosity')
@@ -1644,15 +1767,28 @@ def _cmd_mark_ifcreate(opts, files):
 	parent_target = _cmd_assert_parent_target('--ifcreate')
 	parent_state = TargetState(parent_target)
 	for filename in files:
-		if os.path.exists(filename):
+		if os.path.lexists(filename):
 			raise SafeError("File already exists: %s" % (filename,))
 		parent_state.add_dependency(FileDependency.relative_to_target(parent_target, mtime=None, checksum=None, path = filename))
 
+def _cmd_test_buildable(opts, args):
+	assert len(args) == 1, "exactly one argument expected"
+	target = args[0]
+	if Builder.for_target(target) is None:
+		sys.exit(1)
+
+def _cmd_list_features(opts, args):
+	assert len(args) == 0, "no arguments expected"
+	for feature in [
+		'version ' + VERSION,
+	]:
+		print(feature)
+
 def _cmd_mark_contents(opts, targets):
-	parent_target = _cmd_assert_parent_target('--content')
+	parent_target = _cmd_assert_parent_target('--contents')
 	if len(targets) == 0:
 		assert not sys.stdin.isatty()
-		checksum = Checksum.from_stream(sys.stdin)
+		checksum = Checksum.from_stream(sys.stdin.buffer if PY3 else sys.stdin)
 	else:
 		checksum = Checksum.from_files(targets)
 	TargetState(parent_target).add_dependency(checksum)
@@ -1690,13 +1826,15 @@ def _cmd_clean_targets(opts, dests):
 				if not opts.metadata:
 					deps = TargetState.built_targets(gupdir)
 					for dep in deps:
-						if dep in filenames:
+						if dep in (filenames + dirnames):
 							target = os.path.join(dirpath, dep)
 							if Builder.for_target(target) is not None:
 								rm(target)
 				rm(gupdir, isdir=True)
 			# filter out hidden directories
-			dirnames = [d for d in dirnames if not d.startswith('.')]
+			hidden_dirs = [d for d in dirnames if d.startswith('.')]
+			for hidden in hidden_dirs:
+				dirnames.remove(hidden)
 
 def _cmd_build(opts, targets):
 	if opts.trace:
@@ -1708,7 +1846,8 @@ def _cmd_build(opts, targets):
 	parent_target = _cmd_get_parent_target()
 
 	jobs = opts.jobs
-	assert jobs > 0 and jobs < 1000
+	if jobs is not None:
+		assert jobs > 0 and jobs < 1000
 	setup_jobserver(jobs)
 
 	runner = TaskRunner()
@@ -1728,15 +1867,18 @@ def _cmd_build(opts, targets):
 	# wait for all tasks to complete
 	runner.run()
 
+def _cmd_exit_error():
+	sys.exit(2)
+
 def main():
 	try:
 		_cmd_main(sys.argv[1:])
 	except KeyboardInterrupt:
-		sys.exit(1)
+		sys.exit(2)
 	except SafeError as e:
-		if e.message is not None:
+		if len(e.args) > 0:
 			_cmd_log.error("%s" % (str(e),))
-		sys.exit(1)
+		sys.exit(2)
 
 if __name__ == '__main__':
 	main()
