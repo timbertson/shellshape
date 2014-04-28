@@ -19,7 +19,7 @@ To run your own checkout, you should be able to clone this repo and run `0instal
 
 As of gnome-shell 3.4.1, you can also / instead install the development version locally. You will need to:
 
- - build it (`./tools/gup compile`. You _may_ be able to get by with just `make -C schemas`)
+ - build it (`make`. You _may_ be able to get by with just `make -C schemas`)
  - copy (or symlink) `./shellshape/` to `~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net`
  - copy or merge the contents of `glib-2.0` and `icons` within the `./xdg/data/` directory the the appropriate location, typically either `~/.local/share/` or `/usr/lib/`.
 
