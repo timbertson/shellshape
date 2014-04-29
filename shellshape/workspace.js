@@ -292,7 +292,12 @@ Workspace.prototype = {
 				}
 				cb(win);
 			});
-			win.workspace_signals.push([actor, actor.connect(event_name + '-changed', signal_handler)]);
+            try{
+                win.workspace_signals.push([actor, actor.connect(event_name + '-changed', signal_handler)]);
+            } catch (e) {
+                win.workspace_signals.push([meta_window,
+                    meta_window.connect(event_name + '-changed', signal_handler)]);
+            }
 		});
 
 		bind_to_window_change('position', move_ops,     Lang.bind(this, this.on_window_moved, win));
