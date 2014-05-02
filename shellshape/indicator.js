@@ -16,7 +16,7 @@ let _indicator;
 // as this seems to be the only way to get symbolic icons loading properly.
 (function() {
 	var theme = imports.gi.Gtk.IconTheme.get_default();
-	let icon_dir = Extension.dir.get_child('xdg').get_child('data').get_child('icons');
+	let icon_dir = Extension.dir.get_child('data').get_child('icons');
 	if(icon_dir.query_exists(null)) {
 		global.log("adding icon dir: " + icon_dir.get_path());
 		theme.append_search_path(icon_dir.get_path());
