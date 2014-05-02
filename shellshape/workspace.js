@@ -350,7 +350,7 @@ Workspace.prototype = {
 	on_window_remove: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
 		let win = this.extension.get_window(meta_window);
 		this.log.debug("on_window_remove for " + win + " (" + this +")");
-		this.disconnect_workspace_signals(meta_window);
+		this.disconnect_workspace_signals(win);
 		this.layout.on_window_killed(win);
 		this.extension.remove_window(win);
 	})),
