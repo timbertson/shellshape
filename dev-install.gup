@@ -5,7 +5,7 @@ gup --always
 rm -rf shellshape/xdg
 mkdir -p shellshape/xdg/data
 cd shellshape/xdg/data
-ls -1 "$here/xdg/data" | grep -v 'gnome-shell' | xargs -n1 ln -s
-dest="~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net"
+ls -1 "$here/xdg/data" | grep -v 'gnome-shell' | xargs -I {} -n1 ln -s "$here/xdg/data/{}" "{}"
+dest=~/.local/share/gnome-shell/extensions/shellshape@gfxmonk.net
 echo "Installling to $dest..."
-ln -sfn "$dest"
+ln -sfn "$here/shellshape" "$dest"
