@@ -10,9 +10,8 @@ const PREFS = SCHEMA_ROOT + '.prefs';
 
 let log = Log.getLogger("shellshape.settings");
 
-let _added_to_xdg = false;
 function envp_with_shellshape_xdg_data_dir() {
-	let xdg_data_base = Extension.dir.get_child('xdg').get_child('data');
+	let xdg_data_base = Extension.dir.get_child('data');
 	if(!xdg_data_base.query_exists(null)) {
 		log.info("xdg dir doesn't exist - assuming global install");
 		return null;
@@ -50,7 +49,7 @@ function get_local_gsettings(schema_path) {
 	log.info("initting schemas");
 	const GioSSS = Gio.SettingsSchemaSource;
 
-	let schemaDir = Extension.dir.get_child('xdg').get_child('data').get_child('glib-2.0').get_child('schemas');
+	let schemaDir = Extension.dir.get_child('data').get_child('glib-2.0').get_child('schemas');
 	var schemaSource;
 
 	if(!(schemaDir.query_exists(null))) {

@@ -3,6 +3,7 @@
 --exclude=*.stamp
 gnome-shell.desktop
 xdg
+shellshape
 lib
 LICENCE
 README.md

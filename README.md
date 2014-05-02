@@ -19,11 +19,9 @@ To run your own checkout, you should be able to clone this repo and run `0instal
 
 To compile stuff (if you change things), run `make` or `tools/gup`.
 
-If you don't want to (or can't) use 0install, you can instead install the development version locally (using a symlink in ~/.local/share/gnome-shell/extensions):
+If you don't want to (or can't) use 0install, you can instead install the development version locally (using a symlink in ~/.local/share/gnome-shell/extensions). This will set one up for you:
 
     make dev-install
-
-If you're shy about that and want to see what it does, take a peek in `dev-install.gup`.
 
 ## running on arch linux
 
