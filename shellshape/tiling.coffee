@@ -894,7 +894,7 @@ class TiledWindow
 		{pos:pos, size:size} = Tile.ensure_rect_exists(rect)
 		this.window.move_resize(pos.x, pos.y, size.x, size.y)
 		if is_active
-			@activate_before_redraw("@layout")
+			@window.activate_before_redraw("layout")
 
 	maximized_rect: () ->
 		return null unless @maximized
@@ -924,11 +924,6 @@ class TiledWindow
 	activate: ->
 		@window.activate()
 		@window.bring_to_front()
-	
-	activate_before_redraw: (reason) ->
-		@window.before_redraw =>
-			# log("activating window " + this + " (" + reason + ")")
-			@activate()
 	
 	is_active: ->
 		@window.is_active()

@@ -34,8 +34,8 @@ Window.prototype = {
 	,is_active: function() {
 		return this.ext.current_window() === this;
 	}
-	,activate: function() {
-		Main.activateWindow(this.meta_window);
+	,activate: function(time) {
+		Main.activateWindow(this.meta_window, time);
 	}
 	,is_minimized: function() {
 		return this.meta_window.minimized;
@@ -49,17 +49,27 @@ Window.prototype = {
 	,maximize: function() {
 		this.meta_window.maximize(Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL);
 	}
-	,before_redraw: function(func) {
+	,activate_before_redraw: function(reason) {
+		var time = global.get_current_time();
+		if (time === 0) {
+			this.log.debug("activate_before_redraw() when time==0 (probably during initialization) - disregarding");
+			return;
+		}
+
+		var self = this;
 		//TODO: idle seems to be the only LaterType that reliably works; but
 		// it causes a visual flash. before_redraw would be better, but that
 		// doesn't seem to be late enough in the layout cycle to move windows around
 		// (which is what this hook is used for).
 		Meta.later_add(
 			Meta.LaterType.IDLE, //when
-			func, //func
+			function() {
+				// self.log.debug("Activating window " + self + " (" + reason + ")");
+				self.activate(time);
+			},
 			null, //data
 			null //notify
-		)
+		);
 	}
 	,move_to_workspace: function(new_index) {
 		this.meta_window.change_workspace_by_index(new_index, false, global.get_current_time());

@@ -1419,7 +1419,7 @@ TiledWindow = (function() {
     _ref = Tile.ensure_rect_exists(rect), pos = _ref.pos, size = _ref.size;
     this.window.move_resize(pos.x, pos.y, size.x, size.y);
     if (is_active) {
-      return this.activate_before_redraw("@layout");
+      return this.window.activate_before_redraw("layout");
     }
   };
 
@@ -1459,13 +1459,6 @@ TiledWindow = (function() {
   TiledWindow.prototype.activate = function() {
     this.window.activate();
     return this.window.bring_to_front();
-  };
-
-  TiledWindow.prototype.activate_before_redraw = function(reason) {
-    var _this = this;
-    return this.window.before_redraw(function() {
-      return _this.activate();
-    });
   };
 
   TiledWindow.prototype.is_active = function() {
