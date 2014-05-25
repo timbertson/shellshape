@@ -1,8 +1,11 @@
-set -eux
+set -eu
+if [ "$GUP_XTRACE" = 1 ]; then
+	set -x
+fi
 gup -u "${BASH_SOURCE[0]}"
 function compile_sources {
-	ls -1 . | grep '\.ts$'
+	find ../src/ -type f | grep '\.ts$'
 }
 function compile_targets {
-	compile_sources | sed -e 's/\.ts$/.js/'
+	compile_sources | sed -e 's/^.*\///' -e 's/\.ts$/.js/'
 }

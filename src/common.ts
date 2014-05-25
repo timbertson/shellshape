@@ -2,6 +2,9 @@ declare var imports: any;
 
 interface Global {
 	get_current_time(): number
+	screen: any
+	log: Function
+	display: any
 }
 
 declare var global: Global;

@@ -1,8 +1,8 @@
-module Tiling {
-	/// <reference path="common.ts" />
-	/// <reference path="mutter_window.ts" />
-	/// <reference path="bounds.ts" />
+/// <reference path="common.ts" />
+/// <reference path="mutter_window.ts" />
+/// <reference path="bounds.ts" />
 
+module Tiling {
 	// external symbols (may or may not exist in a given env)
 	// GJS:
 	declare var log:Void_Varargs, imports: any;
