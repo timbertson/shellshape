@@ -1,0 +1,4 @@
+#!bash -eu
+. gup/common.sh
+compile_sources > "$1"
+gup --contents "$1"

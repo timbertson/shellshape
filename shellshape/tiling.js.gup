@@ -1,4 +1,0 @@
-#!bash -eu
-base="$(basename "$2" .js)"
-gup -u "$base".coffee ../tools/coffee.sh
-../tools/coffee.sh --bare -p "$base".coffee > "$1"

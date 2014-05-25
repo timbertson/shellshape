@@ -1,55 +1,70 @@
-const Main = imports.ui.main;
-const Lang = imports.lang;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const Extension = imports.misc.extensionUtils.getCurrentExtension();
-const Log = Extension.imports.log4javascript.log4javascript;
+/// <reference path="common.ts" />
+module MutterWindow {
 
-function Window(meta_window, ext) { this._init(meta_window, ext); }
+var Main = imports.ui.main;
+var Lang = imports.lang;
+var Meta = imports.gi.Meta;
+var Shell = imports.gi.Shell;
+var Extension = imports.misc.extensionUtils.getCurrentExtension();
+var Log: LogModule = Extension.imports.log4javascript.log4javascript;
 
-// This seems to be a good set, from trial and error...
-Window.tileable_window_types = [
-	Meta.WindowType.NORMAL,
-	Meta.WindowType.DIALOG,
-	Meta.WindowType.TOOLBAR,
-	Meta.WindowType.UTILITY,
-	Meta.WindowType.SPLASHSCREEN
-];
+export class Window {
+	meta_window: any
+	ext: any
+	log: Logger
+	tile_preference: any
 
-// TODO: expose this as a preference if it gets used much
-Window.blacklist_classes = [
-	'Conky'
-];
+	// This seems to be a good set, from trial and error...
+	static tileable_window_types = [
+		Meta.WindowType.NORMAL,
+		Meta.WindowType.DIALOG,
+		Meta.WindowType.TOOLBAR,
+		Meta.WindowType.UTILITY,
+		Meta.WindowType.SPLASHSCREEN
+	];
 
-Window.prototype = {
-	_init: function(meta_window, ext) {
+	// TODO: expose this as a preference if it gets used much
+	static blacklist_classes = [
+		'Conky'
+	]
+
+	static GetId(w) {
+		if(!w || !w.get_stable_sequence) {
+			Log.getLogger("shellshape.window").error("Non-window object: " + w);
+			return null;
+		}
+		return w.get_stable_sequence();
+	}
+
+	constructor(meta_window, ext) {
 		this.meta_window = meta_window;
 		this.ext = ext;
 		this.log = Log.getLogger("shellshape.window");
 		this.tile_preference = null;
 	}
-	,bring_to_front: function() {
+
+	bring_to_front() {
 		// NOOP (TODO: remove)
 	}
-	,is_active: function() {
+	is_active() {
 		return this.ext.current_window() === this;
 	}
-	,activate: function(time) {
+	activate(time?:number) {
 		Main.activateWindow(this.meta_window, time);
 	}
-	,is_minimized: function() {
+	is_minimized() {
 		return this.meta_window.minimized;
 	}
-	,minimize: function() {
+	minimize() {
 		this.meta_window.minimize();
 	}
-	,unminimize: function() {
+	unminimize() {
 		this.meta_window.unminimize();
 	}
-	,maximize: function() {
+	maximize() {
 		this.meta_window.maximize(Meta.MaximizeFlags.HORIZONTAL | Meta.MaximizeFlags.VERTICAL);
 	}
-	,activate_before_redraw: function(reason) {
+	activate_before_redraw(reason) {
 		var time = global.get_current_time();
 		if (time === 0) {
 			this.log.debug("activate_before_redraw() when time==0 (probably during initialization) - disregarding");
@@ -71,30 +86,30 @@ Window.prototype = {
 			null //notify
 		);
 	}
-	,move_to_workspace: function(new_index) {
+	move_to_workspace(new_index) {
 		this.meta_window.change_workspace_by_index(new_index, false, global.get_current_time());
 	}
-	,move_resize: function(x, y, w, h) {
+	move_resize(x, y, w, h) {
 		this.meta_window.unmaximize(Meta.MaximizeFlags.VERTICAL | Meta.MaximizeFlags.HORIZONTAL);
 		this.meta_window.move_resize_frame(true, x, y, w, h);
 	}
-	,set_tile_preference: function(new_pref) {
+	set_tile_preference(new_pref) {
 		this.log.debug("window adopting tile preference of " + new_pref + " - " + this);
 		this.tile_preference = new_pref;
 	}
-	,get_title: function() {
+	get_title() {
 		return this.meta_window.get_title();
 	}
-	,toString: function() {
+	toString() {
 		return ("<#Window with MetaWindow: " + this.get_title() + ">");
 	}
 
 	// functions for determining whether the window should
 	// be tiled by default, or can be tiled at all.
-	,is_resizeable: function() {
+	is_resizeable() {
 		return this.meta_window.resizeable;
 	}
-	,window_type: function() {
+	window_type() {
 		try {
 			return this.meta_window['window-type'];
 		} catch (e) {
@@ -103,24 +118,24 @@ Window.prototype = {
 			return -1;
 		}
 	}
-	,window_class: function() {
+	window_class() {
 		return this.meta_window.get_wm_class();
 	}
-	,is_shown_on_taskbar: function() {
+	is_shown_on_taskbar() {
 		return !this.meta_window.is_skip_taskbar();
 	}
-	,floating_window: function() {
+	floating_window() {
 		//TODO: add check for this.meta_window.below when mutter exposes it as a property;
 		return this.meta_window.above;
 	}
-	,on_all_workspaces: function() {
+	on_all_workspaces() {
 		return this.meta_window.is_on_all_workspaces();
 	}
-	,should_auto_tile: function() {
+	should_auto_tile() {
 		return this.can_be_tiled() && this.is_resizeable() &&
 			!(this.floating_window() || this.on_all_workspaces());
 	}
-	,can_be_tiled: function() {
+	can_be_tiled() {
 		if (this.meta_window.skip_taskbar) {
 			// this.log.debug("uninteresting window: " + this);
 			return false;
@@ -138,11 +153,11 @@ Window.prototype = {
 		// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
 		return result;
 	}
-	,id: function() {
+	id() {
 		return Window.GetId(this.meta_window);
 	}
-	,eq: function(other) {
-		let eq = this.id() == other.id();
+	eq(other) {
+		var eq = this.id() == other.id();
 		if(eq && (this != other)) {
 			this.log.warn("Multiple wrappers for the same MetaWindow created: " + this);
 		}
@@ -150,17 +165,10 @@ Window.prototype = {
 	}
 
 	// dimensions
-	,width: function() { return this._outer_rect().width; }
-	,height: function() { return this._outer_rect().height; }
-	,xpos: function() { return this._outer_rect().x; }
-	,ypos: function() { return this._outer_rect().y; }
-	,_outer_rect: function() { return this.meta_window.get_outer_rect(); }
-};
-
-Window.GetId = function(w) {
-	if(!w || !w.get_stable_sequence) {
-		Log.getLogger("shellshape.window").error("Non-window object: " + w);
-		return null;
-	}
-	return w.get_stable_sequence();
+	width() { return this._outer_rect().width; }
+	height() { return this._outer_rect().height; }
+	xpos() { return this._outer_rect().x; }
+	ypos() { return this._outer_rect().y; }
+	private _outer_rect() { return this.meta_window.get_outer_rect(); }
+}
 }

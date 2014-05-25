@@ -1,0 +1,7 @@
+#!bash -eu
+. gup/common.sh
+gup -u .sources
+sources="$(cat .sources)"
+gup -u $sources
+../node_modules/.bin/tsc -m commonjs $sources
+
