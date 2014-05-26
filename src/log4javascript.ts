@@ -23,6 +23,19 @@ function _init_logging() {
 		if(shellshape_debug == "true" || shellshape_debug == "all" || shellshape_debug == "1") {
 			root_level = Log.Level.DEBUG;
 			root_logger.info("set log level DEBUG for shellshape.*");
+
+			function NotificationAppender() { };
+			NotificationAppender.prototype = new log4javascript.Appender();
+			NotificationAppender.prototype.layout = new Log.PatternLayout("%c: %m");
+			NotificationAppender.prototype.threshold = log4javascript.Level.ERROR;
+			NotificationAppender.prototype.append = function(loggingEvent) {
+				var formattedMessage = imports.log4javascript_file_appender.getFormattedMessage(this, loggingEvent);
+				imports.ui.main.notify(formattedMessage);
+			};
+
+			var notificationAppender = new NotificationAppender();
+			root_logger.addAppender(notificationAppender);
+
 		} else {
 			var debug_topics = shellshape_debug.split(",");
 			debug_topics.map(function(topic) {
