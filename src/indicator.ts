@@ -7,9 +7,7 @@ module Indicator {
 	var Clutter = imports.gi.Clutter;
 	var Shell = imports.gi.Shell;
 	var Main = imports.ui.main;
-	var Extension = imports.misc.extensionUtils.getCurrentExtension();
-	var Log = Extension.imports.log4javascript.log4javascript;
-	var Tiling = Extension.imports.tiling;
+	var Ext = imports.misc.extensionUtils.getCurrentExtension();
 	var Gio = imports.gi.Gio;
 
 	var _indicator;
@@ -18,7 +16,7 @@ module Indicator {
 	// as this seems to be the only way to get symbolic icons loading properly.
 	(function() {
 		var theme = imports.gi.Gtk.IconTheme.get_default();
-		var icon_dir = Extension.dir.get_child('data').get_child('icons');
+		var icon_dir = Ext.dir.get_child('data').get_child('icons');
 		if(icon_dir.query_exists(null)) {
 			global.log("adding icon dir: " + icon_dir.get_path());
 			theme.append_search_path(icon_dir.get_path());
@@ -27,7 +25,7 @@ module Indicator {
 		}
 	})();
 
-	var ShellshapeIndicator = <any>(function ShellshapeIndicator() {
+	export var ShellshapeIndicator = <any>(function ShellshapeIndicator() {
 		this._init.apply(this, arguments);
 	});
 

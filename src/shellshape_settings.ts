@@ -1,12 +1,11 @@
 /// <reference path="common.ts" />
-module Settings {
+module ShellshapeSettings {
 
 	var Gio = imports.gi.Gio;
 	var Glib = imports.gi.GLib;
 	var Config = imports.misc.config;
 	var ExtensionUtils = imports.misc.extensionUtils;
-	var Extension = ExtensionUtils.getCurrentExtension();
-	var Log = Extension.imports.log4javascript.log4javascript;
+	var Ext = ExtensionUtils.getCurrentExtension();
 
 	var SCHEMA_ROOT = 'org.gnome.shell.extensions.net.gfxmonk.shellshape';
 	var KEYBINDINGS = SCHEMA_ROOT + '.keybindings';
@@ -15,7 +14,7 @@ module Settings {
 	var log = Log.getLogger("shellshape.settings");
 
 	function envp_with_shellshape_xdg_data_dir() {
-		var xdg_data_base = Extension.dir.get_child('data');
+		var xdg_data_base = Ext.dir.get_child('data');
 		if(!xdg_data_base.query_exists(null)) {
 			log.info("xdg dir doesn't exist - assuming global install");
 			return null;
@@ -53,7 +52,7 @@ module Settings {
 		log.info("initting schemas");
 		var GioSSS = Gio.SettingsSchemaSource;
 
-		var schemaDir = Extension.dir.get_child('data').get_child('glib-2.0').get_child('schemas');
+		var schemaDir = Ext.dir.get_child('data').get_child('glib-2.0').get_child('schemas');
 		var schemaSource;
 
 		if(!(schemaDir.query_exists(null))) {
@@ -72,13 +71,13 @@ module Settings {
 			throw new Error(
 				'Schema ' + schema_path +
 				' could not be found for extension ' +
-				Extension.metadata.uuid
+				Ext.metadata.uuid
 			);
 		}
 		return new Gio.Settings({ settings_schema: schemaObj });
 	};
 
-	function Keybindings() {
+	export function Keybindings() {
 		var self = this;
 		var settings = this.settings = get_local_gsettings(KEYBINDINGS);
 		this.each = function(fn, ctx) {
@@ -95,7 +94,7 @@ module Settings {
 		};
 	};
 
-	function Prefs() {
+	export function Prefs() {
 		var self = this;
 		var settings = this.settings = get_local_gsettings(PREFS);
 		this.MAX_AUTOTILE = {
@@ -124,15 +123,14 @@ module Settings {
 		};
 	};
 
-	function initTranslations(domain) {
-		var extension = imports.misc.extensionUtils.getCurrentExtension();
-		domain = domain || Extension.metadata['gettext-domain'];
+	export function initTranslations(domain?:string) {
+		domain = domain || Ext.metadata['gettext-domain'];
 
 		// check if this extension was built with "make zip-file", and thus
 		// has the locale files in a subfolder
 		// otherwise assume that extension has been installed in the
 		// same prefix as gnome-shell
-		var localeDir = Extension.dir.get_child('locale');
+		var localeDir = Ext.dir.get_child('locale');
 		if (localeDir.query_exists(null)) {
 			imports.gettext.bindtextdomain(domain, localeDir.get_path());
 		} else {

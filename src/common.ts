@@ -25,10 +25,6 @@ interface Logger {
 	debug: Void_Varargs
 }
 
-interface LogModule {
-	getLogger(name:string) : Logger
-}
-
 // Used in APIs to force users to either use
 // Lang.bind, or cast to <FreeFunction> for anonymous
 // functions that don't use `this`
@@ -41,4 +37,11 @@ interface Anon extends FreeFunction {}
 
 interface Lang {
 	bind(subject:Object, fn:Function):FreeFunction
+}
+
+function assert(x) {
+	if (x == null) {
+		throw new Error("unexpected null");
+	}
+	return x;
 }

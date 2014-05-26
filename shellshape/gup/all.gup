@@ -1,5 +1,4 @@
 #!bash -eu
 . gup/common.sh
 gup -u _sources
-gup -u $(compile_targets)
-
+gup -u extension.js

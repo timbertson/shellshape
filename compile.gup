@@ -1,4 +1,4 @@
 #!bash -eu
 gup --always
-gup -u schemas shellshape/tiling.js
+gup -u schemas shellshape/all
 

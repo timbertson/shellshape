@@ -1,7 +1,19 @@
 // shellshape -- a tiling window manager extension for gnome-shell
-module Extension {
 
-	var Lang: Lang = imports.lang;
+/// <reference path="common.ts" />
+/// <reference path="logging.ts" />
+/// <reference path="tiling.ts" />
+/// <reference path="indicator.ts" />
+/// <reference path="workspace.ts" />
+/// <reference path="mutter_window.ts" />
+/// <reference path="shellshape_settings.ts" />
+/// <reference path="indicator.ts" />
+/// <reference path="tiling.ts" />
+/// <reference path="prefs.ts" />
+
+var Lang: Lang = imports.lang;
+
+module Extension {
 	var Main = imports.ui.main;
 	var Meta = imports.gi.Meta;
 	var Shell = imports.gi.Shell;
@@ -11,13 +23,7 @@ module Extension {
 
 	var ExtensionUtils = imports.misc.extensionUtils;
 	var Extension = ExtensionUtils.getCurrentExtension();
-	var Tiling = Extension.imports.tiling;
-	var Window = Extension.imports.mutter_window.Window;
-	var ShellshapeSettings = Extension.imports.shellshape_settings;
-	var Workspace = Extension.imports.workspace.Workspace;
-	var ShellshapeIndicator = Extension.imports.indicator.ShellshapeIndicator;
-	var Gdk = imports.gi.Gdk;
-	var Log = Extension.imports.log4javascript.log4javascript;
+	var Window = MutterWindow.Window;
 	var GLib = imports.gi.GLib;
 	var Gio = imports.gi.Gio;
 	var KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
@@ -33,7 +39,7 @@ module Extension {
 
 	// Primary 'extension' object.  This is instantiated and enabled by the
 	// main() function declared at the bottom of this file.
-	var Ext = function Ext() {
+	export var Ext = function Ext() {
 		var self = this;
 		self.enabled = false;
 		self.log = Log.getLogger("shellshape.extension");
@@ -56,6 +62,7 @@ module Extension {
 		self._do = function _do(action, desc, fail) {
 			try {
 				action();
+				return null;
 			} catch (e) {
 				self.log.error("ERROR in tiling (" + desc + "): ", e);
 				self.log.error(e.stack);
@@ -106,7 +113,7 @@ module Extension {
 				// gnome-shell meta workspace, both create a new
 				// shellshape workspace and save it to the
 				// self.workspaces cache.
-				workspace = self.workspaces[meta_workspace] = new Workspace(meta_workspace, state, self);
+				workspace = self.workspaces[meta_workspace] = new Workspace.Workspace(meta_workspace, state, self);
 			}
 			return workspace;
 		};
@@ -169,7 +176,7 @@ module Extension {
 
 		// garbage collect windows that have been marked as "dead"
 		// (and haven't been revived since then).
-		self.gc_windows = function(win) {
+		self.gc_windows = function() {
 			if(self.dead_windows.length > 0) {
 				self.log.info("Garbage collecting " + self.dead_windows.length + " windows");
 			}
@@ -468,7 +475,7 @@ module Extension {
 					var new_layout = LAYOUTS[name];
 					if(new_layout) {
 						self.log.debug("updating default layout to " + name);
-						Workspace.prototype.default_layout = new_layout;
+						Workspace.Default.layout = new_layout;
 					} else {
 						self.log.error("Unknown layout name: " + name);
 					}
@@ -484,7 +491,7 @@ module Extension {
 				var update = function() {
 					var val = pref.get();
 					self.log.debug("setting max-autotile to " + val);
-					Workspace.prototype.max_autotile = val;
+					Workspace.Default.max_autotile = val;
 				};
 				self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 				update();
@@ -527,7 +534,7 @@ module Extension {
 
 		// Enable ShellshapeIndicator
 		self._init_indicator = function() {
-			ShellshapeIndicator.enable(self);
+			Indicator.ShellshapeIndicator.enable(self);
 		};
 
 		// Resets the runtime state of the extension,
@@ -662,7 +669,7 @@ module Extension {
 		// Disable the extension.
 		self.disable = function() {
 			self.log.info("shellshape disable() called");
-			self._do(function() { ShellshapeIndicator.disable();}, "disable indicator");
+			self._do(function() { Indicator.ShellshapeIndicator.disable();}, "disable indicator");
 			self._do(self._disconnect_workspaces, "disable workspaces");
 			self._do(self._unbind_keys, "unbind keys");
 			self._do(function() { self.disconnect_tracked_signals(self); }, "disconnect signals");
@@ -675,26 +682,27 @@ module Extension {
 	};
 
 	Signals.addSignalMethods(Ext.prototype);
-
-	// initialization
-	function init() {
-		// inject the get_mouse_position function
-		Tiling.get_mouse_position = function() {
-			var display = Gdk.Display.get_default();
-			var device_manager = display.get_device_manager();
-			var pointer = device_manager.get_client_pointer();
-			var _pos = pointer.get_position();
-			var _screen   = _pos[0];
-			var pointerX = _pos[1];
-			var pointerY = _pos[2];
-			return {x: pointerX, y: pointerY};
-		};
-
-		var ext = new Ext();
-		return ext;
-	}
-
-	function main() {
-		init().enable();
-	};
 }
+
+// export toplevel symbols
+function init() {
+	var Gdk = imports.gi.Gdk;
+	// inject the get_mouse_position function
+	Tiling.get_mouse_position = function() {
+		var display = Gdk.Display.get_default();
+		var device_manager = display.get_device_manager();
+		var pointer = device_manager.get_client_pointer();
+		var _pos = pointer.get_position();
+		var _screen   = _pos[0];
+		var pointerX = _pos[1];
+		var pointerY = _pos[2];
+		return {x: pointerX, y: pointerY};
+	};
+
+	var ext = new Extension.Ext();
+	return ext;
+}
+
+function main() {
+	init().enable();
+};

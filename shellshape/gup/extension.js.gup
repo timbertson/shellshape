@@ -3,5 +3,4 @@
 gup -u _sources
 sources="$(cat _sources)"
 gup -u $sources
-../node_modules/.bin/tsc -m commonjs $sources --outDir "./"
-touch "$1"
+../node_modules/.bin/tsc ../src/extension.ts --out "$1"

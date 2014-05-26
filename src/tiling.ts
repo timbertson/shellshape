@@ -10,11 +10,26 @@ module Tiling {
 	// nodejs:
 	declare var exports:any, require: any;
 
-	// browser
-	declare var log4javascript: LogModule;
-
-	// module globals
-	var Log: LogModule;
+	export interface Window {
+		// implemented by mutter_window
+		id():string
+		tile_preference: any
+		is_active():boolean
+		activate():void
+		is_minimized():boolean
+		minimize():void
+		unminimize():void
+		maximize():void
+		activate_before_redraw(reason:string):void
+		move_to_workspace(new_index):void
+		move_resize(x:number, y:number, w:number, h:number):void
+		set_tile_preference(new_pref:boolean):void
+		get_title():string
+		width():number
+		height():number
+		xpos():number
+		ypos():number
+	}
 
 	var Axis = {
 		other: function(axis) {
@@ -51,7 +66,7 @@ module Tiling {
 		return arr.indexOf(item) !== -1;
 	};
 
-	var get_mouse_position = function():Point2d {
+	export var get_mouse_position = function():Point2d {
 		throw "override get_mouse_position()";
 	};
 
@@ -204,7 +219,12 @@ module Tiling {
 		}
 	}
 
-	class TileCollection {
+	export interface HasId {
+		id(): string
+	}
+
+
+	export class TileCollection {
 		items = [];
 		log = Log.getLogger("shellshape.tiling.TileCollection");
 
@@ -301,14 +321,14 @@ module Tiling {
 		select_cycle(diff) {
 			var cycled, filtered,
 				_this = this;
-			cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, function(active, neighbor) {
-				return neighbor.item.activate();
+			cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, <Anon>function(active, neighbor) {
+				neighbor.item.activate();
 			});
 			if (!cycled) {
 				// no active window - just select the first visible window if there is one
 				filtered = this.filter(this.is_visible, this.items);
 				if (filtered.length > 0) {
-					return filtered[0].activate();
+					filtered[0].activate();
 				}
 			}
 		}
@@ -322,7 +342,7 @@ module Tiling {
 			return this.filter(f, this.sorted_with_indexes());
 		}
 
-		private _with_active_and_neighbor_when_filtered(filter:FreeFunction, diff, cb) {
+		private _with_active_and_neighbor_when_filtered(filter:FreeFunction, diff, cb:FreeFunction) {
 			var filtered, filtered_active_idx, new_idx,
 				_this = this;
 			filtered = this.sorted_view(filter);
@@ -344,20 +364,20 @@ module Tiling {
 				sorted = filtered.sort(function(a, b) {
 					return b.minimized_order - a.minimized_order;
 				});
-				return f(sorted[0]);
+				f(sorted[0]);
 			}
 		}
 
 		cycle(diff) {
 			// only one of these will have any effect, as the active tile is either tiled or untiled
-			var done,
-				_this = this;
-			done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, function(active, neighbor) {
-				return _this.swap_at(active.index, neighbor.index);
-			});
-			return done || this._with_active_and_neighbor_when_filtered(this.is_visible_and_untiled, diff, function(active, neighbor) {
-				return _this.swap_at(active.index, neighbor.index);
-			});
+			var done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, Lang.bind(this, function(active, neighbor) {
+				this.swap_at(active.index, neighbor.index);
+			}));
+			if (!done) {
+				this._with_active_and_neighbor_when_filtered(this.is_visible_and_untiled, diff, Lang.bind(this, function(active, neighbor) {
+					this.swap_at(active.index, neighbor.index);
+				}));
+			}
 		}
 
 		_index_where(elems, cond) {
@@ -392,11 +412,11 @@ module Tiling {
 			return this.items[idx1] = _orig;
 		}
 
-		contains(item) {
+		contains(item:HasId) {
 			return this.indexOf(item) !== -1;
 		}
 
-		indexOf(item) {
+		indexOf(item:HasId) {
 			var id, idx,
 				_this = this;
 			id = item.id();
@@ -407,18 +427,19 @@ module Tiling {
 					idx = _idx;
 					return STOP;
 				}
+				return null;
 			});
 			return idx;
 		}
 
-		push(item) {
+		push(item):void {
 			if (this.contains(item)) {
 				return;
 			}
-			return this.items.push(item);
+			this.items.push(item);
 		}
 
-		each(f:FreeFunction) {
+		each(f:FreeFunction):boolean {
 			var i, ret, _i, _ref;
 			for (i = _i = 0, _ref = this.items.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
 				ret = f(this.items[i], i);
@@ -430,23 +451,24 @@ module Tiling {
 		}
 
 		each_tiled(f:FreeFunction) {
-			return this._filtered_each(this.is_tiled, f);
+			this._filtered_each(this.is_tiled, f);
 		}
 
 		_filtered_each(filter:FreeFunction, f:FreeFunction) {
-			return this.each(<FreeFunction>function(tile, idx) {
+			this.each(<FreeFunction>function(tile, idx) {
 				if (filter(tile)) {
-					return f(tile, idx);
+					f(tile, idx);
 				}
 			});
 		}
 
 		active(f:FreeFunction) {
-			return this.each(Lang.bind(this, function(item, idx) {
+			this.each(Lang.bind(this, function(item, idx) {
 				if (this.is_active(item)) {
 					f(item, idx);
 					return STOP;
 				}
+				return null;
 			}));
 		}
 
@@ -464,16 +486,17 @@ module Tiling {
 		}
 
 		main(f:FreeFunction) {
-			return this.each(Lang.bind(this, function(tile, idx) {
+			this.each(Lang.bind(this, function(tile, idx) {
 				if (this.is_tiled(tile)) {
 					f(tile, idx);
 					return STOP;
 				}
+				return null;
 			}));
 		}
 	}
 
-	class BaseSplit {
+	export class BaseSplit {
 		log = Log.getLogger("shellshape.tiling.BaseSplit");
 		ratio = HALF;
 		axis: string;
@@ -497,7 +520,7 @@ module Tiling {
 			unwanted_addition = this.ratio * diff;
 			this.last_size += diff;
 			this.log.debug("adjusting by " + (-unwanted_addition) + " to accommodate for rect size change from " + (this.last_size - diff) + " to " + this.last_size);
-			return this.adjust_ratio_px(-unwanted_addition);
+			this.adjust_ratio_px(-unwanted_addition);
 		}
 	
 		adjust_ratio_px(diff:number) {
@@ -515,13 +538,13 @@ module Tiling {
 				throw "failed ratio: " + new_ratio;
 			}
 			this.log.debug("which makes a new ratio of " + new_ratio);
-			return this.ratio = new_ratio;
+			this.ratio = new_ratio;
 		}
 	
 	}
 
 	
-	class Split extends BaseSplit {
+	export class Split extends BaseSplit {
 		layout_one(rect, windows, padding) {
 			var first_window, remaining, window_rect, _ref;
 			this.save_last_rect(rect);
@@ -540,22 +563,22 @@ module Tiling {
 		}
 	}
 
-	interface MinorSplitState {
+	export interface MinorSplitState {
 		left: Split[]
 		right: Split[]
 	}
 
-	interface SplitState {
+	export interface SplitState {
 		main: MultiSplit
 		minor: MinorSplitState
 	}
 
-	interface SplitStates {
+	export interface SplitStates {
 		x: SplitState
 		y: SplitState
 	}
 	
-	class LayoutState {
+	export class LayoutState {
 		// shared state for every layout type. Includes distinct @splits
 		// objects for both directions
 		tiles: TileCollection
@@ -563,6 +586,7 @@ module Tiling {
 		bounds: Bounds
 
 		constructor(bounds:Bounds, tiles?:TileCollection) {
+			this.bounds = assert(bounds);
 			this.tiles = tiles || new TileCollection();
 			this.splits = {
 				'x': {
@@ -580,7 +604,6 @@ module Tiling {
 					}
 				}
 			};
-			this.bounds = bounds;
 		}
 	
 		empty_copy() {
@@ -588,7 +611,7 @@ module Tiling {
 		}
 	}
 	
-	class MultiSplit extends BaseSplit {
+	export class MultiSplit extends BaseSplit {
 		// a splitter that contains multiple windows on either side,
 		// which is split along @axis (where 'x' is a split
 		// that contains windows to the left and right)
@@ -624,15 +647,15 @@ module Tiling {
 		}
 	}
 	
-	class BaseLayout {
+	export class BaseLayout {
 		padding = 0;
 		state: LayoutState
 		tiles: TileCollection
 		log: Logger
 	
-		constructor(name, state) {
+		constructor(name, state:LayoutState) {
 			this.log = Log.getLogger("shellshape.tiling." + name);
-			this.state = state;
+			this.state = assert(state);
 			this.tiles = state.tiles;
 		}
 	
@@ -645,14 +668,14 @@ module Tiling {
 		}
 	
 		each(func:FreeFunction) {
-			return this.tiles.each(func);
+			this.tiles.each(func);
 		}
 	
-		contains(win) {
+		contains(win:HasId) {
 			return this.tiles.contains(win);
 		}
 	
-		tile_for(win:Window, func:FreeFunction) {
+		tile_for(win:Window, func:FreeFunction):boolean {
 			var _this = this;
 			if (!win) {
 				return false;
@@ -662,20 +685,20 @@ module Tiling {
 					func(tile, idx);
 					return STOP;
 				}
+				return null;
 			});
-			return false;
 		}
 	
 		managed_tile_for(win:Window, func:FreeFunction) {
 			// like @tile_for, but ignore floating windows
 			return this.tile_for(win, Lang.bind(this, function(tile, idx) {
 				if (this.tiles.is_tiled(tile)) {
-					return func(tile, idx);
+					func(tile, idx);
 				}
 			}));
 		}
 	
-		tile(win) {
+		tile(win:Window) {
 			this.tile_for(win, Lang.bind(this, function(tile) {
 				tile.tile();
 				this.layout();
@@ -683,10 +706,10 @@ module Tiling {
 		}
 	
 		select_cycle(offset) {
-			return this.tiles.select_cycle(offset);
+			this.tiles.select_cycle(offset);
 		}
 	
-		add(win, active_win) {
+		add(win:Window, active_win:Window) {
 			var found, tile;
 			if (this.contains(win)) {
 				return false;
@@ -694,7 +717,7 @@ module Tiling {
 			tile = new TiledWindow(win, this.state);
 			found = this.tile_for(active_win, Lang.bind(this, function(active_tile, active_idx) {
 				this.tiles.insert_at(active_idx + 1, tile);
-				return this.log.debug("spliced " + tile + " into tiles at idx " + (active_idx + 1));
+				this.log.debug("spliced " + tile + " into tiles at idx " + (active_idx + 1));
 			}));
 			if (!found) {
 				// no active tile, just add the new window at the end
@@ -728,14 +751,14 @@ module Tiling {
 			});
 		}
 	
-		untile(win) {
-			return this.tile_for(win, Lang.bind(this, function(tile) {
+		untile(win:Window) {
+			this.tile_for(win, Lang.bind(this, function(tile) {
 				tile.release();
 				this.layout();
 			}));
 		}
 	
-		on_window_killed(win) {
+		on_window_killed(win:Window):boolean {
 			return this.tile_for(win, Lang.bind(this, function(tile, idx) {
 				this.tiles.remove_at(idx);
 				this.layout();
@@ -746,7 +769,7 @@ module Tiling {
 			var active;
 			active = null;
 			this.active_tile(<Anon>function(tile, idx) {
-				return active = tile;
+				active = tile;
 			});
 			if (active === null) {
 				this.log.debug("active == null");
@@ -754,21 +777,21 @@ module Tiling {
 			if (active === null) {
 				return;
 			}
-			return this.each(Lang.bind(this, function(tile) {
+			this.each(Lang.bind(this, function(tile) {
 				if (tile === active) {
 					this.log.debug("toggling maximize for " + tile);
-					return tile.toggle_maximize();
+					tile.toggle_maximize();
 				} else {
-					return tile.unmaximize();
+					tile.unmaximize();
 				}
 			}));
 		}
 	
-		on_window_moved(win) {
+		on_window_moved(win:Window) {
 			return this.on_window_resized(win);
 		}
 	
-		on_window_resized(win) {
+		on_window_resized(win:Window) {
 			var found;
 			found = this.tile_for(win, Lang.bind(this, function(tile, idx) {
 				tile.update_original_rect();
@@ -782,11 +805,11 @@ module Tiling {
 		// all the actions that are specific to an actual tiling layout are NOOP'd here,
 		// so the keyboard handlers don't have to worry whether it's a valid thing to call
 		
-		on_split_resize_start(win) {
+		on_split_resize_start(win:Window) {
 			return null;
 		}
 	
-		adjust_splits_to_fit(win) {
+		adjust_splits_to_fit(win:Window) {
 			return null;
 		}
 	
@@ -806,7 +829,7 @@ module Tiling {
 			return null;
 		}
 	
-		adjust_split_for_tile(opts) {
+		adjust_split_for_tile(opts:{tile: TiledWindow; diff_ratio: number; axis: string }) {
 			return null;
 		}
 	
@@ -819,7 +842,7 @@ module Tiling {
 		}
 	}
 
-	class FloatingLayout extends BaseLayout {
+	export class FloatingLayout extends BaseLayout {
 		constructor(state) {
 			super('FloatingLayout', state)
 		}
@@ -839,7 +862,7 @@ module Tiling {
 		}
 	}
 	
-	class FullScreenLayout extends BaseLayout {
+	export class FullScreenLayout extends BaseLayout {
 		constructor(state) {
 			super('FullScreenLayout', state);
 		}
@@ -856,14 +879,14 @@ module Tiling {
 		}
 	}
 	
-	class BaseTiledLayout extends BaseLayout {
+	export class BaseTiledLayout extends BaseLayout {
 		bounds: Bounds
 		main_split: MultiSplit
 		splits: MinorSplitState
 		main_axis: string
 		// private split_resize_start_rect: Rect = null
 
-		constructor(name, axis, state) {
+		constructor(name, axis, state:LayoutState) {
 			super(name, state);
 			// TODO: remove need for these instance vars
 			this.main_axis = axis;
@@ -987,35 +1010,35 @@ module Tiling {
 			axis = opts.axis, diff_px = opts.diff_px, diff_ratio = opts.diff_ratio, tile = opts.tile;
 			adjust = function(split, inverted) {
 				if (diff_px != null) {
-					return split.adjust_ratio_px(inverted ? -diff_px : diff_px);
+					split.adjust_ratio_px(inverted ? -diff_px : diff_px);
 				} else {
-					return split.adjust_ratio(inverted ? -diff_ratio : diff_ratio);
+					split.adjust_ratio(inverted ? -diff_ratio : diff_ratio);
 				}
 			};
 			if (axis === this.main_axis) {
-				return adjust(this.main_split, !this.main_split.in_primary_partition(this.tiles.indexOf(tile)));
+				adjust(this.main_split, !this.main_split.in_primary_partition(this.tiles.indexOf(tile)));
 			} else {
 				if (tile.bottom_split != null) {
-					return adjust(tile.bottom_split, false);
+					adjust(tile.bottom_split, false);
 				} else if (tile.top_split != null) {
-					return adjust(tile.top_split, true);
+					adjust(tile.top_split, true);
 				}
 			}
 		}
 	
 		activate_main_window() {
 			var _this = this;
-			return this.tiles.main(<Anon>function(win) {
-				return win.activate();
+			this.tiles.main(<Anon>function(win) {
+				win.activate();
 			});
 		}
 	
 		swap_active_with_main() {
 			var _this = this;
-			return this.tiles.active(<Anon>function(tile, idx) {
-				return _this.tiles.main(<Anon>function(main_tile, main_idx) {
+			this.tiles.active(<Anon>function(tile, idx) {
+				_this.tiles.main(<Anon>function(main_tile, main_idx) {
 					_this.tiles.swap_at(idx, main_idx);
-					return _this.layout();
+					_this.layout();
 				});
 			});
 		}
@@ -1071,7 +1094,7 @@ module Tiling {
 		}
 	
 		adjust_splits_to_fit(win) {
-			return this.managed_tile_for(win, Lang.bind(this, function(tile, idx) {
+			this.managed_tile_for(win, Lang.bind(this, function(tile, idx) {
 				if (!this.tiles.is_tiled(tile)) return;
 				this.layout(tile);
 			}));
@@ -1090,7 +1113,7 @@ module Tiling {
 				tile.offset.size[this.main_axis] += tile.offset.pos[this.main_axis];
 				tile.offset.pos[this.main_axis] = 0;
 			}
-			return this.log.debug("After main_split accommodation, tile offset = " + (j(tile.offset)));
+			this.log.debug("After main_split accommodation, tile offset = " + (j(tile.offset)));
 		}
 	
 		_change_minor_ratios_to_accommodate(tile, above_splits, below_split) {
@@ -1142,28 +1165,28 @@ module Tiling {
 				below_split.adjust_ratio_px(bottom_offset);
 				tile.offset.size[axis] -= bottom_offset;
 			}
-			return this.log.debug("After minor adjustments, offset = " + (j(tile.offset)));
+			this.log.debug("After minor adjustments, offset = " + (j(tile.offset)));
 		}
 	
 		_swap_moved_tile_if_necessary(tile, idx) {
-			if (!this.tiles.is_tiled(tile)) {
-				return;
-			}
-			var mouse_pos = get_mouse_position();
 			var moved = false;
-			this._each_tiled(Lang.bind(this, function(swap_candidate, swap_idx) {
-				var target_rect: Rect;
-				target_rect = Tile.shrink(swap_candidate.rect, 20);
-				if (swap_idx === idx) {
-					return;
-				}
-				if (Tile.point_is_within(mouse_pos, target_rect)) {
-					this.log.debug("swapping idx " + idx + " and " + swap_idx);
-					this.tiles.swap_at(idx, swap_idx);
-					moved = true;
-					return STOP;
-				}
-			}));
+			if (this.tiles.is_tiled(tile)) {
+				var mouse_pos = get_mouse_position();
+				this._each_tiled(Lang.bind(this, function(swap_candidate, swap_idx) {
+					var target_rect: Rect;
+					target_rect = Tile.shrink(swap_candidate.rect, 20);
+					if (swap_idx === idx) {
+						return null;
+					}
+					if (Tile.point_is_within(mouse_pos, target_rect)) {
+						this.log.debug("swapping idx " + idx + " and " + swap_idx);
+						this.tiles.swap_at(idx, swap_idx);
+						moved = true;
+						return STOP;
+					}
+					return null;
+				}));
+			}
 			return moved;
 		}
 	
@@ -1185,7 +1208,7 @@ module Tiling {
 		// }
 	}
 	
-	class VerticalTiledLayout extends BaseTiledLayout {
+	export class VerticalTiledLayout extends BaseTiledLayout {
 		constructor(state) {
 			super('VerticalTiledLayout', 'x', state);
 		}
@@ -1195,7 +1218,7 @@ module Tiling {
 		}
 	}
 
-	class HorizontalTiledLayout extends BaseTiledLayout {
+	export class HorizontalTiledLayout extends BaseTiledLayout {
 		constructor(state) {
 			super('HorizontalTiledLayout', 'y', state);
 		}
@@ -1205,19 +1228,19 @@ module Tiling {
 		}
 	}
 
-	interface Point2d {
+	export interface Point2d {
 		x: number
 		y: number
 	}
 
-	interface Rect {
+	export interface Rect {
 		pos: Point2d
 		size: Point2d
 	}
 	
-	class TiledWindow {
+	export class TiledWindow {
 		log: Logger
-		window: MutterWindow.Window
+		window: Window
 		bounds: any
 		maximized = false
 		managed = false
@@ -1234,13 +1257,13 @@ module Tiling {
 			var _old = TiledWindow.active_window_override;
 			TiledWindow.active_window_override = win;
 			try {
-				return f();
+				f();
 			} finally {
 				TiledWindow.active_window_override = _old;
 			}
 		}
 
-		constructor(win, state) {
+		constructor(win, state:LayoutState) {
 			this.log = Log.getLogger("shellshape.tiling.TiledWindow");
 			this.window = win;
 			this.bounds = state.bounds;
@@ -1267,13 +1290,13 @@ module Tiling {
 
 		update_original_rect = function() {
 			this.original_rect = this.window_rect();
-			return this.log.debug("window " + this + " remembering new rect of " + (JSON.stringify(this.original_rect)));
+			this.log.debug("window " + this + " remembering new rect of " + (JSON.stringify(this.original_rect)));
 		}
 
 		resume_original_state() {
 			this.reset_offset();
 			this.rect = Tile.copy_rect(this.original_rect);
-			return this.log.debug("window " + this + " resuming old rect of " + (JSON.stringify(this.rect)));
+			this.log.debug("window " + this + " resuming old rect of " + (JSON.stringify(this.rect)));
 		}
 
 		tile() {
@@ -1313,7 +1336,7 @@ module Tiling {
 				pos: Tile.point_diff(rect.pos, win.pos),
 				size: Tile.point_diff(rect.size, win.size)
 			};
-			return this.log.debug("updated tile offset to " + (j(this.offset)));
+			this.log.debug("updated tile offset to " + (j(this.offset)));
 		}
 
 		window_rect():Rect {
@@ -1331,9 +1354,9 @@ module Tiling {
 
 		toggle_maximize() {
 			if (this.maximized) {
-				return this.unmaximize();
+				this.unmaximize();
 			} else {
-				return this.maximize();
+				this.maximize();
 			}
 		}
 
@@ -1367,22 +1390,22 @@ module Tiling {
 		}
 
 		unminimize() {
-			return this.window.unminimize();
+			this.window.unminimize();
 		}
 
 		minimize() {
-			return this.window.minimize();
+			this.window.minimize();
 		}
 
 		private _resize(size) {
-			return this.rect.size = {
+			this.rect.size = {
 				x: size.x,
 				y: size.y
 			};
 		}
 
 		private _move(pos) {
-			return this.rect.pos = {
+			this.rect.pos = {
 				x: pos.x,
 				y: pos.y
 			};
@@ -1393,7 +1416,7 @@ module Tiling {
 			// @log.debug("tile has new rect: " + j(r))
 			this._resize(r.size);
 			this._move(r.pos);
-			return this.layout();
+			this.layout();
 		}
 
 		ensure_within(screen_rect) {
@@ -1403,7 +1426,7 @@ module Tiling {
 			if (!Tile.zero_rect(change_required)) {
 				log("moving tile " + (j(change_required)) + " to keep it onscreen");
 				this.offset = Tile.add_diff_to_rect(this.offset, change_required);
-				return this.layout();
+				this.layout();
 			}
 		}
 
@@ -1413,7 +1436,7 @@ module Tiling {
 			tile_center = Tile.rect_center(this.rect);
 			window_center = Tile.rect_center(window_rect);
 			movement_required = Tile.point_diff(window_center, tile_center);
-			return this.offset.pos = Tile.point_add(this.offset.pos, movement_required);
+			this.offset.pos = Tile.point_add(this.offset.pos, movement_required);
 		}
 
 		layout() {
@@ -1427,11 +1450,11 @@ module Tiling {
 			_ref = Tile.ensure_rect_exists(rect), pos = _ref.pos, size = _ref.size;
 			this.window.move_resize(pos.x, pos.y, size.x, size.y);
 			if (is_active) {
-				return this.window.activate_before_redraw("layout");
+				this.window.activate_before_redraw("layout");
 			}
 		}
 
-		maximized_rect() {
+		maximized_rect():Rect {
 			if (!this.maximized) {
 				return null;
 			}
@@ -1442,7 +1465,7 @@ module Tiling {
 			var window_rect;
 			window_rect = this.window_rect();
 			if (axis != null) {
-				return this._scale_by(amount, axis, window_rect);
+				this._scale_by(amount, axis, window_rect);
 			} else {
 				// scale in both directions
 				this._scale_by(amount, 'x', window_rect);
@@ -1456,18 +1479,17 @@ module Tiling {
 			diff_px = amount * current_dim;
 			new_dim = current_dim + diff_px;
 			this.offset.size[axis] += diff_px;
-			return this.offset.pos[axis] -= diff_px / 2;
+			this.offset.pos[axis] -= diff_px / 2;
 		}
 
 		release() {
 			this.set_rect(this.original_rect);
 			this.managed = false;
-			return this.window.set_tile_preference(false);
+			this.window.set_tile_preference(false);
 		}
 
 		activate() {
 			this.window.activate();
-			return this.window.bring_to_front();
 		}
 
 		is_active() {
@@ -1497,49 +1519,5 @@ module Tiling {
 
 			}
 		}
-	}
-
-
-	if (typeof Log === "undefined" || Log === null) {
-		if (typeof require !== "undefined" && require !== null) {
-			var Logger = {
-				error: function() { log.apply(null, arguments) },
-				warn:  function() { log.apply(null, arguments) },
-				info:  function() { log.apply(null, arguments) },
-				debug: function() { log.apply(null, arguments) }
-			};
-			Log = {
-				getLogger: function(_:string) { return Logger; },
-			};
-
-		} else if (typeof imports !== "undefined" && imports !== null) {
-			var Extension = imports.misc.extensionUtils.getCurrentExtension();
-
-			var Log = <LogModule>Extension.imports.log4javascript.log4javascript;
-
-		} else {
-			Log = log4javascript;
-		}
-	}
-
-	var export_to = function(dest) {
-		dest.LayoutState = LayoutState;
-		dest.VerticalTiledLayout = VerticalTiledLayout;
-		dest.FloatingLayout = FloatingLayout;
-		dest.TileCollection = TileCollection;
-		dest.Axis = Axis;
-		dest.Tile = Tile;
-		dest.Split = Split;
-		dest.MultiSplit = MultiSplit;
-		dest.TiledWindow = TiledWindow;
-		dest.ArrayUtil = ArrayUtil;
-		return dest.to_get_mouse_position = function(f) {
-			return get_mouse_position = f;
-		};
-	};
-
-	if (typeof exports !== "undefined" && exports !== null) {
-		log("EXPORTS");
-		export_to(exports);
 	}
 }

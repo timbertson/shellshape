@@ -1,14 +1,14 @@
 /// <reference path="common.ts" />
+/// <reference path="logging.ts" />
+/// <reference path="tiling.ts" />
 module MutterWindow {
 
 var Main = imports.ui.main;
 var Lang = imports.lang;
 var Meta = imports.gi.Meta;
 var Shell = imports.gi.Shell;
-var Extension = imports.misc.extensionUtils.getCurrentExtension();
-var Log: LogModule = Extension.imports.log4javascript.log4javascript;
 
-export class Window {
+export class Window implements Tiling.Window {
 	meta_window: any
 	ext: any
 	log: Logger
@@ -49,7 +49,10 @@ export class Window {
 	is_active() {
 		return this.ext.current_window() === this;
 	}
-	activate(time?:number) {
+	activate() {
+		this._activate();
+	}
+	private _activate(time?:number) {
 		Main.activateWindow(this.meta_window, time);
 	}
 	is_minimized() {
@@ -80,7 +83,7 @@ export class Window {
 			Meta.LaterType.IDLE, //when
 			function() {
 				// self.log.debug("Activating window " + self + " (" + reason + ")");
-				self.activate(time);
+				self._activate(time);
 			},
 			null, //data
 			null //notify

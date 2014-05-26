@@ -137,7 +137,6 @@ GPLv3
 		</requires>
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="shellshape/data" mode="prepend" name="XDG_DATA_DIRS"/>
-		<environment insert="lib" mode="prepend" name="GJS_PATH"/>
 		
 	<implementation id="." version="0.8.1-post"/></group>
 </interface>

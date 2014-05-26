@@ -1,20 +1,28 @@
 /// <reference path="common.ts" />
+/// <reference path="extension.ts" />
+/// <reference path="tiling.ts" />
+interface MetaWorkspace {
+	list_windows():MetaWindow[]
+	index():number
+}
+
+interface MetaWindow {
+	get_monitor():number
+	get_title():string
+}
+
 module Workspace {
 
 	var Mainloop = imports.mainloop;
 	var Lang = imports.lang;
 	var Meta = imports.gi.Meta;
-	var Extension = imports.misc.extensionUtils.getCurrentExtension();
-	var Log = Extension.imports.log4javascript.log4javascript;
-	var Tiling = Extension.imports.tiling;
-	var ShellshapeSettings = Extension.imports.shellshape_settings;
 
-	interface Change {
+	export interface Change {
 		pending: boolean
 	}
 
-	var _duck_overview = function(fn) {
-		return function() {
+	function _duck_overview<T extends Function>(fn:T):T {
+		return <T>function() {
 			var _this = this;
 			var _args = arguments;
 			this.extension.perform_when_overview_is_hidden(function() {
@@ -23,8 +31,8 @@ module Workspace {
 		}
 	};
 
-	var _duck_turbulence = function(fn) {
-		return function() {
+	function _duck_turbulence<T extends Function>(fn:T):T {
+		return <T>function() {
 			var _this = this;
 			var _args = arguments;
 			this._turbulence.add_action(function() {
@@ -33,8 +41,8 @@ module Workspace {
 		};
 	};
 
-	var _duck_grab_op = function(fn) {
-		return function() {
+	function _duck_grab_op<T extends Function>(fn:T):T {
+		return <T>function() {
 			var _this = this;
 			var _args = arguments;
 			return this._duck_grab_op(function() {
@@ -93,14 +101,23 @@ module Workspace {
 		}
 	}
 
-	function Workspace() {
-		this._init.apply(this, arguments)
+	export class Default {
+		static layout = Tiling.FloatingLayout
+		static max_autotile:number = null
 	}
-	Workspace.prototype = {
-		default_layout: Tiling.FloatingLayout,
-		max_autotile: null,
 
-		_init : function(meta_workspace, layout_state, ext) {
+	export class Workspace {
+		log: Logger
+		layout_state: Tiling.LayoutState
+		meta_workspace: MetaWorkspace
+		workspace_idx: number
+		extension: any // TODO
+		private _turbulence: any
+		screen: any
+		active_layout: any // class
+		layout: Tiling.BaseLayout
+
+		constructor(meta_workspace:MetaWorkspace, layout_state:Tiling.LayoutState, ext) {
 			this.log = Log.getLogger("shellshape.workspace");
 			this.layout_state = layout_state;
 			this.meta_workspace = meta_workspace;
@@ -110,29 +127,29 @@ module Workspace {
 			this.workspace_idx = this.meta_workspace.index();
 			this.extension = ext;
 			this.screen = ext.screen;
-			this.set_layout(this.default_layout);
+			this.set_layout(Default.layout);
 			this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 			this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
 			this._turbulence = new TurbulentState();
 			this._turbulence.cleanup = Lang.bind(this, this.check_all_windows);
 			// add all initial windows
 			this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
-		},
+		}
 
-		_disable: function() {
+		_disable() {
 			var self = this;
 			this.extension.disconnect_tracked_signals(this);
 			this.meta_windows().map(Lang.bind(this, function(win) { this._on_window_remove(null, win); }));
 			this.meta_workspace = null;
 			this.extension = null;
-		},
+		}
 
-		_reset_layout: function() {
+		_reset_layout() {
 			this.layout_state = this.layout_state.empty_copy();
-			this.set_layout(this.default_layout);
-		},
+			this.set_layout(Default.layout);
+		}
 
-		_take_layout_from: function(other) {
+		_take_layout_from(other) {
 			this._turbulence.shake();
 			if(!other) {
 				this._reset_layout();
@@ -143,58 +160,60 @@ module Workspace {
 				this[keys[i]] = other[keys[i]];
 			}
 			this.relayout();
-		},
+		}
 
-		relayout: _duck_overview(function() {
+		relayout = _duck_overview(function() {
 			this.layout.layout();
-		}),
+		})
 
 		// after turbulence, windows may have shuffled. we best make sure we own all windows that we should,
 		// and that we don't own any windows that have moved to other workspaces.
-		check_all_windows: _duck_grab_op(function() {
-			var expected_meta_windows = this.meta_windows();
-			var layout_meta_windows = [];
-			this.layout.each(function(tile) {
-				layout_meta_windows.push(tile.window.meta_window);
+		check_all_windows = _duck_grab_op(function() {
+			var self:Workspace = this;
+			var win:MetaWindow;
+			var expected_meta_windows:MetaWindow[] = self.meta_windows();
+			var layout_meta_windows:MetaWindow[] = [];
+			self.layout.each(<Anon>function(tile:Tiling.TiledWindow) {
+				layout_meta_windows.push((<MutterWindow.Window>tile.window).meta_window);
 			});
 
 			// check for windows in layout but not workspace window list
 			for (var i=0; i<layout_meta_windows.length; i++) {
-				var win = layout_meta_windows[i];
+				win = layout_meta_windows[i][0];
 				if(expected_meta_windows.indexOf(win) == -1) {
-					this.log.debug("removing unexpected window from workspace " + this + ": " + win.get_title());
-					this.on_window_remove(null, win);
+					self.log.debug("removing unexpected window from workspace " + self + ": " + win.get_title());
+					self.on_window_remove(null, win, true);
 				}
 			}
 
 			// check for windows in workspace but not layout
 			for (var i=0; i<expected_meta_windows.length; i++) {
-				var win = expected_meta_windows[i];
+				win = expected_meta_windows[i];
 				if(layout_meta_windows.indexOf(win) == -1) {
 					// we add new windows after a minor delay so that removal from the current workspace happens first
 					// (as removal will wipe out all attached signals)
-					Mainloop.idle_add(Lang.bind(this, function () {
-						this.log.debug("adding missing window to workspace " + this + ": " + win.get_title());
-						this.on_window_create(null, win);
+					Mainloop.idle_add(function () {
+						// self.log.debug("adding missing window to workspace " + self + ": " + win.get_title());
+						self.on_window_create(null, win);
 						return false;
-					}));
+					});
 				}
 			}
-		}),
+		})
 
-		set_layout: function(cls) {
+		set_layout(cls) {
 			this.log.debug("Instantiating new layout class");
 			this.active_layout = cls;
 			this.layout = new cls(this.layout_state);
 			this.log.debug("laying out according to new layout");
 			this.layout.layout();
-		},
+		}
 
-		toString: function() {
+		toString() {
 			return "<# Workspace at idx " + this.workspace_idx + ">";
-		},
+		}
 
-		_grab_op_signal_handler : function(change:Change, relevant_grabs, cb) {
+		_grab_op_signal_handler(change:Change, relevant_grabs, cb) {
 			// grab_ops occur continually throughout the course of a move / resize.
 			// Unfortunately, there's no grab_op "end" signal. So on the first
 			// grab_op we set change.pending, and keep triggering checks
@@ -225,9 +244,9 @@ module Workspace {
 			var op_handler = _handler.call(this, false);
 			var idle_handler = _handler.call(this, true);
 			return op_handler;
-		},
+		}
 
-		_duck_grab_op: function(cb) {
+		_duck_grab_op(cb) {
 			var change = {pending: false};
 			var handler = this._grab_op_signal_handler(change, all_grab_ops, cb);
 			// fire handler immediately
@@ -235,9 +254,9 @@ module Workspace {
 			// if it isn't waiting, call the function immediately
 			if (!change.pending) cb.call(this);
 			else this.log.debug("ducking grab op...");
-		},
+		}
 
-		on_window_create: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
+		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window, reason?) {
 			var get_actor = Lang.bind(this, function() {
 				try {
 					// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
@@ -266,13 +285,11 @@ module Workspace {
 			}
 
 			if (!this.is_on_main_screen(meta_window)) {
-				this.log.debug("not on main"); // NOCOMMIT
 				return;
 			}
 
 			var win = this.extension.get_window(meta_window);
 			if(!win.can_be_tiled()) {
-				this.log.debug("can't be tiled"); // NOCOMMIT
 				return;
 			}
 
@@ -319,28 +336,28 @@ module Workspace {
 			if(should_auto_tile && this.has_tile_space_left()) {
 				this.layout.tile(win);
 			}
-		})),
+		}))
 
-		has_tile_space_left: function() {
+		has_tile_space_left() {
 			var n = 0;
-			this.layout.tiles.each_tiled(function() { n = n + 1; });
-			var max = this.max_autotile;
+			this.layout.tiles.each_tiled(<Anon>function() { n = n + 1; });
+			var max = Default.max_autotile;
 			this.log.debug("there are " + n + " windows tiled, of maximum " + max);
 			return (n < max);
-		},
+		}
 
 		// These functions are bound to the workspace and not the layout directly, since
 		// the layout may change at any moment
 		// NOTE: these two get shellshape `Window` objects as their callback argument, *not* MetaWindow
-		on_window_moved:   _duck_overview(function(win) { this.layout.on_window_moved(win); }),
-		on_window_resized: _duck_overview(function(win) { this.layout.on_window_resized(win); }),
+		on_window_moved   = _duck_overview(function(win) { this.layout.on_window_moved(win); })
+		on_window_resized = _duck_overview(function(win) { this.layout.on_window_resized(win); })
 
-		on_window_minimize_changed: function(meta_window) {
+		on_window_minimize_changed(meta_window) {
 			this.log.debug("window minimization state changed for window " + meta_window);
 			this.layout.layout();
-		},
+		}
 
-		disconnect_workspace_signals: function(win) {
+		disconnect_workspace_signals(win) {
 			if(!win.workspace_signals) {
 				this.log.debug("No workspace_signals registered on window " + win);
 				return;
@@ -351,28 +368,40 @@ module Workspace {
 				signal[0].disconnect(signal[1]);
 			}));
 			delete win.workspace_signals;
-		},
+		}
 
-		on_window_remove: _duck_turbulence(_duck_overview(function(workspace, meta_window) {
+		on_window_remove = _duck_turbulence(_duck_overview(function(workspace, meta_window, force?:boolean) {
 			return this._on_window_remove.apply(this, arguments);
-		})),
+		}))
 
-		_on_window_remove: function(workspace, meta_window) {
-			var win = this.extension.get_window(meta_window);
-			this.log.debug("on_window_remove for " + win + " (" + this +")");
-			this.disconnect_workspace_signals(win);
-			this.layout.on_window_killed(win);
-			this.extension.remove_window(win);
-		},
+		_on_window_remove(workspace, meta_window, force?:boolean) {
+			var self:Workspace = this;
+			var win = self.extension.get_window(meta_window);
+			self.log.debug("on_window_remove for " + win + " (" + self +")");
+			self.disconnect_workspace_signals(win);
+			var removed = self.layout.on_window_killed(win);
+			if (force && !removed) {
+				self.log.error("Unable to remove window: " + win);
+				self.layout.each(<Anon>function(tile:Tiling.TiledWindow, idx) {
+					if (tile.window === win) {
+						self.log.error("And yet: Found window match at index: " + idx);
+					}
+					if ((<MutterWindow.Window>tile.window).meta_window === meta_window) {
+						self.log.error("And yet: Found meta_window match at index: " + idx);
+					}
+				});
+			}
+			self.extension.remove_window(win);
+		}
 
-		meta_windows: function() {
+		meta_windows():MetaWindow[] {
 			var wins = this.meta_workspace.list_windows();
 			wins = wins.filter(Lang.bind(this, this.is_on_main_screen));
-			this.log.debug("Windows on " + this + " = [" + wins.join(", ") + "]");
+			// this.log.debug("Windows on " + this + " = [" + wins.join(", ") + "]");
 			return wins;
-		},
+		}
 
-		is_on_main_screen: function(meta_window) {
+		is_on_main_screen(meta_window:MetaWindow):boolean {
 			if (this.screen.count <= 1 || meta_window.get_monitor() == this.screen.idx) {
 				return true;
 			} else {
