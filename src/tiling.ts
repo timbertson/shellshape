@@ -1,6 +1,5 @@
 /// <reference path="common.ts" />
 /// <reference path="mutter_window.ts" />
-/// <reference path="bounds.ts" />
 
 module Tiling {
 	// external symbols (may or may not exist in a given env)
@@ -12,7 +11,7 @@ module Tiling {
 
 	export interface Window {
 		// implemented by mutter_window
-		id():string
+		id():number
 		tile_preference: any
 		is_active():boolean
 		activate():void
@@ -29,6 +28,10 @@ module Tiling {
 		height():number
 		xpos():number
 		ypos():number
+	}
+
+	export interface Bounds {
+		update(newMonitor?:any):void
 	}
 
 	var Axis = {
@@ -220,7 +223,7 @@ module Tiling {
 	}
 
 	export interface HasId {
-		id(): string
+		id(): number
 	}
 
 
@@ -825,7 +828,7 @@ module Tiling {
 			return null;
 		}
 	
-		scale_current_window(amount, axis) {
+		scale_current_window(amount:number, axis?:string) {
 			return null;
 		}
 	

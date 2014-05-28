@@ -1,8 +1,43 @@
 declare var imports: any;
 
+interface MetaWorkspace {
+	list_windows():MetaWindow[]
+	index():number
+	activate_with_focus(win:MetaWindow, time:number)
+	activate(time:number)
+}
+
+interface MetaWindow {
+	get_monitor():number
+	get_title():string
+	get_stable_sequence():number
+}
+
+interface Screen {
+	get_workspace_by_index(n:number):MetaWorkspace
+	get_active_workspace_index():number
+	connect_after:Function
+	get_display():any
+	get_n_workspaces():number
+	get_n_monitors():number
+	get_primary_monitor():number
+	get_monitor_geometry(idx:number):any
+	connect(name:String, cb:Function):GObjectSignal
+	disconnect(GObjectSignal):void
+}
+
+interface GObjectSignal {
+	__is_gobject_signal: boolean // fake
+}
+
+interface GObject {
+	connect(name:String, cb:Function):GObjectSignal
+	disconnect(GObjectSignal):void
+}
+
 interface Global {
 	get_current_time(): number
-	screen: any
+	screen: Screen
 	log: Function
 	display: any
 }

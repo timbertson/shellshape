@@ -28,7 +28,7 @@ export class Window implements Tiling.Window {
 		'Conky'
 	]
 
-	static GetId(w) {
+	static GetId(w:MetaWindow) {
 		if(!w || !w.get_stable_sequence) {
 			Log.getLogger("shellshape.window").error("Non-window object: " + w);
 			return null;

@@ -3,7 +3,7 @@ function init(log4javascript) {
 
 	GjsAppender.prototype = new log4javascript.Appender();
 	GjsAppender.prototype.layout = new log4javascript.NullLayout();
-	GjsAppender.prototype.threshold = log4javascript.Level.INFO;
+	GjsAppender.prototype.threshold = log4javascript.Level.DEBUG;
 	GjsAppender.prototype.append = function(loggingEvent) {
 		var appender = this;
 		var getFormattedMessage = function() {

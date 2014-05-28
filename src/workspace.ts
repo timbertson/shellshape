@@ -1,16 +1,6 @@
 /// <reference path="common.ts" />
 /// <reference path="extension.ts" />
 /// <reference path="tiling.ts" />
-interface MetaWorkspace {
-	list_windows():MetaWindow[]
-	index():number
-}
-
-interface MetaWindow {
-	get_monitor():number
-	get_title():string
-}
-
 module Workspace {
 
 	var Mainloop = imports.mainloop;
@@ -116,8 +106,9 @@ module Workspace {
 		screen: any
 		active_layout: any // class
 		layout: Tiling.BaseLayout
+		_do: {(action:Function, desc:string, fail?:boolean):any}
 
-		constructor(meta_workspace:MetaWorkspace, layout_state:Tiling.LayoutState, ext) {
+		constructor(meta_workspace:MetaWorkspace, layout_state:Tiling.LayoutState, ext:Extension.Ext) {
 			this.log = Log.getLogger("shellshape.workspace");
 			this.layout_state = layout_state;
 			this.meta_workspace = meta_workspace;
@@ -126,6 +117,7 @@ module Workspace {
 			}
 			this.workspace_idx = this.meta_workspace.index();
 			this.extension = ext;
+			this._do = ext._do;
 			this.screen = ext.screen;
 			this.set_layout(Default.layout);
 			this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
@@ -179,7 +171,7 @@ module Workspace {
 
 			// check for windows in layout but not workspace window list
 			for (var i=0; i<layout_meta_windows.length; i++) {
-				win = layout_meta_windows[i][0];
+				win = layout_meta_windows[i];
 				if(expected_meta_windows.indexOf(win) == -1) {
 					self.log.debug("removing unexpected window from workspace " + self + ": " + win.get_title());
 					self.on_window_remove(null, win, true);
@@ -300,6 +292,7 @@ module Workspace {
 				return;
 			}
 
+			// TODO: use ext.connect_and_track?
 			if (win.workspace_signals) {
 				this.log.error("win.workspace_signals is already defined");
 				this.disconnect_workspace_signals(win);
@@ -310,10 +303,12 @@ module Workspace {
 				// we only care about events *after* at least one relevant grab_op,
 				var self = this;
 				var signal_handler = this._grab_op_signal_handler({pending:false}, relevant_grabs, function() {
-					if (self.screen.count > 1) {
-						self.check_all_windows();
-					}
-					cb(win);
+					self._do(function() {
+						if (self.screen.count > 1) {
+							self.check_all_windows();
+						}
+						cb(win);
+					}, "signal handler for " + event_name);
 				});
 				win.workspace_signals.push([actor, actor.connect(event_name + '-changed', signal_handler)]);
 			});
