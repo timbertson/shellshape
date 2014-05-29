@@ -132,8 +132,6 @@ module Workspace {
 			var self = this;
 			this.extension.disconnect_tracked_signals(this);
 			this.meta_windows().map(Lang.bind(this, function(win) { this._on_window_remove(null, win); }));
-			this.meta_workspace = null;
-			this.extension = null;
 		}
 
 		_reset_layout() {
@@ -268,7 +266,7 @@ module Workspace {
 				// Newly-created windows are added to a workspace before
 				// the compositor finds out about them...
 				Mainloop.idle_add(Lang.bind(this, function () {
-					if (get_actor() && meta_window.get_workspace() == this.meta_workspace) {
+					if (get_actor() && meta_window.get_workspace() === this.meta_workspace) {
 						this.on_window_create(workspace, meta_window);
 					}
 					return false;

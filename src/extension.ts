@@ -62,7 +62,7 @@ module Extension {
 		get_workspace_by_index:{(idx:number):Workspace.Workspace}
 		private workspaces: Workspace.Workspace[];
 		private bounds: Tiling.Bounds
-		private remove_workspace: {(ws:MetaWorkspace):void}
+		private remove_workspace: {(i:number):void}
 		get_window: {(meta_window:MetaWindow, create_if_necessary?:boolean)}
 		private windows: { [index: string] : MutterWindow.Window; }
 		private dead_windows: MutterWindow.Window[]
@@ -188,10 +188,8 @@ module Extension {
 			};
 
 			// Remove a workspace from the extension's cache.  Disable it first.
-			self.remove_workspace = function(meta_workspace:MetaWorkspace) {
-				assert(meta_workspace);
-				self.log.debug("disabling workspace...");
-				var idx = meta_workspace.index();
+			self.remove_workspace = function(idx:number) {
+				self.log.debug("disabling workspace #" + idx);
 				var ws = self.workspaces[idx];
 				if(ws != null) {
 					self._do(function() {ws._disable();}, 'disable workspace');
@@ -273,7 +271,7 @@ module Extension {
 			// Returns a Workspace (shellshape/workspace.js) representing the
 			// current workspace.
 			self.current_workspace = function current_workspace() {
-				return self.get_workspace(self.current_meta_workspace());
+				return self.get_workspace_by_index(global.screen.get_active_workspace_index());
 			};
 
 			// Return a gnome-shell meta-workspace representing the current workspace.
@@ -284,7 +282,7 @@ module Extension {
 			// Returns the Layout (shellshape/tiling.js,coffee) tied to the current
 			// workspace.
 			self.current_layout = function current_layout() {
-				return self.get_workspace(self.current_meta_workspace()).layout;
+				return self.current_workspace().layout;
 			};
 
 			// Perform an action on each workspace
@@ -523,7 +521,7 @@ module Extension {
 				};
 
 				self.connect_and_track(self, global.screen, 'workspace-added', function(screen, i) { _init_workspace(i); });
-				self.connect_and_track(self, global.screen, 'workspace-removed', function(screen, ws) { self.remove_workspace(ws); });
+				self.connect_and_track(self, global.screen, 'workspace-removed', function(screen, i) { self.remove_workspace(i); });
 
 				// add existing workspaces
 				var num_workspaces = global.screen.get_n_workspaces();
@@ -743,10 +741,8 @@ module Extension {
 			// Disconnects from *all* workspaces.  Disables and removes
 			// them from our cache
 			self._disconnect_workspaces = function() {
-				for (var k in self.workspaces) {
-					if (self.workspaces.hasOwnProperty(k)) {
-						self.remove_workspace(k);
-					}
+				for (var i=self.workspaces.length; i>=0; i--) {
+					self.remove_workspace(i);
 				}
 			};
 
