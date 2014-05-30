@@ -36,15 +36,6 @@ module Extension {
 		'fullscreen': Tiling.FullScreenLayout
 	};
 
-	export interface BoundSignal {
-		owner: GObject
-		binding: GObjectSignal
-	}
-
-	export interface SignalOwner {
-		bound_signals: BoundSignal[]
-	}
-
 	export interface Emitter {
 		emit(name:string)
 	}
@@ -57,12 +48,12 @@ module Extension {
 		bound_signals: BoundSignal[] = []
 		_do: {(action:Function, desc:string, fail?:boolean):any}
 		connect_and_track: {(owner:SignalOwner, subject:GObject, name:string, cb:Function)}
-		disconnect_tracked_signals: {(owner:SignalOwner)}
-		get_workspace:{(ws:MetaWorkspace, idx?:number):Workspace.Workspace}
-		get_workspace_by_index:{(idx:number):Workspace.Workspace}
+		disconnect_tracked_signals: {(owner:SignalOwner, subject?:GObject)}
+		get_workspace:{(ws:MetaWorkspace):Workspace.Workspace}
+		private update_workspaces:{(defensive?:boolean)}
+		get_workspace_at:{(idx:number):Workspace.Workspace}
 		private workspaces: Workspace.Workspace[];
 		private bounds: Tiling.Bounds
-		private remove_workspace: {(i:number):void}
 		get_window: {(meta_window:MetaWindow, create_if_necessary?:boolean)}
 		private windows: { [index: string] : MutterWindow.Window; }
 		private dead_windows: MutterWindow.Window[]
@@ -121,8 +112,7 @@ module Extension {
 					action();
 					return null;
 				} catch (e) {
-					self.log.error(desc + ": ", e);
-					self.log.error(e.stack);
+					self.log.error("Uncaught error in " + desc + ": " + e + "\n" + e.stack);
 					if(fail) throw e;
 					return e;
 				}
@@ -131,11 +121,19 @@ module Extension {
 			// Utility function over GObject.connect(). Keeps track
 			// of each added connection in `owner.bound_signals`,
 			// for later cleanup in disconnect_tracked_signals().
+			// Also logs any exceptions that occur.
 			self.connect_and_track = function(owner:SignalOwner, subject, name, cb) {
 				if (!owner.bound_signals) owner.bound_signals = []; // XXX remove this
 				owner.bound_signals.push({
-						owner: subject,
-						binding: subject.connect(name, cb)
+						subject: subject,
+						binding: subject.connect(name, function() {
+							try {
+								return cb.apply(this,arguments);
+							} catch(e) {
+								self.log.error("Uncaught error in " + name + " signal handler: " + e + "\n" + e.stack);
+								throw e;
+							}
+						})
 				});
 			};
 
@@ -146,85 +144,30 @@ module Extension {
 
 			// Given a `proxy GIName:Meta.Workspace`, return a corresponding
 			// shellshape Workspace (as defined in shellshape/workspace.js).
-			// These are cached in the self.workspaces object and dynamically
-			// created by this method if not already cached.
-			self.get_workspace = function get_workspace(meta_workspace:MetaWorkspace, idx?:number) {
+			self.get_workspace = function get_workspace(meta_workspace:MetaWorkspace):Workspace.Workspace {
 				assert(meta_workspace);
-				if(idx == null) {
-					idx = meta_workspace.index();
-				}
-				var workspace = self.workspaces[idx];
-
-				// If this workspace hasn't been encountered before...
-				if(workspace == null) {
-
-					// Build a new LayoutState object using our 'bounds' attr.
-
-					// TODO -- the bounds attribute is derived from the size
-					// of the 'screen' and 'monitor' during the .enable() method.
-					// That code overlooks the possibility of two monitors, so
-					// any attempt at two monitors may have to be taken up here
-					// as well.
-
-					var state = new Tiling.LayoutState(self.bounds);
-
-					// Using the new state object and the passed-in
-					// gnome-shell meta workspace, both create a new
-					// shellshape workspace and save it to the
-					// self.workspaces cache.
-					workspace = self.workspaces[idx] = new Workspace.Workspace(meta_workspace, state, self);
-				} else {
-					var current_idx = workspace.meta_workspace.index();
-					if (current_idx !== idx) {
-						self.log.error("Workspace at idx " + idx + " has moved to " + current_idx + " - this shouldn't happen");
-					}
-				}
-				return workspace;
+				var idx = meta_workspace.index();
+				return self.get_workspace_at(meta_workspace.index());
 			};
 
-			self.get_workspace_by_index = function get_workspace_by_index(idx:number) {
-				var ws:MetaWorkspace = global.screen.get_workspace_by_index(idx);
-				return self.get_workspace(ws, idx);
-			};
-
-			// Remove a workspace from the extension's cache.  Disable it first.
-			self.remove_workspace = function(idx:number) {
-				self.log.debug("disabling workspace #" + idx);
+			self.get_workspace_at = function get_workspace_at(idx:number) {
+				self.update_workspaces(true);
 				var ws = self.workspaces[idx];
-				if(ws != null) {
-					self._do(function() {ws._disable();}, 'disable workspace');
-					delete self.workspaces[idx];
-					// XXX if we can trust how workspaces get deleted, we could use
-					// a simple splice() call here.
-					for (var i=idx+1; i<self.workspaces.length; i++) {
-						var w = self.workspaces[idx];
-						if (w != null) {
-							var new_idx = w.meta_workspace.index();
-							if (new_idx !== i) {
-								if (new_idx > i) {
-									throw new Error("workspace has moved _upwards_");
-								}
-								self.log.warn("Moving workspace " + i + " -> " + new_idx);
-								self.workspaces[new_idx] = w;
-								delete self.workspaces[idx];
-							}
-						}
-					}
-				}
+				assert(ws);
+				return ws;
 			};
 
-			// Much the same as .get_workspace(...) above.  Given a gome-shell
-			// meta window, return a shellshape Window object and cache the result.
-			self.get_window = function get_window(meta_window, create_if_necessary) {
-				if(create_if_necessary == null) {
-					create_if_necessary = true;
-				}
-				if(!meta_window) {
-					// self.log.debug("bad window: " + meta_window);
+			// Given a gome-shell meta window, return a shellshape Window object
+			// and cache the result. Future calls with the same meta_window will
+			// return the same wrapper.
+			self.get_window = function get_window(meta_window:MetaWindow, create_if_necessary?:boolean) {
+				create_if_necessary = create_if_necessary !== false; // default to true
+				if(!meta_window) return null;
+				var id = Window.GetId(meta_window);
+				if(id == null) {
+					self.log.error("window has no ID: " + meta_window);
 					return null;
 				}
-				var id = Window.GetId(meta_window);
-				if(id == null) return null;
 				var win = self.windows[id];
 				if(win == null && create_if_necessary) {
 					win = self.windows[id] = new Window(meta_window, self);
@@ -271,7 +214,7 @@ module Extension {
 			// Returns a Workspace (shellshape/workspace.js) representing the
 			// current workspace.
 			self.current_workspace = function current_workspace() {
-				return self.get_workspace_by_index(global.screen.get_active_workspace_index());
+				return self.get_workspace_at(global.screen.get_active_workspace_index());
 			};
 
 			// Return a gnome-shell meta-workspace representing the current workspace.
@@ -289,7 +232,7 @@ module Extension {
 			self.on_all_workspaces = function(cb) {
 				var num_workspaces = global.screen.get_n_workspaces();
 				for (var i=0; i< num_workspaces; i++) {
-					cb(self.get_workspace(global.screen.get_workspace_by_index(i)));
+					cb(self.get_workspace_at(i));
 				}
 			};
 
@@ -363,7 +306,7 @@ module Extension {
 				var replace = function(old_idx, new_idx) {
 					self.log.debug("copying layout from workspace[" + old_idx + "] to workspace[" + new_idx + "]");
 					if(old_idx == new_idx) return;
-					self.get_workspace_by_index(new_idx)._take_layout_from(self.get_workspace_by_index(old_idx));
+					self.get_workspace_at(new_idx)._take_layout_from(self.get_workspace_at(old_idx));
 				};
 
 				var replacement = function() {
@@ -383,13 +326,13 @@ module Extension {
 						for (var i=num_workspaces - 1; i > _dropPlaceholderPos; i--) {
 							replace(i-1, i);
 						}
-						self.get_workspace_by_index(_dropPlaceholderPos)._take_layout_from(null);
+						self.get_workspace_at(_dropPlaceholderPos)._take_layout_from(null);
 
 						// confusing things will happen if we ever get two workspaces referencing the
 						// same layout, so make sure it hasn't happened:
 						var layouts = [];
 						for (var i=0; i<num_workspaces; i++) {
-							var layout = self.get_workspace_by_index(i).layout;
+							var layout = self.get_workspace_at(i).layout;
 							if(layouts.indexOf(layout) != -1) {
 								throw new Error("Aliasing error! two workspaces ended up with the same layout: " + i + " and " + layouts.indexOf(layout));
 							}
@@ -513,22 +456,61 @@ module Extension {
 				self.emit('layout-changed');
 			};
 
-			// Connect callbacks to all workspaces
-			self._init_workspaces = function() {
-				function _init_workspace (i) {
-					self.log.debug("new workspace at index " + i);
-					self.get_workspace(global.screen.get_workspace_by_index(i));
-				};
+			self.update_workspaces = function(defensive?:boolean) {
+				defensive = defensive === true;
+				var logm = defensive ? 'error' : 'debug';
 
-				self.connect_and_track(self, global.screen, 'workspace-added', function(screen, i) { _init_workspace(i); });
-				self.connect_and_track(self, global.screen, 'workspace-removed', function(screen, i) { self.remove_workspace(i); });
+				// modified from gnome-shell/js/ui/workspacesView.js
+				var old_n = self.workspaces.length;
+				var new_n = global.screen.get_n_workspaces();
 
-				// add existing workspaces
-				var num_workspaces = global.screen.get_n_workspaces();
-				for (var i = 0; i < num_workspaces; i++) {
-					_init_workspace(i);
+				if (new_n > old_n) {
+					// Assume workspaces are only added at the end
+					self.log[logm]("new workspaces at index " + old_n + "-"+new_n);
+					for (var w = old_n; w < new_n; w++) {
+						var meta_workspace = global.screen.get_workspace_by_index(w);
+						
+						// TODO -- the bounds attribute is derived from the size
+						// of the 'screen' and 'monitor' during the .enable() method.
+						// That code overlooks the possibility of two monitors, so
+						// any attempt at two monitors may have to be taken up here
+						// as well.
+
+						var state = new Tiling.LayoutState(self.bounds);
+						self.workspaces[w] = new Workspace.Workspace(meta_workspace, state, self);
+					}
+				} else if (new_n < old_n) {
+					// Assume workspaces are only removed sequentially
+					// (e.g. 2,3,4 - not 2,4,7)
+					var removedIndex;
+					var removedNum = old_n - new_n;
+					for (var w = 0; w < old_n; w++) {
+						var meta_workspace = global.screen.get_workspace_by_index(w);
+						if (self.workspaces[w].meta_workspace != meta_workspace) {
+							removedIndex = w;
+							break;
+						}
+					}
+					self.log[logm]("removed workspaces at index " + removedIndex + "-"+(removedIndex + removedNum));
+
+					var lostWorkspaces = self.workspaces.splice(removedIndex, removedNum);
+					for (var l = 0; l < lostWorkspaces.length; l++) {
+						lostWorkspaces[l]._disable();
+					}
 				}
 
+				// TODO remove this when I get less paranoid that workspaces might
+				// unexpectedly change indexes
+				for (var i=0; i<new_n; i++) {
+					var actualIdx = self.workspaces[i].index();
+					if (actualIdx !== i) throw new Error("Workspace expected index " + i + ", but it's " + actualIdx);
+				}
+			};
+
+			// Connect callbacks to all workspaces
+			self._init_workspaces = function() {
+				self.connect_and_track(self, global.screen, 'notify::n-workspaces', self.update_workspaces);
+				self.update_workspaces();
 				var display = self.current_display();
 				//TODO: need to disconnect and reconnect when old display changes
 				//      (when does that happen?)
@@ -665,18 +647,19 @@ module Extension {
 				self.log.info("shellshape enable() called");
 				self._reset_state();
 				self.enabled = true;
+				self._do(self._init_overview, "init overview ducking");
 				self._do(self._init_screen, "init screen");
 				self._do(self._init_prefs, "init preference bindings");
 				self._do(self._init_keybindings, "init keybindings");
-				self._do(self._init_overview, "init overview ducking");
 				self._do(self._init_indicator, "init indicator");
-				self._do(self._init_workspaces, "init workspaces");
 				self.log.info("shellshape enabled");
 			};
 
 			self._init_screen = function() {
 				self.screen = new Screen();
 				self.bounds = self.screen.bounds;
+
+				self._init_workspaces();
 
 				var update_monitor = function() {
 					self.log.info("monitors changed");
@@ -687,7 +670,11 @@ module Extension {
 					});
 				};
 
-				var update_workspace = function(screen, idx, meta_window) {
+				var workspace_switched = function(screen, old_idx, new_idx, direction) {
+					self.get_workspace_at(new_idx).check_all_windows();
+				}
+
+				var update_window_workspace = function(screen, idx, meta_window) {
 					if (idx == self.screen.idx) {
 						var ws = meta_window.get_workspace();
 						if (ws) self.get_workspace(ws).check_all_windows();
@@ -698,12 +685,15 @@ module Extension {
 				// do a full update when monitors changed (dimensions, num_screens, main_screen_idx, relayout)
 				self.connect_and_track(self, global.screen, 'monitors-changed', update_monitor);
 
+				// sanity check workspaces when switching to them (TODO: remove this if it never fails)
+				self.connect_and_track(self, global.screen, 'workspace-switched', workspace_switched);
+
 				// window-entered-monitor and window-left-monitor seem really twitchy - they
 				// can fire a handful of times in a single atomic window placement.
 				// So we just use the hint to check window validity, rather than assuming
 				// it's actually a new or removed window.
-				self.connect_and_track(self, global.screen, 'window-entered-monitor', update_workspace);
-				self.connect_and_track(self, global.screen, 'window-left-monitor', update_workspace);
+				self.connect_and_track(self, global.screen, 'window-entered-monitor', update_window_workspace);
+				self.connect_and_track(self, global.screen, 'window-left-monitor', update_window_workspace);
 			};
 
 			// Unbinds keybindings
@@ -728,22 +718,25 @@ module Extension {
 
 			// Disconnect all tracked signals from the given object (not necessarily `self`)
 			// see `connect_and_track()`
-			self.disconnect_tracked_signals = function(owner:SignalOwner) {
+			self.disconnect_tracked_signals = function(owner:SignalOwner, subject?:GObject) {
 				for(var i=0; i<owner.bound_signals.length; i++) {
 					var sig = owner.bound_signals[i];
-					this._do(function() {
-						sig.owner.disconnect(sig.binding);
-					}, "disconnecting signal " + i + " of " + owner.bound_signals.length + " (from object " + sig[0] + ")");
+					if (subject == null || subject === sig.subject) {
+						sig.subject.disconnect(sig.binding);
+						// delete signal
+						owner.bound_signals.splice(i, 1);
+						i--;
+					}
 				}
-				owner.bound_signals = [];
 			};
 
 			// Disconnects from *all* workspaces.  Disables and removes
 			// them from our cache
 			self._disconnect_workspaces = function() {
 				for (var i=self.workspaces.length; i>=0; i--) {
-					self.remove_workspace(i);
+					self.workspaces[i]._disable();
 				}
+				self.workspaces = [];
 			};
 
 			// Disable the extension.

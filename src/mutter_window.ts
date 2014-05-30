@@ -8,11 +8,12 @@ var Lang = imports.lang;
 var Meta = imports.gi.Meta;
 var Shell = imports.gi.Shell;
 
-export class Window implements Tiling.Window {
+export class Window implements Tiling.Window, SignalOwner {
 	meta_window: any
 	ext: any
 	log: Logger
 	tile_preference: any
+	bound_signals = []
 
 	// This seems to be a good set, from trial and error...
 	static tileable_window_types = [
@@ -41,6 +42,25 @@ export class Window implements Tiling.Window {
 		this.ext = ext;
 		this.log = Log.getLogger("shellshape.window");
 		this.tile_preference = null;
+	}
+
+	static get_actor(meta_window:MetaWindow):GObject {
+		try {
+			// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
+			return meta_window.get_compositor_private();
+		} catch (e) {
+			// not implemented for some special windows - ignore them
+			global.log("WARN: couldn't call get_compositor_private for window " + meta_window, e);
+			if(meta_window.get_compositor_private) {
+				global.log("But the function exists! aborting...");
+				throw(e);
+			}
+		}
+		return null;
+	}
+
+	get_actor():GObject {
+		return Window.get_actor(this.meta_window);
 	}
 
 	bring_to_front() {

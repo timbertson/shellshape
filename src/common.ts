@@ -11,6 +11,7 @@ interface MetaWindow {
 	get_monitor():number
 	get_title():string
 	get_stable_sequence():number
+	get_compositor_private():GObject
 }
 
 interface Screen {
@@ -34,6 +35,16 @@ interface GObject {
 	connect(name:String, cb:Function):GObjectSignal
 	disconnect(GObjectSignal):void
 }
+
+interface SignalOwner {
+	bound_signals: BoundSignal[]
+}
+
+interface BoundSignal {
+	subject: GObject
+	binding: GObjectSignal
+}
+
 
 interface Global {
 	get_current_time(): number
