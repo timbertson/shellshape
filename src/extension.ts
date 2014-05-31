@@ -753,7 +753,7 @@ module Extension {
 			// Disconnects from *all* workspaces.  Disables and removes
 			// them from our cache
 			self._disconnect_workspaces = function() {
-				for (var i=self.workspaces.length; i>=0; i--) {
+				for (var i=0; i<self.workspaces.length; i++) {
 					self.workspaces[i]._disable();
 				}
 				self.workspaces = [];
