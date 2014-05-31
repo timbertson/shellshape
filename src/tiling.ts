@@ -21,13 +21,10 @@ module Tiling {
 		maximize():void
 		activate_before_redraw(reason:string):void
 		move_to_workspace(new_index):void
-		move_resize(x:number, y:number, w:number, h:number):void
+		move_resize(r:Rect):void
 		set_tile_preference(new_pref:boolean):void
 		get_title():string
-		width():number
-		height():number
-		xpos():number
-		ypos():number
+		rect():Rect
 	}
 
 	export interface Bounds {
@@ -202,7 +199,18 @@ module Tiling {
 		static point_is_within(point, rect) {
 			return this.within(point.x, rect.pos.x, rect.pos.x + rect.size.x) && this.within(point.y, rect.pos.y, rect.pos.y + rect.size.y);
 		}
-		
+
+		static point_eq(a:Point2d, b:Point2d):boolean {
+			return a.x === b.x && a.y === b.y;
+		}
+
+		static rect_eq(a:Rect, b:Rect):boolean {
+			return (
+				Tile.point_eq(a.pos, b.pos) &&
+				Tile.point_eq(a.size, b.size)
+			);
+		}
+
 		static joinRects(a:Rect, b:Rect):Rect {
 			var pos, size, sx, sy;
 			pos = {
@@ -1292,7 +1300,7 @@ module Tiling {
 		}
 
 		update_original_rect = function() {
-			this.original_rect = this.window_rect();
+			this.original_rect = this.window.rect();
 			this.log.debug("window " + this + " remembering new rect of " + (JSON.stringify(this.original_rect)));
 		}
 
@@ -1309,7 +1317,7 @@ module Tiling {
 			} else {
 				this.managed = true;
 				this.window.set_tile_preference(true);
-				this.original_rect = this.window_rect();
+				this.original_rect = this.window.rect();
 			}
 			this.reset_offset();
 		}
@@ -1334,25 +1342,12 @@ module Tiling {
 		update_offset() {
 			var rect, win;
 			rect = this.rect;
-			win = this.window_rect();
+			win = this.window.rect();
 			this.offset = {
 				pos: Tile.point_diff(rect.pos, win.pos),
 				size: Tile.point_diff(rect.size, win.size)
 			};
 			this.log.debug("updated tile offset to " + (j(this.offset)));
-		}
-
-		window_rect():Rect {
-			return {
-				pos: {
-					x: this.window.xpos(),
-					y: this.window.ypos()
-				},
-				size: {
-					x: this.window.width(),
-					y: this.window.height()
-				}
-			};
 		}
 
 		toggle_maximize() {
@@ -1434,39 +1429,39 @@ module Tiling {
 		}
 
 		center_window() {
-			var movement_required, tile_center, window_center, window_rect;
-			window_rect = this.window_rect();
-			tile_center = Tile.rect_center(this.rect);
-			window_center = Tile.rect_center(window_rect);
-			movement_required = Tile.point_diff(window_center, tile_center);
+			var tile_center = Tile.rect_center(this.rect);
+			var window_center = Tile.rect_center(this.window.rect());
+			var movement_required = Tile.point_diff(window_center, tile_center);
 			this.offset.pos = Tile.point_add(this.offset.pos, movement_required);
 		}
 
 		layout() {
-			var is_active, pos, rect, size, _ref;
+			var is_active;
 			if (TiledWindow.active_window_override) {
 				is_active = TiledWindow.active_window_override === this;
 			} else {
 				is_active = this.is_active();
 			}
-			rect = this.maximized_rect() || Tile.add_diff_to_rect(this.rect, this.offset);
-			_ref = Tile.ensure_rect_exists(rect), pos = _ref.pos, size = _ref.size;
-			this.window.move_resize(pos.x, pos.y, size.x, size.y);
+			this.window.move_resize(this.active_rect());
 			if (is_active) {
 				this.window.activate_before_redraw("layout");
 			}
 		}
 
-		maximized_rect():Rect {
-			if (!this.maximized) {
-				return null;
-			}
-			return Tile.shrink(this.bounds, 20);
+		private active_rect():Rect {
+			// returns the currently active rect for the window, including
+			//  - maximize state
+			//  - non-zero rect
+			//  - tile rect + user-controlled offset
+			var rect = (this.maximized
+				? Tile.shrink(this.bounds, 20)
+				: Tile.add_diff_to_rect(this.rect, this.offset)
+			);
+			return Tile.ensure_rect_exists(rect)
 		}
 
 		scale_by(amount, axis) {
-			var window_rect;
-			window_rect = this.window_rect();
+			var window_rect = this.window.rect();
 			if (axis != null) {
 				this._scale_by(amount, axis, window_rect);
 			} else {
