@@ -125,7 +125,6 @@ module Extension {
 			// for later cleanup in disconnect_tracked_signals().
 			// Also logs any exceptions that occur.
 			self.connect_and_track = function(owner:SignalOwner, subject, name, cb, after?:boolean) {
-				if (!owner.bound_signals) owner.bound_signals = []; // XXX remove this
 				var method = after ? 'connect_after':'connect';
 				owner.bound_signals.push({
 						subject: subject,
@@ -234,8 +233,9 @@ module Extension {
 				if (arguments.length === 0) idx = global.screen.get_active_workspace_index();
 				self.log.debug("getting workspace #"+idx);
 				
-				// XXX parnoia
-				if (idx == null || idx > global.screen.get_n_workspaces()) throw new Error("no such workspace: " + idx);
+				if (Logging.PARANOID) {
+					if (idx == null || idx > global.screen.get_n_workspaces()) throw new Error("no such workspace: " + idx);
+				}
 
 				return global.screen.get_workspace_by_index(idx);
 			};
@@ -281,7 +281,6 @@ module Extension {
 					window.move_to_workspace(new_index);
 					next_workspace.activate_with_focus(window.meta_window, global.get_current_time())
 				} else {
-					// XXX should we explicitly find the active window on the new workspace?
 					next_workspace.activate(global.get_current_time());
 				}
 			};
@@ -467,6 +466,7 @@ module Extension {
 
 			self.update_workspaces = function(defensive?:boolean) {
 				defensive = defensive === true;
+				if (defensive && !Logging.PARANOID) return; // don't bother
 				var logm = defensive ? 'error' : 'debug';
 
 				// modified from gnome-shell/js/ui/workspacesView.js
@@ -508,11 +508,11 @@ module Extension {
 					}
 				}
 
-				// TODO remove this when I get less paranoid that workspaces might
-				// unexpectedly change indexes
-				for (var i=0; i<new_n; i++) {
-					var actualIdx = self.workspaces[i].meta_workspace.index();
-					if (actualIdx !== i) throw new Error("Workspace expected index " + i + ", but it's " + actualIdx);
+				if (Logging.PARANOID) {
+					for (var i=0; i<new_n; i++) {
+						var actualIdx = self.workspaces[i].meta_workspace.index();
+						if (actualIdx !== i) throw new Error("Workspace expected index " + i + ", but it's " + actualIdx);
+					}
 				}
 			};
 

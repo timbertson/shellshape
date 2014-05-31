@@ -60,6 +60,7 @@ module Indicator {
 		_init: function(ext) {
 			this.log = Logging.getLogger("shellshape.indicator");
 			this.ext = ext;
+			this.bound_signals = [];
 			PanelMenu.Button.prototype._init.call(this,
 				0.0, // menuAlignment
 				'Shellshape Layout', // nameText

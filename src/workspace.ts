@@ -102,7 +102,7 @@ module Workspace {
 		static max_autotile:number = null
 	}
 
-	export class Workspace {
+	export class Workspace implements SignalOwner {
 		log: Logger
 		layout_state: Tiling.LayoutState
 		meta_workspace: MetaWorkspace
@@ -111,6 +111,7 @@ module Workspace {
 		screen: any
 		active_layout: any // class
 		layout: Tiling.BaseLayout
+		bound_signals = []
 		private description:string // just used for toString(), but needs to be pre-baked
 		_do: {(action:Function, desc:string, fail?:boolean):any}
 
@@ -259,7 +260,7 @@ module Workspace {
 		}
 
 		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window, reason?) {
-			var self = this;
+			var self:Workspace = this;
 			var actor = MutterWindow.Window.get_actor(meta_window);
 			if (!actor) {
 				// Newly-created windows are added to a workspace before

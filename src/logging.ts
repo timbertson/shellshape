@@ -1,5 +1,9 @@
 /// <reference path="common.ts" />
 module Logging {
+	// used elsewhere in the extension to enable additional safety
+	// checks that "should never happen". Set to `true` when SHELLSHAPE_DEBUG=true|1|all
+	export var PARANOID = false;
+
 	var Lib = imports.misc.extensionUtils.getCurrentExtension().imports.lib;
 	var log4js = Lib.log4javascript.log4javascript;
 	export function getLogger(name):Logger { return log4js.getLogger(name); };
@@ -27,6 +31,7 @@ module Logging {
 
 			if(shellshape_debug == "true" || shellshape_debug == "all" || shellshape_debug == "1") {
 				root_level = log4js.Level.DEBUG;
+				Logging.PARANOID = true;
 				root_logger.info("set log level DEBUG for shellshape.*");
 
 				var NotificationAppender = function NotificationAppender() { };
