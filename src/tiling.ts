@@ -687,8 +687,9 @@ module Tiling {
 		}
 	
 		tile_for(win:Window, func:FreeFunction):boolean {
-			var _this = this;
+			var self = this;
 			if (!win) {
+				self.log.warn("Layout.tile_for(null)");
 				return false;
 			}
 			return this.tiles.each(<Anon>function(tile, idx) {
@@ -696,6 +697,7 @@ module Tiling {
 					func(tile, idx);
 					return STOP;
 				}
+				// self.log.warn("Layout.tile_for called on missing window: " + win);
 				return null;
 			});
 		}

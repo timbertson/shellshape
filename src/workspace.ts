@@ -259,67 +259,76 @@ module Workspace {
 			else this.log.debug("ducking grab op...");
 		}
 
-		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window, reason?) {
+		private _with_window_actor(meta_window:MetaWindow, cb) {
 			var self:Workspace = this;
 			var actor = MutterWindow.Window.get_actor(meta_window);
-			if (!actor) {
-				// Newly-created windows are added to a workspace before
-				// the compositor finds out about them...
-				Mainloop.idle_add(function () {
-					if (MutterWindow.Window.get_actor(meta_window) && meta_window.get_workspace() === self.meta_workspace) {
-						self.on_window_create(workspace, meta_window);
-					}
+			if (actor) {
+				cb(actor);
+			} else {
+				Mainloop.idle_add(function() {
+					self._with_window_actor(meta_window, cb);
 					return false;
 				});
-				return;
 			}
+		}
 
-			if (!self.is_on_main_screen(meta_window)) {
-				return;
-			}
+		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window, reason?) {
+			var self:Workspace = this;
+			self._with_window_actor(meta_window, function(actor) {
+				if (meta_window.get_workspace() !== self.meta_workspace) {
+					self.log.info("window moved workspace before it could be added to the current layout");
+					return;
+				}
 
-			var win = self.extension.get_window(meta_window);
-			if(!win.can_be_tiled()) {
-				return;
-			}
+				if (!self.is_on_main_screen(meta_window)) {
+					// self.log.debug("not on main screen");
+					return;
+				}
 
-			self.log.debug("on_window_create for " + win);
-			var added = self.layout.add(win, self.extension.focus_window);
-			if (!added) {
-				self.log.debug("window not added to layout (probably a duplicate)");
-				return;
-			}
+				var win = self.extension.get_window(meta_window);
+				if(!win.can_be_tiled()) {
+					// self.log.debug("can\'t be tiled");
+					return;
+				}
 
-			var bind_to_window_change = function(event_name, relevant_grabs, cb) {
-				// we only care about events *after* at least one relevant grab_op,
-				var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, function() {
-					if (self.screen.count > 1) {
-						self.check_all_windows();
-					}
-					cb(win);
-				});
+				self.log.debug("on_window_create for " + win);
+				var added = self.layout.add(win, self.extension.focus_window);
+				if (!added) {
+					self.log.debug("window not added to layout (probably a duplicate)");
+					return;
+				}
 
-				self.extension.connect_and_track(self, actor, event_name + '-changed', signal_handler);
-			};
+				var bind_to_window_change = function(event_name, relevant_grabs, cb) {
+					// we only care about events *after* at least one relevant grab_op,
+					var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, function() {
+						if (self.screen.count > 1) {
+							self.check_all_windows();
+						}
+						cb(win);
+					});
 
-			bind_to_window_change('position', move_ops,     Lang.bind(self, self.on_window_moved, win));
-			bind_to_window_change('size',     resize_ops,   Lang.bind(self, self.on_window_resized, win));
-			self.extension.connect_and_track(self, meta_window, 'notify::minimized', Lang.bind(self, self.on_window_minimize_changed));
+					self.extension.connect_and_track(self, win, event_name + '-changed', signal_handler);
+				};
 
-			var tile_pref = win.tile_preference;
-			var should_auto_tile;
+				bind_to_window_change('position', move_ops,     Lang.bind(self, self.on_window_moved, win));
+				bind_to_window_change('size',     resize_ops,   Lang.bind(self, self.on_window_resized, win));
+				self.extension.connect_and_track(self, meta_window, 'notify::minimized', Lang.bind(self, self.on_window_minimize_changed));
 
-			if(tile_pref === null) {
-				should_auto_tile = win.should_auto_tile();
-			} else {
-				// if the window has a tiling preference (given by a previous user tile/untile action),
-				// that overrides the default should_auto_tile logic
-				self.log.debug("window has a tile preference, and it is " + String(tile_pref));
-				should_auto_tile = tile_pref;
-			}
-			if(should_auto_tile && self.has_tile_space_left()) {
-				self.layout.tile(win);
-			}
+				var tile_pref = win.tile_preference;
+				var should_auto_tile;
+
+				if(tile_pref === null) {
+					should_auto_tile = win.should_auto_tile();
+				} else {
+					// if the window has a tiling preference (given by a previous user tile/untile action),
+					// that overrides the default should_auto_tile logic
+					self.log.debug("window has a tile preference, and it is " + String(tile_pref));
+					should_auto_tile = tile_pref;
+				}
+				if(should_auto_tile && self.has_tile_space_left()) {
+					self.layout.tile(win);
+				}
+			});
 		}))
 
 		has_tile_space_left() {
@@ -350,7 +359,8 @@ module Workspace {
 			var win = self.extension.get_window(meta_window);
 			self.log.debug("on_window_remove for " + win + " (" + self +")");
 			self.extension.disconnect_tracked_signals(self, win);
-			self.extension.disconnect_tracked_signals(self, win.get_actor());
+			self.extension.disconnect_tracked_signals(self, meta_window);
+
 			var removed = self.layout.on_window_killed(win);
 			if (force && !removed) {
 				self.log.error("Unable to remove window: " + win);

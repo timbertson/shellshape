@@ -262,7 +262,12 @@ module Extension {
 			// Returns the shellshape Window corresponding with the currently
 			// focused-on window.
 			self.current_window = function current_window() {
-				return self.get_window(self.current_display()['focus-window']);
+				var current = self.current_display()['focus-window'];
+				if(!current) {
+					self.log.debug("no current window");
+					return null;
+				}
+				return self.get_window(current);
 			};
 
 			// Changes the current workspace by +1 or -1.  If provided with a
@@ -699,7 +704,7 @@ module Extension {
 					if (idx == self.screen.idx) {
 						var ws = meta_window.get_workspace();
 						if (ws) self.get_workspace(ws).check_all_windows();
-						else self.log.info("update_workspace called for a window with no workspace: " + meta_window.get_title());
+						else self.log.debug("update_window_workspace called for a window with no workspace: " + meta_window.get_title());
 					}
 				};
 
@@ -740,6 +745,9 @@ module Extension {
 			// Disconnect all tracked signals from the given object (not necessarily `self`)
 			// see `connect_and_track()`
 			self.disconnect_tracked_signals = function(owner:SignalOwner, subject?:GObject) {
+				if (arguments.length > 1 && !subject) {
+					throw new Error("disconnect_tracked_signals called with null subject");
+				}
 				var count=0;
 				for(var i=owner.bound_signals.length-1; i>=0; i--) {
 					var sig = owner.bound_signals[i];
@@ -750,8 +758,10 @@ module Extension {
 						count++;
 					}
 				}
-				self.log.debug("disconnected " + count + " listeners from "
-						+ owner + (subject == null ? "" : (" on " + subject)));
+				if(count>0) {
+					self.log.debug("disconnected " + count + " listeners from " +
+							owner + (subject == null ? "" : (" on " + subject)));
+				}
 			};
 
 			// Disconnects from *all* workspaces.  Disables and removes

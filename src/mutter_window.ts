@@ -201,5 +201,20 @@ module MutterWindow {
 				size: { x: r.width, y:r.height }
 			};
 		}
+
+		// proxy signals through to actor. If we attach signals directly to the actor, it
+		// disappears before we can detach them and we leak BoundSignal objects.
+		connect(name:string, cb) {
+			var actor = this.get_actor();
+			return actor.connect.apply(actor, arguments);
+		}
+		disconnect(sig) {
+			var actor = this.get_actor();
+			if (!actor) {
+				this.log.debug("Can't disconnect signal - actor is destroyed");
+				return;
+			}
+			return actor.disconnect.apply(actor, arguments);
+		}
 	}
 }
