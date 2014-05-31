@@ -2,9 +2,13 @@ declare var imports: any;
 
 interface MetaWorkspace {
 	list_windows():MetaWindow[]
-	index():number
 	activate_with_focus(win:MetaWindow, time:number)
 	activate(time:number)
+
+	// NOTE: *only* use this method if you know the workspace
+	// is currently in the active workspace list.
+	// Otherwise, it'll crash gnome-shell.
+	index():number
 }
 
 interface MetaWindow {

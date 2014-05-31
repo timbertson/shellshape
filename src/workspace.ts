@@ -111,6 +111,7 @@ module Workspace {
 		screen: any
 		active_layout: any // class
 		layout: Tiling.BaseLayout
+		private description:string // just used for toString(), but needs to be pre-baked
 		_do: {(action:Function, desc:string, fail?:boolean):any}
 
 		constructor(meta_workspace:MetaWorkspace, layout_state:Tiling.LayoutState, ext:Extension.Ext) {
@@ -122,6 +123,7 @@ module Workspace {
 			this.meta_workspace = meta_workspace;
 			this.extension = ext;
 			this._do = ext._do;
+			this.description = "<# Workspace at idx " + (meta_workspace.index()) + ": " + meta_workspace + " >";
 			this.screen = ext.screen;
 			this.set_layout(Default.layout);
 			this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
@@ -132,14 +134,10 @@ module Workspace {
 			this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 		}
 
-		index():number {
-			return this.meta_workspace.index();
-		}
-
 		_disable() {
 			var self = this;
-			this.extension.disconnect_tracked_signals(this);
-			this.meta_windows().map(Lang.bind(this, function(win) { this._on_window_remove(null, win); }));
+			self.extension.disconnect_tracked_signals(self);
+			self.meta_windows().map(function(win) { self._on_window_remove(null, win); });
 		}
 
 		_reset_layout() {
@@ -213,7 +211,7 @@ module Workspace {
 		}
 
 		toString() {
-			return "<# Workspace at idx " + this.index() + ">";
+			return this.description;
 		}
 
 		_grab_op_signal_handler(change:Change, relevant_grabs, cb) {

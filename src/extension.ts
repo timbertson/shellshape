@@ -26,7 +26,6 @@ module Extension {
 	var Gio = imports.gi.Gio;
 	var KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
-
 	var LAYOUTS = {
 		'floating': Tiling.FloatingLayout,
 		'vertical': Tiling.VerticalTiledLayout,
@@ -63,7 +62,7 @@ module Extension {
 		private remove_window:{(win: MutterWindow.Window):void}
 		private gc_windows:{():void}
 		private current_workspace:{():Workspace.Workspace}
-		private current_meta_workspace:{():MetaWorkspace}
+		private mutter_workspace:{(idx?:number):MetaWorkspace}
 		private current_layout:{():Tiling.BaseLayout}
 		private on_all_workspaces:{(cb:WorkspaceCB):void}
 		private current_display:{():any}
@@ -149,8 +148,17 @@ module Extension {
 			// shellshape Workspace (as defined in shellshape/workspace.js).
 			self.get_workspace = function get_workspace(meta_workspace:MetaWorkspace):Workspace.Workspace {
 				assert(meta_workspace);
-				var idx = meta_workspace.index();
-				return self.get_workspace_at(meta_workspace.index());
+				self.update_workspaces(true);
+
+				// It's more efficient to use use MetaWorkspace#index(),
+				// but it terminates gnome-shell if the workspace has been removed
+				var ws = null;
+				for (var i=0; i<this.workspaces.length; i++) {
+					if (this.workspaces[i].meta_workspace === meta_workspace) {
+						return this.workspaces[i];
+					}
+				}
+				throw new Error("workspace not found: " + meta_workspace);
 			};
 
 			self.get_workspace_at = function get_workspace_at(idx:number) {
@@ -221,8 +229,14 @@ module Extension {
 			};
 
 			// Return a gnome-shell meta-workspace representing the current workspace.
-			self.current_meta_workspace = function current_meta_workspace() {
-				return global.screen.get_workspace_by_index(global.screen.get_active_workspace_index());
+			self.mutter_workspace = function current_meta_workspace(idx?:number) {
+				if (arguments.length === 0) idx = global.screen.get_active_workspace_index();
+				self.log.debug("getting workspace #"+idx);
+				
+				// XXX parnoia
+				if (idx == null || idx > global.screen.get_n_workspaces()) throw new Error("no such workspace: " + idx);
+
+				return global.screen.get_workspace_by_index(idx);
 			};
 
 			// Returns the Layout (shellshape/tiling.js,coffee) tied to the current
@@ -261,7 +275,7 @@ module Extension {
 					return;
 				}
 
-				var next_workspace = global.screen.get_workspace_by_index(new_index);
+				var next_workspace = self.mutter_workspace(new_index);
 				if(window !== undefined) {
 					window.move_to_workspace(new_index);
 					next_workspace.activate_with_focus(window.meta_window, global.get_current_time())
@@ -462,7 +476,7 @@ module Extension {
 					// Assume workspaces are only added at the end
 					self.log[logm]("new workspaces at index " + old_n + "-"+new_n);
 					for (var w = old_n; w < new_n; w++) {
-						var meta_workspace = global.screen.get_workspace_by_index(w);
+						var meta_workspace = self.mutter_workspace(w);
 						
 						// TODO -- the bounds attribute is derived from the size
 						// of the 'screen' and 'monitor' during the .enable() method.
@@ -479,7 +493,7 @@ module Extension {
 					var removedIndex = new_n; // if we don't get a mismatch during the below loop, the end workspaces must have been removed
 					var removedNum = old_n - new_n;
 					for (var w = 0; w < new_n; w++) {
-						var meta_workspace = global.screen.get_workspace_by_index(w);
+						var meta_workspace = self.mutter_workspace(w);
 						if (self.workspaces[w].meta_workspace != meta_workspace) {
 							removedIndex = w;
 							break;
@@ -496,7 +510,7 @@ module Extension {
 				// TODO remove this when I get less paranoid that workspaces might
 				// unexpectedly change indexes
 				for (var i=0; i<new_n; i++) {
-					var actualIdx = self.workspaces[i].index();
+					var actualIdx = self.workspaces[i].meta_workspace.index();
 					if (actualIdx !== i) throw new Error("Workspace expected index " + i + ", but it's " + actualIdx);
 				}
 			};
