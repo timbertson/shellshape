@@ -126,8 +126,20 @@ module Indicator {
 
 			this._workspaceChanged(null, null, global.screen.get_active_workspace_index());
 
-			global.screen.connect_after('workspace-switched', Lang.bind(this,this._workspaceChanged));
-			this.ext.connect('layout-changed', Lang.bind(this, this._update_indicator));
+			this.ext.connect_and_track(this,
+				global.screen,
+				'workspace-switched',
+				Lang.bind(this,this._workspaceChanged),
+				true // use connect-after
+			);
+
+			this.ext.connect_and_track(this, this.ext, 'layout-changed',
+				Lang.bind(this,this._update_indicator));
+		},
+
+		disable: function() {
+			this.ext.disconnect_tracked_signals(this);
+			this.destroy(); // indicator method
 		},
 
 		toString: function() {
@@ -189,7 +201,7 @@ module Indicator {
 	};
 
 	ShellshapeIndicator.disable = function() {
-		_indicator.destroy();
+		_indicator.disable();
 		_indicator = undefined;
 	};
 }

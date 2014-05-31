@@ -137,6 +137,7 @@ module Workspace {
 		_disable() {
 			var self = this;
 			self.extension.disconnect_tracked_signals(self);
+			self.layout.release_all();
 			self.meta_windows().map(function(win) { self._on_window_remove(null, win); });
 		}
 

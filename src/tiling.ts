@@ -736,6 +736,14 @@ module Tiling {
 			}
 			return true;
 		}
+
+		release_all() {
+			// restores all original window positions and removes tile set
+			this.tiles.each_tiled(<Anon>function(tile) {
+				tile.release();
+			});
+			this.layout();
+		}
 	
 		active_tile(fn:FreeFunction) {
 			return this.tiles.active(fn);

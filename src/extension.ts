@@ -124,11 +124,12 @@ module Extension {
 			// of each added connection in `owner.bound_signals`,
 			// for later cleanup in disconnect_tracked_signals().
 			// Also logs any exceptions that occur.
-			self.connect_and_track = function(owner:SignalOwner, subject, name, cb) {
+			self.connect_and_track = function(owner:SignalOwner, subject, name, cb, after?:boolean) {
 				if (!owner.bound_signals) owner.bound_signals = []; // XXX remove this
+				var method = after ? 'connect_after':'connect';
 				owner.bound_signals.push({
 						subject: subject,
-						binding: subject.connect(name, function() {
+						binding: subject[method](name, function() {
 							try {
 								return cb.apply(this,arguments);
 							} catch(e) {
@@ -739,15 +740,18 @@ module Extension {
 			// Disconnect all tracked signals from the given object (not necessarily `self`)
 			// see `connect_and_track()`
 			self.disconnect_tracked_signals = function(owner:SignalOwner, subject?:GObject) {
-				for(var i=0; i<owner.bound_signals.length; i++) {
+				var count=0;
+				for(var i=owner.bound_signals.length-1; i>=0; i--) {
 					var sig = owner.bound_signals[i];
 					if (subject == null || subject === sig.subject) {
 						sig.subject.disconnect(sig.binding);
 						// delete signal
 						owner.bound_signals.splice(i, 1);
-						i--;
+						count++;
 					}
 				}
+				self.log.debug("disconnected " + count + " listeners from "
+						+ owner + (subject == null ? "" : (" on " + subject)));
 			};
 
 			// Disconnects from *all* workspaces.  Disables and removes
