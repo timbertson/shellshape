@@ -1,10 +1,9 @@
 /// <reference path="common.ts" />
-module Log {
+module Logging {
 	var Lib = imports.misc.extensionUtils.getCurrentExtension().imports.lib;
 	var log4js = Lib.log4javascript.log4javascript;
 	export function getLogger(name):Logger { return log4js.getLogger(name); };
-
-	(function _init_logging() {
+	export function init(main?:boolean) {
 		var GLib = imports.gi.GLib;
 		var root_logger = log4js.getLogger("shellshape");
 		var GjsAppender = Lib.log4javascript_gjs_appender.init(log4js);
@@ -17,9 +16,14 @@ module Log {
 
 		if(shellshape_debug) {
 			var FileAppender = Lib.log4javascript_file_appender.init(log4js);
-			var fileAppender = new FileAppender("/tmp/shellshape.log");
-			fileAppender.setLayout(new log4js.PatternLayout("%d{HH:mm:ss,SSS} %-5p [%c]: %m"));
-			root_logger.addAppender(fileAppender);
+			if (main === true) {
+				// only the main process should write shellshape.log
+				// (prefs.js is loaded in a separate process, and we don't
+				// want that to overwrite the real logs)
+				var fileAppender = new FileAppender("/tmp/shellshape.log");
+				fileAppender.setLayout(new log4js.PatternLayout("%d{HH:mm:ss,SSS} %-5p [%c]: %m"));
+				root_logger.addAppender(fileAppender);
+			}
 
 			if(shellshape_debug == "true" || shellshape_debug == "all" || shellshape_debug == "1") {
 				root_level = log4js.Level.DEBUG;
@@ -46,8 +50,7 @@ module Log {
 					root_logger.info("set log level DEBUG for " + log_name);
 				});
 			}
-			root_logger.info(" ---- Shellshape starting ---- ");
 		}
 		root_logger.setLevel(root_level);
-	})();
+	}
 }

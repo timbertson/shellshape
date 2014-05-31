@@ -9,13 +9,11 @@
 /// <reference path="shellshape_settings.ts" />
 /// <reference path="indicator.ts" />
 /// <reference path="tiling.ts" />
-/// <reference path="prefs.ts" />
 
 var Lang: Lang = imports.lang;
 
 module Extension {
 	var Main = imports.ui.main;
-	var Meta = imports.gi.Meta;
 	var Shell = imports.gi.Shell;
 	var St = imports.gi.St;
 	var Mainloop = imports.mainloop;
@@ -38,6 +36,10 @@ module Extension {
 
 	export interface Emitter {
 		emit(name:string)
+	}
+
+	interface WorkspaceCB {
+		(ws:Workspace.Workspace):void
 	}
 
 	export class Ext implements SignalOwner, Emitter {
@@ -63,7 +65,7 @@ module Extension {
 		private current_workspace:{():Workspace.Workspace}
 		private current_meta_workspace:{():MetaWorkspace}
 		private current_layout:{():Tiling.BaseLayout}
-		private on_all_workspaces:{(cb:Function):void}
+		private on_all_workspaces:{(cb:WorkspaceCB):void}
 		private current_display:{():any}
 		private current_window:{():MutterWindow.Window}
 		private switch_workspace:{(offset:number, window?:MutterWindow.Window)}
@@ -90,7 +92,7 @@ module Extension {
 		constructor() {
 			var self:Ext = this;
 			self.enabled = false;
-			self.log = Log.getLogger("shellshape.extension");
+			self.log = Logging.getLogger("shellshape.extension");
 			self.prefs = new ShellshapeSettings.Prefs();
 			ShellshapeSettings.initTranslations();
 			self.screen_padding = 0;
@@ -109,6 +111,7 @@ module Extension {
 			// description of the action.
 			self._do = function _do(action, desc, fail) {
 				try {
+					self.log.debug("+ start action: " + desc);
 					action();
 					return null;
 				} catch (e) {
@@ -313,7 +316,7 @@ module Extension {
 					if(!self.enabled) return orig.apply(this, arguments);
 
 					var _dropPlaceholderPos = this._dropPlaceholderPos;
-					self.on_all_workspaces(function(ws) { ws._turbulence.enter(); });
+					self.on_all_workspaces(function(ws) { ws.turbulence.enter(); });
 					self.log.debug("acceptDrop start");
 					var ret = orig.apply(this, arguments);
 					self.log.debug("acceptDrop returned: " + String(ret));
@@ -341,7 +344,7 @@ module Extension {
 						self.emit('layout-changed');
 					};
 					self.log.debug("acceptDrop end");
-					self.on_all_workspaces(function(ws) { ws._turbulence.leave(); });
+					self.on_all_workspaces(function(ws) { ws.turbulence.leave(); });
 					return ret;
 				};
 				src.acceptDrop = replacement;
@@ -363,31 +366,22 @@ module Extension {
 
 			// Bind keys to callbacks.
 			self._init_keybindings = function _init_keybindings() {
+				var Meta = imports.gi.Meta;
 				var gsettings = new ShellshapeSettings.Keybindings().settings;
 
 				// Utility method that binds a callback to a named keypress-action.
 				function handle(name, func) {
 					self._bound_keybindings[name] = true;
-					var added;
 					var handler = function() { self._do(func, "handler for binding " + name); };
 					var flags = Meta.KeyBindingFlags.NONE;
 		
-					if (Main.wm.addKeybinding) {
-						// 3.8+
-						added = Main.wm.addKeybinding(
-							name,
-							gsettings,
-							flags,
-							Shell.KeyBindingMode.NORMAL | Shell.KeyBindingMode.MESSAGE_TRAY,
-							handler);
-					} else {
-						// pre-3.8
-						added = self.current_display().add_keybinding(
-							name,
-							gsettings,
-							flags,
-							handler);
-					}
+					// API for 3.8+ only
+					var added = Main.wm.addKeybinding(
+						name,
+						gsettings,
+						flags,
+						Shell.KeyBindingMode.NORMAL | Shell.KeyBindingMode.MESSAGE_TRAY,
+						handler);
 					if(!added) {
 						throw("failed to add keybinding handler for: " + name);
 					}
@@ -530,6 +524,7 @@ module Extension {
 			*              PREFERENCE monitoring
 			* ------------------------------------------------------------- */
 			self._init_prefs = function() {
+				var initial = true;
 
 				// default layout
 				(function() {
@@ -539,6 +534,12 @@ module Extension {
 						var new_layout = LAYOUTS[name];
 						if(new_layout) {
 							self.log.debug("updating default layout to " + name);
+							if (!initial) {
+								var old_layout = Workspace.Default.layout;
+								self.on_all_workspaces(function(ws) {
+									ws.default_layout_changed(old_layout, new_layout);
+								});
+							}
 							Workspace.Default.layout = new_layout;
 						} else {
 							self.log.error("Unknown layout name: " + name);
@@ -569,7 +570,9 @@ module Extension {
 						var val = pref.get();
 						self.log.debug("setting padding to " + val);
 						Tiling.BaseLayout.prototype.padding = val;
-						self.current_workspace().relayout();
+						if (!initial) {
+							self.current_workspace().relayout();
+						}
 					};
 					self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
@@ -584,12 +587,15 @@ module Extension {
 						// TODO: this is 2* to maintain consistency with inter-window padding (which is applied twice).
 						// inter-window padding should be applied only once so that this isn't required.
 						self.screen_padding = 2*val;
-						self.current_workspace().relayout();
+						if (!initial) {
+							self.current_workspace().relayout();
+						}
 					};
 					self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
 				})();
-					
+				
+				initial = false;
 			};
 
 			/* -------------------------------------------------------------
@@ -647,20 +653,20 @@ module Extension {
 				self.log.info("shellshape enable() called");
 				self._reset_state();
 				self.enabled = true;
+
+				self.screen = new Screen();
+				self.bounds = self.screen.bounds;
+
 				self._do(self._init_overview, "init overview ducking");
-				self._do(self._init_screen, "init screen");
 				self._do(self._init_prefs, "init preference bindings");
 				self._do(self._init_keybindings, "init keybindings");
+				self._do(self._init_workspaces, "init workspaces");
+				self._do(self._init_screen, "init screen");
 				self._do(self._init_indicator, "init indicator");
 				self.log.info("shellshape enabled");
 			};
 
 			self._init_screen = function() {
-				self.screen = new Screen();
-				self.bounds = self.screen.bounds;
-
-				self._init_workspaces();
-
 				var update_monitor = function() {
 					self.log.info("monitors changed");
 					self.screen.update();
@@ -678,7 +684,7 @@ module Extension {
 					if (idx == self.screen.idx) {
 						var ws = meta_window.get_workspace();
 						if (ws) self.get_workspace(ws).check_all_windows();
-						else self.log.info("update_workspace called for a window with no workspace");
+						else self.log.info("update_workspace called for a window with no workspace: " + meta_window.get_title());
 					}
 				};
 
@@ -760,6 +766,7 @@ module Extension {
 
 // export toplevel symbols
 function init() {
+	Logging.init(true);
 	var Gdk = imports.gi.Gdk;
 	// inject the get_mouse_position function
 	Tiling.get_mouse_position = function() {

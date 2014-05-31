@@ -31,7 +31,7 @@ export class Window implements Tiling.Window, SignalOwner {
 
 	static GetId(w:MetaWindow) {
 		if(!w || !w.get_stable_sequence) {
-			Log.getLogger("shellshape.window").error("Non-window object: " + w);
+			Logging.getLogger("shellshape.window").error("Non-window object: " + w);
 			return null;
 		}
 		return w.get_stable_sequence();
@@ -40,7 +40,7 @@ export class Window implements Tiling.Window, SignalOwner {
 	constructor(meta_window, ext) {
 		this.meta_window = meta_window;
 		this.ext = ext;
-		this.log = Log.getLogger("shellshape.window");
+		this.log = Logging.getLogger("shellshape.window");
 		this.tile_preference = null;
 	}
 
@@ -117,6 +117,10 @@ export class Window implements Tiling.Window, SignalOwner {
 		this.meta_window.move_resize_frame(true, x, y, w, h);
 	}
 	set_tile_preference(new_pref) {
+		if (this.tile_preference === new_pref) {
+			this.log.debug("window already had tile preference of " + new_pref);
+			return;
+		}
 		this.log.debug("window adopting tile preference of " + new_pref + " - " + this);
 		this.tile_preference = new_pref;
 	}

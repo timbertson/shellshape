@@ -1,4 +1,5 @@
 /// <reference path="common.ts" />
+/// <reference path="logging.ts" />
 module ShellshapeSettings {
 
 	var Gio = imports.gi.Gio;
@@ -11,9 +12,9 @@ module ShellshapeSettings {
 	var KEYBINDINGS = SCHEMA_ROOT + '.keybindings';
 	var PREFS = SCHEMA_ROOT + '.prefs';
 
-	var log = Log.getLogger("shellshape.settings");
+	var log = Logging.getLogger("shellshape.settings");
 
-	function envp_with_shellshape_xdg_data_dir() {
+	export function envp_with_shellshape_xdg_data_dir() {
 		var xdg_data_base = Ext.dir.get_child('data');
 		if(!xdg_data_base.query_exists(null)) {
 			log.info("xdg dir doesn't exist - assuming global install");

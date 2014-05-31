@@ -25,7 +25,7 @@ module Workspace {
 		return <T>function() {
 			var _this = this;
 			var _args = arguments;
-			this._turbulence.add_action(function() {
+			this.turbulence.add_action(function() {
 				return fn.apply(_this, _args);
 			});
 		};
@@ -57,27 +57,33 @@ module Workspace {
 
 	// TubulentState allows actions to be delayed - applied when the turbulence is
 	// over, but ONLY if this instance was not affected ("shaken").
-	function TurbulentState() {
-		this.active = false;
-		this.pending = [];
-		this.log = Log.getLogger("shellshape.workspace.turbulence");
-	};
-	TurbulentState.prototype = {
-		enter: function() {
+	class TurbulentState {
+		log: Logger
+		active:boolean
+		pending: Function[]
+		affected = false
+		cleanup: Function // may be null
+
+		constructor() {
+			this.active = false;
+			this.pending = [];
+			this.log = Logging.getLogger("shellshape.workspace.turbulence");
+		}
+		enter() {
 			this.active = true;
 			this.affected = false;
-		},
-		shake: function() { // is perhaps taking the metaphor too far ;)
+		}
+		shake() { // is perhaps taking the metaphor too far ;)
 			this.affected = true;
-		},
-		add_action: function(f) {
+		}
+		add_action(f:Function) {
 			if(this.active) {
 				this.pending.push(f);
 			} else {
 				f();
 			}
-		},
-		leave: function() {
+		}
+		leave() {
 			if(this.affected) {
 				this.log.debug("ignoring " + this.pending.length + " actions due to turbulence");
 				this.active = false;
@@ -101,7 +107,7 @@ module Workspace {
 		layout_state: Tiling.LayoutState
 		meta_workspace: MetaWorkspace
 		extension: any // TODO
-		private _turbulence: any
+		turbulence: any
 		screen: any
 		active_layout: any // class
 		layout: Tiling.BaseLayout
@@ -111,7 +117,7 @@ module Workspace {
 			assert(meta_workspace);
 			assert(layout_state);
 			assert(ext);
-			this.log = Log.getLogger("shellshape.workspace");
+			this.log = Logging.getLogger("shellshape.workspace");
 			this.layout_state = layout_state;
 			this.meta_workspace = meta_workspace;
 			this.extension = ext;
@@ -120,8 +126,8 @@ module Workspace {
 			this.set_layout(Default.layout);
 			this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
 			this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
-			this._turbulence = new TurbulentState();
-			this._turbulence.cleanup = Lang.bind(this, this.check_all_windows);
+			this.turbulence = new TurbulentState();
+			this.turbulence.cleanup = Lang.bind(this, this.check_all_windows);
 			// add all initial windows
 			this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 		}
@@ -142,7 +148,7 @@ module Workspace {
 		}
 
 		_take_layout_from(other) {
-			this._turbulence.shake();
+			this.turbulence.shake();
 			if(!other) {
 				this._reset_layout();
 				return;
@@ -194,11 +200,16 @@ module Workspace {
 		})
 
 		set_layout(cls) {
-			this.log.debug("Instantiating new layout class");
 			this.active_layout = cls;
 			this.layout = new cls(this.layout_state);
-			this.log.debug("laying out according to new layout");
+			this.log.debug("laying out according to new layout: " + this.layout);
 			this.layout.layout();
+		}
+
+		default_layout_changed(old_layout, new_layout) {
+			if (this.active_layout === old_layout) {
+				this.set_layout(new_layout);
+			}
 		}
 
 		toString() {

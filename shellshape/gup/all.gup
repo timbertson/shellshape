@@ -1,4 +1,3 @@
 #!bash -eu
 . gup/common.sh
-gup -u _sources
-gup -u extension.js
+gup -u extension.js prefs.js

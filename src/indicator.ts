@@ -58,7 +58,7 @@ module Indicator {
 	ShellshapeIndicator.prototype = {
 		__proto__: PanelMenu.Button.prototype,
 		_init: function(ext) {
-			this.log = Log.getLogger("shellshape.indicator");
+			this.log = Logging.getLogger("shellshape.indicator");
 			this.ext = ext;
 			PanelMenu.Button.prototype._init.call(this,
 				0.0, // menuAlignment

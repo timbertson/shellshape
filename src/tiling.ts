@@ -229,7 +229,7 @@ module Tiling {
 
 	export class TileCollection {
 		items = [];
-		log = Log.getLogger("shellshape.tiling.TileCollection");
+		log = Logging.getLogger("shellshape.tiling.TileCollection");
 
 		constructor() {
 			// provide ready-bound versions of any functions we need to use for filters:
@@ -500,7 +500,7 @@ module Tiling {
 	}
 
 	export class BaseSplit {
-		log = Log.getLogger("shellshape.tiling.BaseSplit");
+		log = Logging.getLogger("shellshape.tiling.BaseSplit");
 		ratio = HALF;
 		axis: string;
 		last_size: number;
@@ -619,7 +619,7 @@ module Tiling {
 		// which is split along @axis (where 'x' is a split
 		// that contains windows to the left and right)
 		primary_windows: number
-		log = Log.getLogger("shellshape.tiling.MultiSplit")
+		log = Logging.getLogger("shellshape.tiling.MultiSplit")
 
 		constructor(axis:string, primary_windows: number) {
 			super(axis);
@@ -657,7 +657,7 @@ module Tiling {
 		log: Logger
 	
 		constructor(name, state:LayoutState) {
-			this.log = Log.getLogger("shellshape.tiling." + name);
+			this.log = Logging.getLogger("shellshape.tiling." + name);
 			this.state = assert(state);
 			this.tiles = state.tiles;
 		}
@@ -1267,7 +1267,7 @@ module Tiling {
 		}
 
 		constructor(win, state:LayoutState) {
-			this.log = Log.getLogger("shellshape.tiling.TiledWindow");
+			this.log = Logging.getLogger("shellshape.tiling.TiledWindow");
 			this.window = win;
 			this.bounds = state.bounds;
 			this.maximized = false;

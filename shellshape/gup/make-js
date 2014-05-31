@@ -3,4 +3,6 @@
 gup -u _sources
 sources="$(cat _sources)"
 gup -u $sources
-../node_modules/.bin/tsc ../src/extension.ts --out "$1"
+base="$(basename "$2" .js)"
+../node_modules/.bin/tsc ../src/"$base".ts --out "$1"
+
