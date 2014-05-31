@@ -476,9 +476,9 @@ module Extension {
 				} else if (new_n < old_n) {
 					// Assume workspaces are only removed sequentially
 					// (e.g. 2,3,4 - not 2,4,7)
-					var removedIndex;
+					var removedIndex = new_n; // if we don't get a mismatch during the below loop, the end workspaces must have been removed
 					var removedNum = old_n - new_n;
-					for (var w = 0; w < old_n; w++) {
+					for (var w = 0; w < new_n; w++) {
 						var meta_workspace = global.screen.get_workspace_by_index(w);
 						if (self.workspaces[w].meta_workspace != meta_workspace) {
 							removedIndex = w;
