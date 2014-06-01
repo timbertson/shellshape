@@ -10,13 +10,14 @@ module Util {
 	// of each added connection in `owner.bound_signals`,
 	// for later cleanup in disconnect_tracked_signals().
 	// Also logs any exceptions that occur.
-	export function connect_and_track(owner:SignalOwner, subject, name, cb, after?:boolean):void {
+	export function connect_and_track(owner:SignalOwner, subject:GObject, name:string, cb:Function, after?:boolean):void {
 		var method = after ? 'connect_after':'connect';
 		owner.bound_signals.push({
 				subject: subject,
 				binding: subject[method](name, function() {
+					var t = this;
 					try {
-						return cb.apply(this,arguments);
+						return cb.apply(t,arguments);
 					} catch(e) {
 						Util.log.error("Uncaught error in " + name + " signal handler: " + e + "\n" + e.stack);
 						throw e;

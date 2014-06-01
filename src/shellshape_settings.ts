@@ -98,29 +98,35 @@ module ShellshapeSettings {
 	export function Prefs() {
 		var self = this;
 		var settings = this.settings = get_local_gsettings(PREFS);
+		var get_int = function():number { return settings.get_int(this.key); };
+		var set_int = function(v:number) { settings.set_int(this.key, v); };
+
+		var get_string = function():String { return settings.get_string(this.key); };
+		var set_string = function(v:String) { settings.set_string(this.key, v); };
+
 		this.MAX_AUTOTILE = {
 			key: 'max-autotiled-windows',
 			gsettings: settings,
-			get: function() { return settings.get_int(this.key); },
-			set: function(v) { settings.set_int(this.key, v); }
+			get: get_int,
+			set: set_int,
 		};
 		this.DEFAULT_LAYOUT = {
 			key: 'default-layout',
 			gsettings: settings,
-			get: function() { return settings.get_string(this.key); },
-			set: function(v) { settings.set_string(this.key, v); },
+			get: get_string,
+			set: set_string,
 		};
 		this.PADDING = {
 			key: 'tile-padding',
 			gsettings: settings,
-			get: function() { return settings.get_int(this.key); },
-			set: function(v) { settings.set_int(this.key, v); },
+			get: get_int,
+			set: set_int,
 		};
 		this.SCREEN_PADDING = {
 			key: 'screen-padding',
 			gsettings: settings,
-			get: function() { return settings.get_int(this.key); },
-			set: function(v) { settings.set_int(this.key, v); },
+			get: get_int,
+			set: set_int,
 		};
 	};
 

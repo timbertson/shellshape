@@ -68,7 +68,7 @@ module Extension {
 		private mark_window_as_active:{(win: MutterWindow.Window):void}
 		remove_window:{(win: MutterWindow.Window):void}
 		private gc_windows:{():void}
-		private current_workspace:{():Workspace.Workspace}
+		current_workspace:{():Workspace.Workspace}
 		private mutter_workspace:{(idx?:number):MetaWorkspace}
 		private current_layout:{():Tiling.BaseLayout}
 		private on_all_workspaces:{(cb:WorkspaceCB):void}
@@ -87,6 +87,8 @@ module Extension {
 		private _bound_keybindings:{[index: string]:boolean} = {}
 		private _pending_actions:Function[] = []
 		emit:{(name):void}
+		connect:{(name:string, cb:Function):GObjectSignal}
+		disconnect:{(sig:GObjectSignal):void}
 		private perform_when_overview_is_hidden:{(action:Function):void}
 		private change_layout:{(any)}
 		focus_window:MutterWindow.Window
@@ -318,12 +320,13 @@ module Extension {
 				};
 
 				var replacement = function() {
-					if(!self.enabled) return orig.apply(this, arguments);
+					var subject = this;
+					if(!self.enabled) return orig.apply(subject, arguments);
 
-					var _dropPlaceholderPos = this._dropPlaceholderPos;
+					var _dropPlaceholderPos = subject._dropPlaceholderPos;
 					self.on_all_workspaces(function(ws) { ws.turbulence.enter(); });
 					self.log.debug("acceptDrop start");
-					var ret = orig.apply(this, arguments);
+					var ret = orig.apply(subject, arguments);
 					self.log.debug("acceptDrop returned: " + String(ret));
 					self.log.debug("_dropPlaceholderPos: " + String(_dropPlaceholderPos));
 					if(ret === true && _dropPlaceholderPos != -1) {

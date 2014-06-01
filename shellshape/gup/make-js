@@ -4,6 +4,6 @@ gup -u _sources
 sources="$(cat _sources)"
 gup -u $sources
 base="$(basename "$2" .js)"
-# ./gup/check-anonymous-functions.py $sources
+./gup/check-anonymous-functions.py $sources
 ../node_modules/.bin/tsc ../src/"$base".ts --out "$1"
 

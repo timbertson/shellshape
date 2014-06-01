@@ -725,15 +725,16 @@ module Tiling {
 		}
 	
 		add(win:Window, active_win:Window) {
+			var self = this;
 			var found, tile;
 			if (this.contains(win)) {
 				return false;
 			}
 			tile = new TiledWindow(win, this.state);
-			found = this.tile_for(active_win, Lang.bind(this, function(active_tile, active_idx) {
-				this.tiles.insert_at(active_idx + 1, tile);
-				this.log.debug("spliced " + tile + " into tiles at idx " + (active_idx + 1));
-			}));
+			found = this.tile_for(active_win, function(active_tile, active_idx) {
+				self.tiles.insert_at(active_idx + 1, tile);
+				self.log.debug("spliced " + tile + " into tiles at idx " + (active_idx + 1));
+			});
 			if (!found) {
 				// no active tile, just add the new window at the end
 				this.tiles.push(tile);
@@ -777,22 +778,24 @@ module Tiling {
 		}
 	
 		untile(win:Window) {
-			this.tile_for(win, Lang.bind(this, function(tile) {
+			var self = this;
+			this.tile_for(win, function(tile) {
 				tile.release();
-				this.layout();
-			}));
+				self.layout();
+			});
 		}
 	
 		on_window_killed(win:Window):boolean {
-			return this.tile_for(win, Lang.bind(this, function(tile, idx) {
-				this.tiles.remove_at(idx);
-				this.layout();
-			}));
+			var self = this;
+			return this.tile_for(win, function(tile, idx) {
+				self.tiles.remove_at(idx);
+				self.layout();
+			});
 		}
 	
 		toggle_maximize() {
-			var active;
-			active = null;
+			var self = this;
+			var active = null;
 			this.active_tile(function(tile, idx) {
 				active = tile;
 			});
@@ -802,14 +805,14 @@ module Tiling {
 			if (active === null) {
 				return;
 			}
-			this.each(Lang.bind(this, function(tile) {
+			this.each(function(tile) {
 				if (tile === active) {
-					this.log.debug("toggling maximize for " + tile);
+					self.log.debug("toggling maximize for " + tile);
 					tile.toggle_maximize();
 				} else {
 					tile.unmaximize();
 				}
-			}));
+			});
 		}
 	
 		on_window_moved(win:Window) {
@@ -817,11 +820,11 @@ module Tiling {
 		}
 	
 		on_window_resized(win:Window) {
-			var found;
-			found = this.tile_for(win, Lang.bind(this, function(tile, idx) {
+			var self = this;
+			var found = this.tile_for(win, function(tile, idx) {
 				tile.update_original_rect();
-				this.layout();
-			}));
+				self.layout();
+			});
 			if (!found) {
 				this.log.warn("couldn't find tile for window: " + win);
 			}
@@ -877,11 +880,12 @@ module Tiling {
 		}
 	
 		layout(accommodate_window):void {
-			this.each(Lang.bind(this, function(tile) {
-				this.log.debug("resetting window state...");
+			var self = this;
+			this.each(function(tile) {
+				self.log.debug("resetting window state...");
 				tile.resume_original_state();
 				return tile.layout();
-			}));
+			});
 			// now don't bother laying out anything again!
 			this.layout = function(accommodate_window) { };
 		}
@@ -1010,14 +1014,15 @@ module Tiling {
 		}
 	
 		adjust_current_window_size(diff) {
-			return this.active_tile(Lang.bind(this, function(tile) {
-				this.adjust_split_for_tile({
+			var self = this;
+			return this.active_tile(function(tile) {
+				self.adjust_split_for_tile({
 					tile: tile,
 					diff_ratio: diff,
-					axis: Axis.other(this.main_axis)
+					axis: Axis.other(self.main_axis)
 				});
-				this.layout();
-			}));
+				self.layout();
+			});
 		}
 	
 		scale_current_window(amount, axis) {
@@ -1069,17 +1074,18 @@ module Tiling {
 		}
 	
 		on_window_moved(win:Window) {
-			this.tile_for(win, Lang.bind(this, function(tile, idx) {
+			var self = this;
+			this.tile_for(win, function(tile, idx) {
 				var moved;
 				moved = false;
 				if (tile.managed) {
-					moved = this._swap_moved_tile_if_necessary(tile, idx);
+					moved = self._swap_moved_tile_if_necessary(tile, idx);
 				}
 				if (!moved) {
 					tile.update_offset();
 				}
-				this.layout();
-			}));
+				self.layout();
+			});
 		}
 	
 		// on_split_resize_start(win) {
@@ -1089,40 +1095,42 @@ module Tiling {
 		// }
 	
 		on_window_resized(win) {
-			this.managed_tile_for(win, Lang.bind(this, function(tile, idx) {
+			var self = this;
+			this.managed_tile_for(win, function(tile, idx) {
 				var diff;
 				// TODO: uncomment when on_split_resize_start is used
-				// if (this.split_resize_start_rect != null) {
-				//	 diff = Tile.point_diff(this.split_resize_start_rect.size, tile.window_rect().size);
-				//	 this.log.debug("split resized! diff = " + (j(diff)));
+				// if (self.split_resize_start_rect != null) {
+				//	 diff = Tile.point_diff(self.split_resize_start_rect.size, tile.window_rect().size);
+				//	 self.log.debug("split resized! diff = " + (j(diff)));
 				//	 if (diff.x !== 0) {
-				//		 this.adjust_split_for_tile({
+				//		 self.adjust_split_for_tile({
 				//			 tile: tile,
 				//			 diff_px: diff.x,
 				//			 axis: 'x'
 				//		 });
 				//	 }
 				//	 if (diff.y !== 0) {
-				//		 this.adjust_split_for_tile({
+				//		 self.adjust_split_for_tile({
 				//			 tile: tile,
 				//			 diff_px: diff.y,
 				//			 axis: 'y'
 				//		 });
 				//	 }
-				//	 this.split_resize_start_rect = null;
+				//	 self.split_resize_start_rect = null;
 				// } else {
 					tile.update_offset();
 				// }
-				this.layout();
+				self.layout();
 				return true;
-			}));
+			});
 		}
 	
 		adjust_splits_to_fit(win) {
-			this.managed_tile_for(win, Lang.bind(this, function(tile, idx) {
-				if (!this.tiles.is_tiled(tile)) return;
-				this.layout(tile);
-			}));
+			var self = this;
+			this.managed_tile_for(win, function(tile, idx) {
+				if (!self.tiles.is_tiled(tile)) return;
+				self.layout(tile);
+			});
 		}
 	
 		private _change_main_ratio_to_accommodate(tile, split) {
@@ -1194,23 +1202,24 @@ module Tiling {
 		}
 	
 		_swap_moved_tile_if_necessary(tile, idx) {
+			var self = this;
 			var moved = false;
 			if (this.tiles.is_tiled(tile)) {
 				var mouse_pos = get_mouse_position();
-				this._each_tiled(Lang.bind(this, function(swap_candidate, swap_idx) {
+				this._each_tiled(function(swap_candidate, swap_idx) {
 					var target_rect: Rect;
 					target_rect = Tile.shrink(swap_candidate.rect, 20);
 					if (swap_idx === idx) {
 						return null;
 					}
 					if (Tile.point_is_within(mouse_pos, target_rect)) {
-						this.log.debug("swapping idx " + idx + " and " + swap_idx);
-						this.tiles.swap_at(idx, swap_idx);
+						self.log.debug("swapping idx " + idx + " and " + swap_idx);
+						self.tiles.swap_at(idx, swap_idx);
 						moved = true;
 						return STOP;
 					}
 					return null;
-				}));
+				});
 			}
 			return moved;
 		}

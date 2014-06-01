@@ -6,7 +6,7 @@ module Logging {
 
 	var Lib = imports.misc.extensionUtils.getCurrentExtension().imports.lib;
 	var log4js = Lib.log4javascript.log4javascript;
-	export function getLogger(name):Logger { return log4js.getLogger(name); };
+	export function getLogger(name:string):Logger { return log4js.getLogger(name); };
 	export function init(main?:boolean) {
 		var GLib = imports.gi.GLib;
 		var root_logger = log4js.getLogger("shellshape");
@@ -38,7 +38,7 @@ module Logging {
 				NotificationAppender.prototype = new log4js.Appender();
 				NotificationAppender.prototype.layout = new log4js.PatternLayout("%c: %m");
 				NotificationAppender.prototype.threshold = log4js.Level.ERROR;
-				NotificationAppender.prototype.append = function(loggingEvent) {
+				NotificationAppender.prototype.append = function(loggingEvent:any) {
 					var formattedMessage = FileAppender.getFormattedMessage(this, loggingEvent);
 					imports.ui.main.notify(formattedMessage);
 				};

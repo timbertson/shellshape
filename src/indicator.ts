@@ -25,18 +25,19 @@ module Indicator {
 		}
 	})();
 
-	export var ShellshapeIndicator = <any>(function ShellshapeIndicator() {
-		this._init.apply(this, arguments);
-	});
+	class PopupImageMenuItem {
+		__proto__: Object
+		connect: Function
+		disconnect: Function
+		private _icon: any
+		private actor: any
+		private label: any
 
-	function PopupImageMenuItem(label, icon) {
-		this._init.apply(this, arguments);
-	};
+		constructor(label, icon, params?) {
+			this._init.apply(this, arguments);
+		}
 
-	PopupImageMenuItem.prototype = {
-		__proto__: PopupMenu.PopupBaseMenuItem.prototype,
-
-		_init: function (text, iconName, params) {
+		_init(text, iconName, params?) {
 			PopupMenu.PopupBaseMenuItem.prototype._init.call(this, params);
 
 			this.label = new St.Label({
@@ -48,19 +49,51 @@ module Indicator {
 			this.actor.add(this._icon, { align: St.Align.START });
 			this.actor.add(this.label);
 			this.setIcon(iconName);
-		},
+		}
 
-		setIcon: function(name) {
+		setIcon(name) {
 			this._icon.icon_name = name;
 		}
 	};
 
-	ShellshapeIndicator.prototype = {
-		__proto__: PanelMenu.Button.prototype,
-		_init: function(ext) {
+	PopupImageMenuItem.prototype.__proto__ = PopupMenu.PopupBaseMenuItem.prototype;
+
+
+	interface MenuEntry {
+		label:string
+		layout:any
+		icon: string
+	}
+
+	export class ShellshapeIndicator {
+		__proto__: Object
+		private ext: Extension.Ext
+		private log: Logger
+		private menu_entries: MenuEntry[]
+		private menu: any
+		private icon: any
+		private actor: any
+		private destroy:{():void}
+		bound_signals = []
+
+		static enable(ext) {
+			_indicator = new ShellshapeIndicator(ext);
+			Main.panel.addToStatusArea('shellshape-indicator', _indicator);
+		}
+
+		static disable() {
+			_indicator.disable();
+			_indicator = undefined;
+		}
+
+		constructor(ext:Extension.Ext) {
+			this._init.apply(this, arguments);
+		}
+
+		_init(ext) {
+			var self = this;
 			this.log = Logging.getLogger("shellshape.indicator");
 			this.ext = ext;
-			this.bound_signals = [];
 			PanelMenu.Button.prototype._init.call(this,
 				0.0, // menuAlignment
 				'Shellshape Layout', // nameText
@@ -92,27 +125,34 @@ module Indicator {
 			];
 
 			var items = new PopupMenu.PopupMenuSection();
-			for(var i=0; i<this.menu_entries.length; i++) {
-				var item_props = this.menu_entries[i];
-				var item = new PopupImageMenuItem(item_props.label, item_props.icon);
-				items.addMenuItem(item);
-				item.connect('activate', Lang.bind(this, function() {
-					this.log.debug("callback for [" + item_props.label + "] received by " + this);
-					this._set_active_item(item_props);
-					this._current_workspace().set_layout(item_props.layout);
-				}));
-			}
+
+			(function() {
+				for(var i=0; i<self.menu_entries.length; i++) {
+					var item_props = self.menu_entries[i];
+					var item = new PopupImageMenuItem(item_props.label, item_props.icon);
+					items.addMenuItem(item);
+					item.connect('activate', function() {
+						self.log.debug("callback for [" + item_props.label + "] received by " + self);
+						self._set_active_item(item_props);
+						self._current_workspace().set_layout(item_props.layout);
+					});
+				}
+			})();
+
 			items.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-			var item = new PopupMenu.PopupMenuItem("Shellshape Settings");
-			item.connect('activate', Lang.bind(this, function() {
-				var uuid = "shellshape@gfxmonk.net";
-				var appSys = Shell.AppSystem.get_default();
-				var app = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
-				app.launch(
-					global.display.get_current_time_roundtrip(),
-					['extension:///' + uuid], -1, null);
-			}));
-			items.addMenuItem(item);
+
+			(function() {
+				var item = new PopupMenu.PopupMenuItem("Shellshape Settings");
+				item.connect('activate', function() {
+					var uuid = "shellshape@gfxmonk.net";
+					var appSys = Shell.AppSystem.get_default();
+					var app = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
+					app.launch(
+						global.display.get_current_time_roundtrip(),
+						['extension:///' + uuid], -1, null);
+				});
+				items.addMenuItem(item);
+			})();
 
 			this.menu.addMenuItem(items);
 
@@ -136,18 +176,19 @@ module Indicator {
 
 			Util.connect_and_track(this, this.ext, 'layout-changed',
 				Lang.bind(this,this._update_indicator));
-		},
+		}
 
-		disable: function() {
+		disable() {
 			Util.disconnect_tracked_signals(this);
 			this.destroy(); // indicator method
-		},
+		}
 
-		toString: function() {
+		toString() {
 			return "<ShellshapeIndicator>";
-		},
+		}
 
-		_scroll_event: function(actor, event) {
+		private _scroll_event(actor, event) {
+			var self = this;
 			var direction = event.get_scroll_direction();
 			var diff = 0;
 			if (direction == Clutter.ScrollDirection.DOWN) {
@@ -159,22 +200,22 @@ module Indicator {
 			}
 
 			this._active_item(function(item, idx) {
-				var new_item = this.menu_entries[idx + diff];
+				var new_item = self.menu_entries[idx + diff];
 				if(new_item == null) return;
-				this._set_active_item(new_item);
-				this._current_workspace().set_layout(new_item.layout);
+				self._set_active_item(new_item);
+				self._current_workspace().set_layout(new_item.layout);
 			});
-		},
+		}
 
-		_set_active_item: function(item) {
+		private _set_active_item(item) {
 			this.icon.set_icon_name(item.icon);
-		},
+		}
 
-		_workspaceChanged: function(meta_screen, old_index, new_index) {
+		private _workspaceChanged(meta_screen, old_index, new_index) {
 			this._update_indicator();
-		},
+		}
 
-		_active_item: function(cb) {
+		private _active_item(cb) {
 			// find the active menu item for the current layout on the current workspace
 			var layout_cls = this._current_workspace().active_layout;
 			for(var i=0; i<this.menu_entries.length; i++) {
@@ -184,25 +225,19 @@ module Indicator {
 					break;
 				}
 			}
-		},
+		}
 
-		_update_indicator: function() {
+		private _update_indicator() {
+			var self = this;
 			var item_props = null;
 			this._active_item(function(item) {
-				this._set_active_item(item);
+				self._set_active_item(item);
 			});
-		},
+		}
 
-		_current_workspace: function() { return this.ext.current_workspace(); },
+		private _current_workspace() { return this.ext.current_workspace(); }
+	}
 
-	};
-	ShellshapeIndicator.enable = function(ext) {
-		_indicator = new ShellshapeIndicator(ext);
-		Main.panel.addToStatusArea('shellshape-indicator', _indicator);
-	};
+	ShellshapeIndicator.prototype.__proto__ = PanelMenu.Button.prototype;
 
-	ShellshapeIndicator.disable = function() {
-		_indicator.disable();
-		_indicator = undefined;
-	};
 }

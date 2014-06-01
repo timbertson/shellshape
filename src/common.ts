@@ -2,13 +2,13 @@ declare var imports: any;
 
 interface GObject {
 	connect(name:String, cb:Function):GObjectSignal
-	disconnect(GObjectSignal):void
+	disconnect(signal:GObjectSignal):void
 }
 
 interface MetaWorkspace extends GObject {
 	list_windows():MetaWindow[]
-	activate_with_focus(win:MetaWindow, time:number)
-	activate(time:number)
+	activate_with_focus(win:MetaWindow, time:number):void
+	activate(time:number):void
 
 	// NOTE: *only* use this method if you know the workspace
 	// is currently in the active workspace list.
@@ -95,7 +95,7 @@ interface Lang {
 	bind<T>(subject:Object, fn:T):T
 }
 
-function assert(x) {
+function assert<T extends Object>(x:T) {
 	if (!x) {
 		throw new Error("assertion failed");
 	}
