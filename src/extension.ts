@@ -2,6 +2,7 @@
 
 /// <reference path="common.ts" />
 /// <reference path="logging.ts" />
+/// <reference path="util.ts" />
 /// <reference path="tiling.ts" />
 /// <reference path="indicator.ts" />
 /// <reference path="workspace.ts" />
@@ -56,8 +57,6 @@ module Extension {
 		private screen_padding: number
 		bound_signals: BoundSignal[] = []
 		_do: {(action:Function, desc:string, fail?:boolean):any}
-		connect_and_track: {(owner:SignalOwner, subject:GObject, name:string, cb:Function)}
-		disconnect_tracked_signals: {(owner:SignalOwner, subject?:GObject)}
 		get_workspace:{(ws:MetaWorkspace):Workspace.Workspace}
 		private update_workspaces:{(WorkspaceUpdateMode)}
 		get_workspace_at:{(idx:number):Workspace.Workspace}
@@ -126,26 +125,6 @@ module Extension {
 					return e;
 				}
 			};
-
-			// Utility function over GObject.connect(). Keeps track
-			// of each added connection in `owner.bound_signals`,
-			// for later cleanup in disconnect_tracked_signals().
-			// Also logs any exceptions that occur.
-			self.connect_and_track = function(owner:SignalOwner, subject, name, cb, after?:boolean) {
-				var method = after ? 'connect_after':'connect';
-				owner.bound_signals.push({
-						subject: subject,
-						binding: subject[method](name, function() {
-							try {
-								return cb.apply(this,arguments);
-							} catch(e) {
-								self.log.error("Uncaught error in " + name + " signal handler: " + e + "\n" + e.stack);
-								throw e;
-							}
-						})
-				});
-			};
-
 
 			/* -------------------------------------------------------------
 			*           window / workspace object management
@@ -303,7 +282,7 @@ module Extension {
 			* ------------------------------------------------------------- */
 
 			self._init_overview = function _init_overview() {
-				self.connect_and_track(self, Main.overview, 'hiding', function() {
+				Util.connect_and_track(self, Main.overview, 'hiding', function() {
 					if(self._pending_actions.length > 0) {
 						self.log.debug("Overview hiding - performing " + self._pending_actions.length + " pending actions");
 						for(var i=0; i<self._pending_actions.length; i++) {
@@ -537,12 +516,12 @@ module Extension {
 
 			// Connect callbacks to all workspaces
 			self._init_workspaces = function() {
-				self.connect_and_track(self, global.screen, 'notify::n-workspaces', function() { self.update_workspaces(workspacesChangedMode); });
+				Util.connect_and_track(self, global.screen, 'notify::n-workspaces', function() { self.update_workspaces(workspacesChangedMode); });
 				self.update_workspaces(initializeWorkspacesMode);
 				var display = self.current_display();
 				//TODO: need to disconnect and reconnect when old display changes
 				//      (when does that happen?)
-				self.connect_and_track(self, display, 'notify::focus-window', function(display, meta_window) {
+				Util.connect_and_track(self, display, 'notify::focus-window', function(display, meta_window) {
 					// DON'T update `focus_window` if this is a window we've never seen before
 					// (it's probably new, and we want to know what the *previous* focus_window
 					// was in order to place it appropriately)
@@ -579,7 +558,7 @@ module Extension {
 							self.log.error("Unknown layout name: " + name);
 						}
 					};
-					self.connect_and_track(self, default_layout.gsettings, 'changed::' + default_layout.key, update);
+					Util.connect_and_track(self, default_layout.gsettings, 'changed::' + default_layout.key, update);
 					update();
 				})();
 
@@ -592,7 +571,7 @@ module Extension {
 						self.log.debug("setting max-autotile to " + val);
 						Workspace.Default.max_autotile = val;
 					};
-					self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
 				})();
 
@@ -608,7 +587,7 @@ module Extension {
 							self.current_workspace().relayout();
 						}
 					};
-					self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
 				})();
 
@@ -625,7 +604,7 @@ module Extension {
 							self.current_workspace().relayout();
 						}
 					};
-					self.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
 				})();
 				
@@ -709,17 +688,17 @@ module Extension {
 				};
 
 				// do a full update when monitors changed (dimensions, num_screens, main_screen_idx, relayout)
-				self.connect_and_track(self, global.screen, 'monitors-changed', update_monitor);
+				Util.connect_and_track(self, global.screen, 'monitors-changed', update_monitor);
 
 				// sanity check workspaces when switching to them (TODO: remove this if it never fails)
-				self.connect_and_track(self, global.screen, 'workspace-switched', workspace_switched);
+				Util.connect_and_track(self, global.screen, 'workspace-switched', workspace_switched);
 
 				// window-entered-monitor and window-left-monitor seem really twitchy - they
 				// can fire a handful of times in a single atomic window placement.
 				// So we just use the hint to check window validity, rather than assuming
 				// it's actually a new or removed window.
-				self.connect_and_track(self, global.screen, 'window-entered-monitor', update_window_workspace);
-				self.connect_and_track(self, global.screen, 'window-left-monitor', update_window_workspace);
+				Util.connect_and_track(self, global.screen, 'window-entered-monitor', update_window_workspace);
+				Util.connect_and_track(self, global.screen, 'window-left-monitor', update_window_workspace);
 			};
 
 			// Unbinds keybindings
@@ -742,28 +721,6 @@ module Extension {
 				}
 			};
 
-			// Disconnect all tracked signals from the given object (not necessarily `self`)
-			// see `connect_and_track()`
-			self.disconnect_tracked_signals = function(owner:SignalOwner, subject?:GObject) {
-				if (arguments.length > 1 && !subject) {
-					throw new Error("disconnect_tracked_signals called with null subject");
-				}
-				var count=0;
-				for(var i=owner.bound_signals.length-1; i>=0; i--) {
-					var sig = owner.bound_signals[i];
-					if (subject == null || subject === sig.subject) {
-						sig.subject.disconnect(sig.binding);
-						// delete signal
-						owner.bound_signals.splice(i, 1);
-						count++;
-					}
-				}
-				if(count>0) {
-					self.log.debug("disconnected " + count + " listeners from " +
-							owner + (subject == null ? "" : (" on " + subject)));
-				}
-			};
-
 			// Disconnects from *all* workspaces.  Disables and removes
 			// them from our cache
 			self._disable_workspaces = function() {
@@ -779,7 +736,7 @@ module Extension {
 				self._do(function() { Indicator.ShellshapeIndicator.disable();}, "disable indicator");
 				self._do(self._disable_workspaces, "disable workspaces");
 				self._do(self._unbind_keys, "unbind keys");
-				self._do(function() { self.disconnect_tracked_signals(self); }, "disconnect signals");
+				self._do(function() { Util.disconnect_tracked_signals(self); }, "disconnect signals");
 				self.log.info("shellshape disabled");
 			};
 

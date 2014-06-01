@@ -144,8 +144,8 @@ module Workspace {
 		}
 
 		enable(initial?:boolean) {
-			this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
-			this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+			Util.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
+			Util.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
 
 			if (!initial) {
 				this.log.debug("Enabling " + this);
@@ -157,7 +157,7 @@ module Workspace {
 			// disable workspace (can be re-enabled)
 			var self = this;
 			self.log.debug("Disabling " + self);
-			self.extension.disconnect_tracked_signals(self);
+			Util.disconnect_tracked_signals(self);
 
 			// NOTE: we don't actually untile or remove windows here.
 			// They're kept in the current state in case we later re-enable() this
@@ -331,18 +331,18 @@ module Workspace {
 					cb(win);
 				});
 
-				self.extension.connect_and_track(self, win, event_name + '-changed', signal_handler);
+				Util.connect_and_track(self, win, event_name + '-changed', signal_handler);
 			};
 
 			bind_to_window_change('position', move_ops,     Lang.bind(self, self.on_window_moved, win));
 			bind_to_window_change('size',     resize_ops,   Lang.bind(self, self.on_window_resized, win));
-			self.extension.connect_and_track(self, win.meta_window, 'notify::minimized', Lang.bind(self, self.on_window_minimize_changed));
+			Util.connect_and_track(self, win.meta_window, 'notify::minimized', Lang.bind(self, self.on_window_minimize_changed));
 		}
 
 		private disconnect_window_signals(win:MutterWindow.Window) {
 			this.log.debug("Disconnecting signals from " + win);
-			this.extension.disconnect_tracked_signals(this, win);
-			this.extension.disconnect_tracked_signals(this, win.meta_window);
+			Util.disconnect_tracked_signals(this, win);
+			Util.disconnect_tracked_signals(this, win.meta_window);
 		}
 
 		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window:MetaWindow, reason?) {

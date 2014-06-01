@@ -127,19 +127,19 @@ module Indicator {
 
 			this._workspaceChanged(null, null, global.screen.get_active_workspace_index());
 
-			this.ext.connect_and_track(this,
+			Util.connect_and_track(this,
 				global.screen,
 				'workspace-switched',
 				Lang.bind(this,this._workspaceChanged),
 				true // use connect-after
 			);
 
-			this.ext.connect_and_track(this, this.ext, 'layout-changed',
+			Util.connect_and_track(this, this.ext, 'layout-changed',
 				Lang.bind(this,this._update_indicator));
 		},
 
 		disable: function() {
-			this.ext.disconnect_tracked_signals(this);
+			Util.disconnect_tracked_signals(this);
 			this.destroy(); // indicator method
 		},
 
