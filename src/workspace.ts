@@ -163,7 +163,7 @@ module Workspace {
 			// They're kept in the current state in case we later re-enable() this
 			// workspace object.
 			self.layout.restore_original_positions();
-			self.layout.each(<Anon>function(tile:Tiling.TiledWindow) {
+			self.layout.each(function(tile:Tiling.TiledWindow) {
 				var win = as<MutterWindow.Window>(MutterWindow.Window, tile.window);
 				self.disconnect_window_signals(win);
 			});
@@ -201,7 +201,7 @@ module Workspace {
 			var layout_windows:MutterWindow.Window[] = [];
 			var layout_meta_windows:MetaWindow[] = [];
 
-			self.layout.each(<Anon>function(tile:Tiling.TiledWindow) {
+			self.layout.each(function(tile:Tiling.TiledWindow) {
 				var win = as<MutterWindow.Window>(MutterWindow.Window, tile.window);
 				layout_windows.push(win);
 				layout_meta_windows.push(win.meta_window);
@@ -393,7 +393,7 @@ module Workspace {
 
 		has_tile_space_left() {
 			var n = 0;
-			this.layout.tiles.each_tiled(<Anon>function() { n = n + 1; });
+			this.layout.tiles.each_tiled(function() { n = n + 1; });
 			var max = Default.max_autotile;
 			this.log.debug("there are " + n + " windows tiled, of maximum " + max);
 			return (n < max);
@@ -424,7 +424,7 @@ module Workspace {
 				self.disconnect_window_signals(win);
 			} else if (force) {
 				self.log.error("Unable to remove window: " + win);
-				self.layout.each(<Anon>function(tile:Tiling.TiledWindow, idx) {
+				self.layout.each(function(tile:Tiling.TiledWindow, idx) {
 					if (tile.window === win) {
 						self.log.error("And yet: Found window match at index: " + idx);
 					}

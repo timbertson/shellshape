@@ -71,8 +71,17 @@ interface Void_Varargs {
 interface Function {
 	(...args: any[]):any
 }
-interface Iterator<T> {
-	(subject:T, index?:number):any
+interface IterFunc<T> {
+	(subject:T, index:number):any
+}
+interface Predicate<T> {
+	(subject:T):boolean
+}
+interface VoidFunc1<T> {
+	(subject:T):void
+}
+interface VoidFunc {
+	():void
 }
 
 interface Logger {
@@ -82,18 +91,8 @@ interface Logger {
 	debug: Void_Varargs
 }
 
-// Used in APIs to force users to either use
-// Lang.bind, or cast to <FreeFunction> for anonymous
-// functions that don't use `this`
-interface FreeFunction extends Function {
-		// but we need at least one attribute to force
-		// the duck typer to reject non-bound functions
-	__FreeFunction: boolean
-}
-interface Anon extends FreeFunction {}
-
 interface Lang {
-	bind(subject:Object, fn:Function):FreeFunction
+	bind<T>(subject:Object, fn:T):T
 }
 
 function assert(x) {

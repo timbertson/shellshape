@@ -31,6 +31,11 @@ module Tiling {
 		update(newMonitor?:any):void
 	}
 
+	interface IndexedTiledWindow {
+		item: TiledWindow
+		index: number
+	}
+
 	var Axis = {
 		other: function(axis) {
 			if (axis === 'y') {
@@ -236,7 +241,7 @@ module Tiling {
 
 
 	export class TileCollection {
-		items = [];
+		items:TiledWindow[] = []
 		log = Logging.getLogger("shellshape.tiling.TileCollection");
 
 		constructor() {
@@ -245,29 +250,29 @@ module Tiling {
 			this.is_tiled = Lang.bind(this, this._is_tiled);
 		}
 
-		is_visible = <FreeFunction>function(item: TiledWindow) {
+		is_visible = function(item: TiledWindow) {
 			return !item.is_minimized();
 		}
 
-		is_minimized = <FreeFunction>function(item: TiledWindow) {
+		is_minimized = function(item: TiledWindow) {
 			return item.is_minimized();
 		}
 
-		is_visible_and_untiled: FreeFunction
+		is_visible_and_untiled:Predicate<TiledWindow>
 		private _is_visible_and_untiled(item: TiledWindow) {
 			return (!this.is_tiled(item)) && this.is_visible(item);
 		}
 
-		is_tiled: FreeFunction
+		is_tiled:Predicate<TiledWindow>
 		private _is_tiled(item: TiledWindow) {
 			return item.managed && this.is_visible(item);
 		}
 
-		is_active = <FreeFunction>function(item: TiledWindow) {
+		is_active = function(item: TiledWindow) {
 			return item.is_active();
 		}
 
-		sort_order(item: TiledWindow) {
+		private sort_order(item: TiledWindow) {
 			if (this.is_tiled(item)) {
 				return 0;
 			} else if (this.is_visible(item)) {
@@ -277,14 +282,14 @@ module Tiling {
 			}
 		}
 
-		sorted_with_indexes() {
-			var index, items_and_indexes, sorted, ts, _i, _ref,
-				_this = this;
-			items_and_indexes = [];
-			ts = function() {
+		private sorted_with_indexes():IndexedTiledWindow[] {
+			var self = this;
+			var items_and_indexes:IndexedTiledWindow[] = [];
+			var ts = function() {
 				return "" + this.item + "@" + this.index;
 			};
-			for (index = _i = 0, _ref = this.items.length; 0 <= _ref ? _i < _ref : _i > _ref; index = 0 <= _ref ? ++_i : --_i) {
+
+			for (var index=0; index < this.items.length; index++) {
 				items_and_indexes.push({
 					item: this.items[index],
 					index: index,
@@ -292,10 +297,10 @@ module Tiling {
 				});
 			}
 			// this.log.debug("\nSORTING: #{j items_and_indexes}")
-			sorted = items_and_indexes.slice().sort(function(a, b) {
+			var sorted = items_and_indexes.slice().sort(function(a, b) {
 				var ordera, orderb;
-				ordera = _this.sort_order(a.item);
-				orderb = _this.sort_order(b.item);
+				ordera = self.sort_order(a.item);
+				orderb = self.sort_order(b.item);
 				if (ordera === orderb) {
 					return a.index - b.index;
 				} else {
@@ -317,11 +322,10 @@ module Tiling {
 			return idx;
 		}
 
-		filter(f:FreeFunction, items:Object[]) {
-			var item, _i, _len, _results;
+		filter<T>(f:Predicate<T>, items:T[]) {
 			var rv = [];
-			for (_i = 0, _len = items.length; _i < _len; _i++) {
-				item = items[_i];
+			for (var i = 0; i < items.length; i++) {
+				var item = items[i];
 				if (f(item)) {
 					rv.push(item);
 				}
@@ -330,9 +334,8 @@ module Tiling {
 		}
 
 		select_cycle(diff) {
-			var cycled, filtered,
-				_this = this;
-			cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, <Anon>function(active, neighbor) {
+			var cycled, filtered;
+			cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, function(active, neighbor) {
 				neighbor.item.activate();
 			});
 			if (!cycled) {
@@ -344,16 +347,11 @@ module Tiling {
 			}
 		}
 
-		sorted_view(filter:FreeFunction) {
-			var f,
-				_this = this;
-			f = function(obj) {
-				return filter(obj.item);
-			};
-			return this.filter(f, this.sorted_with_indexes());
+		sorted_view(filter:Predicate<TiledWindow>) {
+			return this.filter<IndexedTiledWindow>(function(obj) { return filter(obj.item); }, this.sorted_with_indexes());
 		}
 
-		private _with_active_and_neighbor_when_filtered(filter:FreeFunction, diff, cb:FreeFunction) {
+		private _with_active_and_neighbor_when_filtered(filter:Predicate<TiledWindow>, diff:number, cb:Function) {
 			var filtered, filtered_active_idx, new_idx,
 				_this = this;
 			filtered = this.sorted_view(filter);
@@ -368,7 +366,7 @@ module Tiling {
 			return true;
 		}
 
-		most_recently_minimized = function(f:FreeFunction) {
+		most_recently_minimized = function(f:VoidFunc1<TiledWindow>) {
 			var filtered, sorted;
 			filtered = this.filter(this.is_minimized, this.items);
 			if (filtered.length > 0) {
@@ -381,13 +379,14 @@ module Tiling {
 
 		cycle(diff) {
 			// only one of these will have any effect, as the active tile is either tiled or untiled
-			var done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, Lang.bind(this, function(active, neighbor) {
-				this.swap_at(active.index, neighbor.index);
-			}));
+			var self = this;
+			var done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, function(active, neighbor) {
+				self.swap_at(active.index, neighbor.index);
+			});
 			if (!done) {
-				this._with_active_and_neighbor_when_filtered(this.is_visible_and_untiled, diff, Lang.bind(this, function(active, neighbor) {
-					this.swap_at(active.index, neighbor.index);
-				}));
+				self._with_active_and_neighbor_when_filtered(self.is_visible_and_untiled, diff, function(active, neighbor) {
+					self.swap_at(active.index, neighbor.index);
+				});
 			}
 		}
 
@@ -432,7 +431,7 @@ module Tiling {
 				_this = this;
 			id = item.id();
 			idx = -1;
-			this.each(<FreeFunction>function(tile, _idx) {
+			this.each(function(tile, _idx) {
 				if (tile.id() === id) {
 					_this.log.debug("found id " + id);
 					idx = _idx;
@@ -450,7 +449,7 @@ module Tiling {
 			this.items.push(item);
 		}
 
-		each(f:Iterator<TiledWindow>):boolean {
+		each(f:IterFunc<TiledWindow>):boolean {
 			for (var i=0; i<this.items.length; i++) {
 				var ret = f(this.items[i], i);
 				if (ret === STOP) {
@@ -460,26 +459,27 @@ module Tiling {
 			return false;
 		}
 
-		each_tiled(f:FreeFunction) {
+		each_tiled(f:IterFunc<TiledWindow>):void {
 			this._filtered_each(this.is_tiled, f);
 		}
 
-		_filtered_each(filter:FreeFunction, f:FreeFunction) {
-			this.each(<FreeFunction>function(tile, idx) {
+		_filtered_each(filter:Predicate<TiledWindow>, f:IterFunc<TiledWindow>) {
+			this.each(function(tile, idx) {
 				if (filter(tile)) {
 					f(tile, idx);
 				}
 			});
 		}
 
-		active(f:FreeFunction) {
-			this.each(Lang.bind(this, function(item, idx) {
-				if (this.is_active(item)) {
+		active(f:IterFunc<TiledWindow>) {
+			var self = this;
+			this.each(function(item, idx) {
+				if (self.is_active(item)) {
 					f(item, idx);
 					return STOP;
 				}
 				return null;
-			}));
+			});
 		}
 
 		for_layout() {
@@ -491,18 +491,19 @@ module Tiling {
 			return this.items.splice(idx, 1);
 		}
 
-		insert_at(idx, item) {
+		insert_at(idx, item:TiledWindow) {
 			return this.items.splice(idx, 0, item);
 		}
 
-		main(f:FreeFunction) {
-			this.each(Lang.bind(this, function(tile, idx) {
-				if (this.is_tiled(tile)) {
+		main(f:IterFunc<TiledWindow>) {
+			var self = this;
+			self.each(function(tile, idx) {
+				if (self.is_tiled(tile)) {
 					f(tile, idx);
 					return STOP;
 				}
 				return null;
-			}));
+			});
 		}
 	}
 
@@ -677,7 +678,7 @@ module Tiling {
 			throw new Error("To be overridden");
 		}
 	
-		each(func:FreeFunction) {
+		each(func:IterFunc<TiledWindow>) {
 			this.tiles.each(func);
 		}
 	
@@ -685,13 +686,13 @@ module Tiling {
 			return this.tiles.contains(win);
 		}
 	
-		tile_for(win:Window, func:FreeFunction):boolean {
+		tile_for(win:Window, func:IterFunc<TiledWindow>):boolean {
 			var self = this;
 			if (!win) {
 				self.log.warn("Layout.tile_for(null)");
 				return false;
 			}
-			return this.tiles.each(<Anon>function(tile, idx) {
+			return this.tiles.each(function(tile, idx) {
 				if (tile.window === win) {
 					func(tile, idx);
 					return STOP;
@@ -701,20 +702,22 @@ module Tiling {
 			});
 		}
 	
-		managed_tile_for(win:Window, func:FreeFunction) {
+		managed_tile_for(win:Window, func:IterFunc<TiledWindow>) {
 			// like @tile_for, but ignore floating windows
-			return this.tile_for(win, Lang.bind(this, function(tile, idx) {
-				if (this.tiles.is_tiled(tile)) {
+			var self = this;
+			return this.tile_for(win, function(tile, idx) {
+				if (self.tiles.is_tiled(tile)) {
 					func(tile, idx);
 				}
-			}));
+			});
 		}
 	
 		tile(win:Window) {
-			this.tile_for(win, Lang.bind(this, function(tile) {
+			var self = this;
+			this.tile_for(win, function(tile) {
 				tile.tile();
-				this.layout();
-			}));
+				self.layout();
+			});
 		}
 	
 		select_cycle(offset) {
@@ -743,12 +746,12 @@ module Tiling {
 			// NOTE: does _not_ actually release tiles, because
 			// we may want to resume this state when the extension
 			// gets re-enabled
-			this.tiles.each_tiled(<Anon>function(tile) {
+			this.tiles.each_tiled(function(tile) {
 				tile.window.move_resize(tile.original_rect);
 			});
 		}
 	
-		active_tile(fn:FreeFunction) {
+		active_tile(fn:IterFunc<TiledWindow>) {
 			return this.tiles.active(fn);
 		}
 	
@@ -758,18 +761,18 @@ module Tiling {
 		}
 	
 		minimize_window() {
-			return this.active_tile(<Anon>function(tile, idx) {
+			return this.active_tile(function(tile, idx) {
 				return tile.minimize();
 			});
 		}
 	
 		unminimize_last_window() {
-			return this.tiles.most_recently_minimized(<Anon>function(win) {
+			return this.tiles.most_recently_minimized(function(win) {
 				// TODO: this is a little odd...
 				//       we do a relayout() as a result of the unminimize, and this
 				//       is the only way to make sure we don't activate the previously
 				//       active window.
-				return TiledWindow.with_active_window(win, <Anon>function() { win.unminimize();});
+				return TiledWindow.with_active_window(win, function() { win.unminimize();});
 			});
 		}
 	
@@ -790,7 +793,7 @@ module Tiling {
 		toggle_maximize() {
 			var active;
 			active = null;
-			this.active_tile(<Anon>function(tile, idx) {
+			this.active_tile(function(tile, idx) {
 				active = tile;
 			});
 			if (active === null) {
@@ -894,7 +897,7 @@ module Tiling {
 		}
 	
 		layout(accommodate_window) {
-			this.each(<Anon>function(tile) {
+			this.each(function(tile) {
 				return tile.window.maximize();
 			});
 			return this.layout;
@@ -921,7 +924,7 @@ module Tiling {
 			return "[object BaseTiledLayout]";
 		}
 	
-		_each_tiled(func:FreeFunction) {
+		_each_tiled(func:IterFunc<TiledWindow>) {
 			return this.tiles.each_tiled(func);
 		}
 	
@@ -1019,7 +1022,7 @@ module Tiling {
 	
 		scale_current_window(amount, axis) {
 			var bounds = this.bounds;
-			this.active_tile(<Anon>function(tile) {
+			this.active_tile(function(tile) {
 				tile.scale_by(amount, axis);
 				tile.center_window();
 				tile.ensure_within(bounds);
@@ -1050,15 +1053,15 @@ module Tiling {
 	
 		activate_main_window() {
 			var _this = this;
-			this.tiles.main(<Anon>function(win) {
+			this.tiles.main(function(win) {
 				win.activate();
 			});
 		}
 	
 		swap_active_with_main() {
 			var _this = this;
-			this.tiles.active(<Anon>function(tile, idx) {
-				_this.tiles.main(<Anon>function(main_tile, main_idx) {
+			this.tiles.active(function(tile, idx) {
+				_this.tiles.main(function(main_tile, main_idx) {
 					_this.tiles.swap_at(idx, main_idx);
 					_this.layout();
 				});
@@ -1275,7 +1278,7 @@ module Tiling {
 		private static minimized_counter = 0;
 		private static active_window_override = null;
 
-		static with_active_window(win, f:FreeFunction) {
+		static with_active_window(win, f:VoidFunc) {
 			var _old = TiledWindow.active_window_override;
 			TiledWindow.active_window_override = win;
 			try {
