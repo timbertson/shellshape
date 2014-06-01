@@ -1,6 +1,11 @@
 declare var imports: any;
 
-interface MetaWorkspace {
+interface GObject {
+	connect(name:String, cb:Function):GObjectSignal
+	disconnect(GObjectSignal):void
+}
+
+interface MetaWorkspace extends GObject {
 	list_windows():MetaWindow[]
 	activate_with_focus(win:MetaWindow, time:number)
 	activate(time:number)
@@ -11,14 +16,20 @@ interface MetaWorkspace {
 	index():number
 }
 
-interface MetaWindow {
+interface MetaWindow extends GObject {
 	get_monitor():number
+	get_workspace(): MetaWorkspace
 	get_title():string
 	get_stable_sequence():number
 	get_compositor_private():GObject
+	resizeable: boolean
+	above: boolean
+	is_skip_taskbar(): boolean
+	is_on_all_workspaces(): boolean
+	get_wm_class(): string
 }
 
-interface Screen {
+interface Screen extends GObject {
 	get_workspace_by_index(n:number):MetaWorkspace
 	get_active_workspace_index():number
 	connect_after:Function
@@ -27,17 +38,10 @@ interface Screen {
 	get_n_monitors():number
 	get_primary_monitor():number
 	get_monitor_geometry(idx:number):any
-	connect(name:String, cb:Function):GObjectSignal
-	disconnect(GObjectSignal):void
 }
 
 interface GObjectSignal {
 	__is_gobject_signal: boolean // fake
-}
-
-interface GObject {
-	connect(name:String, cb:Function):GObjectSignal
-	disconnect(GObjectSignal):void
 }
 
 interface SignalOwner {

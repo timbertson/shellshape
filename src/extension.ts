@@ -55,11 +55,11 @@ module Extension {
 		get_workspace_at:{(idx:number):Workspace.Workspace}
 		private workspaces: Workspace.Workspace[];
 		private bounds: Tiling.Bounds
-		get_window: {(meta_window:MetaWindow, create_if_necessary?:boolean)}
+		get_window: {(meta_window:MetaWindow, create_if_necessary?:boolean):MutterWindow.Window}
 		private windows: { [index: string] : MutterWindow.Window; }
 		private dead_windows: MutterWindow.Window[]
 		private mark_window_as_active:{(win: MutterWindow.Window):void}
-		private remove_window:{(win: MutterWindow.Window):void}
+		remove_window:{(win: MutterWindow.Window):void}
 		private gc_windows:{():void}
 		private current_workspace:{():Workspace.Workspace}
 		private mutter_workspace:{(idx?:number):MetaWorkspace}
@@ -83,7 +83,7 @@ module Extension {
 		emit:{(name):void}
 		private perform_when_overview_is_hidden:{(action:Function):void}
 		private change_layout:{(any)}
-		private focus_window:MutterWindow.Window
+		focus_window:MutterWindow.Window
 		enable:{():void}
 		disable:{():void}
 
@@ -174,7 +174,7 @@ module Extension {
 			self.get_window = function get_window(meta_window:MetaWindow, create_if_necessary?:boolean) {
 				create_if_necessary = create_if_necessary !== false; // default to true
 				if(!meta_window) return null;
-				var id = Window.GetId(meta_window);
+				var id = MutterWindow.WindowProperties.id(meta_window);
 				if(id == null) {
 					self.log.error("window has no ID: " + meta_window);
 					return null;
@@ -195,7 +195,7 @@ module Extension {
 			// dead_windows grows larger than 20 items
 			self.remove_window = function(win) {
 				var meta_window = win.meta_window;
-				var id = Window.GetId(meta_window);
+				var id = MutterWindow.WindowProperties.id(meta_window);
 				self.dead_windows.push(win);
 				if(self.dead_windows.length > 20) {
 					self.gc_windows();
@@ -217,7 +217,7 @@ module Extension {
 				}
 				for(var i=0; i<self.dead_windows.length; i++) {
 					var win = self.dead_windows[i];
-					delete self.windows[Window.GetId(win.meta_window)];
+					delete self.windows[MutterWindow.WindowProperties.id(win.meta_window)];
 				}
 				self.dead_windows = [];
 			};

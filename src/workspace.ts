@@ -6,6 +6,7 @@ module Workspace {
 	var Mainloop = imports.mainloop;
 	var Lang = imports.lang;
 	var Meta = imports.gi.Meta;
+	var WindowProperties = MutterWindow.WindowProperties;
 
 	export interface Change {
 		pending: boolean
@@ -106,7 +107,7 @@ module Workspace {
 		log: Logger
 		layout_state: Tiling.LayoutState
 		meta_workspace: MetaWorkspace
-		extension: any // TODO
+		extension: Extension.Ext
 		turbulence: any
 		screen: any
 		active_layout: any // class
@@ -187,7 +188,7 @@ module Workspace {
 			// check for windows in workspace but not layout
 			for (var i=0; i<expected_meta_windows.length; i++) {
 				win = expected_meta_windows[i];
-				if(layout_meta_windows.indexOf(win) == -1) {
+				if(layout_meta_windows.indexOf(win) == -1 && WindowProperties.can_be_tiled(win)) {
 					// we add new windows after a minor delay so that removal from the current workspace happens first
 					// (as removal will wipe out all attached signals)
 					Mainloop.idle_add(function () {
@@ -259,24 +260,28 @@ module Workspace {
 			else this.log.debug("ducking grab op...");
 		}
 
-		private _with_window_actor(meta_window:MetaWindow, cb) {
+		private _with_window_actor(meta_window:MetaWindow, cb, initial?:boolean) {
 			var self:Workspace = this;
-			var actor = MutterWindow.Window.get_actor(meta_window);
+			var actor = MutterWindow.WindowProperties.get_actor(meta_window);
 			if (actor) {
 				cb(actor);
 			} else {
+				if (initial === false) {
+					self.log.warn("actor unavailable for " + meta_window.get_title());
+				}
 				Mainloop.idle_add(function() {
-					self._with_window_actor(meta_window, cb);
+					self._with_window_actor(meta_window, cb, false);
 					return false;
 				});
 			}
 		}
 
-		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window, reason?) {
+		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window:MetaWindow, reason?) {
 			var self:Workspace = this;
 			self._with_window_actor(meta_window, function(actor) {
-				if (meta_window.get_workspace() !== self.meta_workspace) {
-					self.log.info("window moved workspace before it could be added to the current layout");
+				var ws = meta_window.get_workspace();
+				if(!WindowProperties.can_be_tiled(meta_window)) {
+					// self.log.debug("can\'t be tiled");
 					return;
 				}
 
@@ -285,12 +290,12 @@ module Workspace {
 					return;
 				}
 
-				var win = self.extension.get_window(meta_window);
-				if(!win.can_be_tiled()) {
-					// self.log.debug("can\'t be tiled");
+				if (ws !== self.meta_workspace) {
+					self.log.info("window `" + meta_window.get_title() + "` moved workspace before it could be added to the current layout");
 					return;
 				}
 
+				var win = self.extension.get_window(meta_window);
 				self.log.debug("on_window_create for " + win);
 				var added = self.layout.add(win, self.extension.focus_window);
 				if (!added) {
@@ -318,7 +323,7 @@ module Workspace {
 				var should_auto_tile;
 
 				if(tile_pref === null) {
-					should_auto_tile = win.should_auto_tile();
+					should_auto_tile = WindowProperties.should_auto_tile(meta_window);
 				} else {
 					// if the window has a tiling preference (given by a previous user tile/untile action),
 					// that overrides the default should_auto_tile logic

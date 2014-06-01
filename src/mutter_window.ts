@@ -1,6 +1,7 @@
 /// <reference path="common.ts" />
 /// <reference path="logging.ts" />
 /// <reference path="tiling.ts" />
+/// <reference path="util.ts" />
 module MutterWindow {
 
 	var Main = imports.ui.main;
@@ -8,13 +9,7 @@ module MutterWindow {
 	var Meta = imports.gi.Meta;
 	var Shell = imports.gi.Shell;
 
-	export class Window implements Tiling.Window, SignalOwner {
-		meta_window: any
-		ext: any
-		log: Logger
-		tile_preference: any
-		bound_signals = []
-
+	export class WindowProperties {
 		// This seems to be a good set, from trial and error...
 		static tileable_window_types = [
 			Meta.WindowType.NORMAL,
@@ -29,13 +24,91 @@ module MutterWindow {
 			'Conky'
 		]
 
-		static GetId(w:MetaWindow) {
+		static id(w:MetaWindow) {
 			if(!w || !w.get_stable_sequence) {
-				Logging.getLogger("shellshape.window").error("Non-window object: " + w);
+				Util.log.error("Non-window object: " + w);
 				return null;
 			}
 			return w.get_stable_sequence();
 		}
+
+		private static is_resizeable(w:MetaWindow):boolean {
+			return w.resizeable;
+		}
+
+		private static window_type(w:MetaWindow):number {
+			try {
+				return w['window-type'];
+			} catch (e) {
+				//TODO: shouldn't be necessary
+				Util.log.error("Failed to get window type for window " + w + ", error was:", e);
+				return -1;
+			}
+		}
+
+		private static window_class(w:MetaWindow):string {
+			return w.get_wm_class();
+		}
+
+		private static is_shown_on_taskbar(w:MetaWindow) {
+			return !w.is_skip_taskbar();
+		}
+
+		private static floating_window(w:MetaWindow):boolean {
+			//TODO: add check for w.below when mutter exposes it as a property;
+			return w.above;
+		}
+		
+		private static on_all_workspaces(w:MetaWindow):boolean {
+			return w.is_on_all_workspaces();
+		}
+		
+		static should_auto_tile(w:MetaWindow):boolean {
+			return this.can_be_tiled(w) && this.is_resizeable(w) &&
+				!(this.floating_window(w) || this.on_all_workspaces(w));
+		}
+
+		static can_be_tiled(w:MetaWindow):boolean {
+			if (w.is_skip_taskbar()) {
+				// this.log.debug("uninteresting window: " + this);
+				return false;
+			}
+			var window_class = this.window_class(w);
+			var blacklisted = WindowProperties.blacklist_classes.indexOf(window_class) != -1;
+			if(blacklisted)
+			{
+				Util.log.debug("window class " + window_class + " is blacklisted");
+				return false;
+			}
+
+			var window_type = this.window_type(w);
+			var result = this.tileable_window_types.indexOf(window_type) != -1;
+			// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
+			return result;
+		}
+
+		static get_actor(w:MetaWindow):GObject {
+			try {
+				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
+				return w.get_compositor_private();
+			} catch (e) {
+				// not implemented for some special windows - ignore them
+				Util.log.warn("couldn't call get_compositor_private for window " + w, e);
+				if(w.get_compositor_private) {
+					Util.log.warn("But the function exists! aborting...");
+					throw(e);
+				}
+			}
+			return null;
+		}
+	}
+
+	export class Window implements Tiling.Window, SignalOwner {
+		meta_window: any
+		ext: any
+		log: Logger
+		tile_preference: any
+		bound_signals = []
 
 		constructor(meta_window, ext) {
 			this.meta_window = meta_window;
@@ -44,23 +117,8 @@ module MutterWindow {
 			this.tile_preference = null;
 		}
 
-		static get_actor(meta_window:MetaWindow):GObject {
-			try {
-				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
-				return meta_window.get_compositor_private();
-			} catch (e) {
-				// not implemented for some special windows - ignore them
-				global.log("WARN: couldn't call get_compositor_private for window " + meta_window, e);
-				if(meta_window.get_compositor_private) {
-					global.log("But the function exists! aborting...");
-					throw(e);
-				}
-			}
-			return null;
-		}
-
-		get_actor():GObject {
-			return Window.get_actor(this.meta_window);
+		id() {
+			return WindowProperties.id(this.meta_window);
 		}
 
 		bring_to_front() {
@@ -133,58 +191,6 @@ module MutterWindow {
 			return ("<#Window with MetaWindow: " + this.get_title() + ">");
 		}
 
-		// functions for determining whether the window should
-		// be tiled by default, or can be tiled at all.
-		is_resizeable() {
-			return this.meta_window.resizeable;
-		}
-		window_type() {
-			try {
-				return this.meta_window['window-type'];
-			} catch (e) {
-				//TODO: shouldn't be necessary
-				this.log.error("Failed to get window type for window " + this.meta_window + ", error was:", e);
-				return -1;
-			}
-		}
-		window_class() {
-			return this.meta_window.get_wm_class();
-		}
-		is_shown_on_taskbar() {
-			return !this.meta_window.is_skip_taskbar();
-		}
-		floating_window() {
-			//TODO: add check for this.meta_window.below when mutter exposes it as a property;
-			return this.meta_window.above;
-		}
-		on_all_workspaces() {
-			return this.meta_window.is_on_all_workspaces();
-		}
-		should_auto_tile() {
-			return this.can_be_tiled() && this.is_resizeable() &&
-				!(this.floating_window() || this.on_all_workspaces());
-		}
-		can_be_tiled() {
-			if (this.meta_window.skip_taskbar) {
-				// this.log.debug("uninteresting window: " + this);
-				return false;
-			}
-			var window_class = this.window_class();
-			var blacklisted = Window.blacklist_classes.indexOf(window_class) != -1;
-			if(blacklisted)
-			{
-				this.log.debug("window class " + window_class + " is blacklisted");
-				return false;
-			}
-
-			var window_type = this.window_type();
-			var result = Window.tileable_window_types.indexOf(window_type) != -1;
-			// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
-			return result;
-		}
-		id() {
-			return Window.GetId(this.meta_window);
-		}
 		eq(other) {
 			var eq = this.id() == other.id();
 			if(eq && (this != other)) {
@@ -200,6 +206,10 @@ module MutterWindow {
 				pos:  { x: r.x, y:r.y },
 				size: { x: r.width, y:r.height }
 			};
+		}
+
+		private get_actor() {
+			return WindowProperties.get_actor(this.meta_window);
 		}
 
 		// proxy signals through to actor. If we attach signals directly to the actor, it
