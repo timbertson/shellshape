@@ -71,6 +71,9 @@ interface Void_Varargs {
 interface Function {
 	(...args: any[]):any
 }
+interface Iterator<T> {
+	(subject:T, index?:number):any
+}
 
 interface Logger {
 	error: Void_Varargs
@@ -94,8 +97,15 @@ interface Lang {
 }
 
 function assert(x) {
-	if (x == null) {
-		throw new Error("unexpected null");
+	if (!x) {
+		throw new Error("assertion failed");
 	}
 	return x;
+}
+
+function as<T>(cons:any, obj:any):T {
+	if (obj instanceof(cons)) {
+		return <T>obj;
+	}
+	throw new Error("Object " + obj + " is the wrong type");
 }

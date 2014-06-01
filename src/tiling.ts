@@ -450,10 +450,9 @@ module Tiling {
 			this.items.push(item);
 		}
 
-		each(f:FreeFunction):boolean {
-			var i, ret, _i, _ref;
-			for (i = _i = 0, _ref = this.items.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
-				ret = f(this.items[i], i);
+		each(f:Iterator<TiledWindow>):boolean {
+			for (var i=0; i<this.items.length; i++) {
+				var ret = f(this.items[i], i);
 				if (ret === STOP) {
 					return true;
 				}
@@ -739,12 +738,14 @@ module Tiling {
 			return true;
 		}
 
-		release_all() {
-			// restores all original window positions and removes tile set
+		restore_original_positions() {
+			// Sets all window positions back to original states.
+			// NOTE: does _not_ actually release tiles, because
+			// we may want to resume this state when the extension
+			// gets re-enabled
 			this.tiles.each_tiled(<Anon>function(tile) {
-				tile.release();
+				tile.window.move_resize(tile.original_rect);
 			});
-			this.layout();
 		}
 	
 		active_tile(fn:FreeFunction) {

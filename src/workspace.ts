@@ -128,19 +128,45 @@ module Workspace {
 			this.description = "<# Workspace at idx " + (meta_workspace.index()) + ": " + meta_workspace + " >";
 			this.screen = ext.screen;
 			this.set_layout(Default.layout);
-			this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
-			this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+			this.enable(true);
 			this.turbulence = new TurbulentState();
 			this.turbulence.cleanup = Lang.bind(this, this.check_all_windows);
 			// add all initial windows
 			this.meta_windows().map(Lang.bind(this, function(win) { this.on_window_create(null, win); }));
 		}
 
-		_disable() {
+		destroy() {
+			var self:Workspace = this;
+			self.disable();
+			self.meta_windows().map(Lang.bind(self, function(win) {
+				self._on_window_remove(null, win, true);
+			}));
+		}
+
+		enable(initial?:boolean) {
+			this.extension.connect_and_track(this, this.meta_workspace, 'window-added', Lang.bind(this, this.on_window_create));
+			this.extension.connect_and_track(this, this.meta_workspace, 'window-removed', Lang.bind(this, this.on_window_remove));
+
+			if (!initial) {
+				this.log.debug("Enabling " + this);
+				this.check_all_windows(true);
+			}
+		}
+
+		disable() {
+			// disable workspace (can be re-enabled)
 			var self = this;
+			self.log.debug("Disabling " + self);
 			self.extension.disconnect_tracked_signals(self);
-			self.layout.release_all();
-			self.meta_windows().map(function(win) { self._on_window_remove(null, win); });
+
+			// NOTE: we don't actually untile or remove windows here.
+			// They're kept in the current state in case we later re-enable() this
+			// workspace object.
+			self.layout.restore_original_positions();
+			self.layout.each(<Anon>function(tile:Tiling.TiledWindow) {
+				var win = as<MutterWindow.Window>(MutterWindow.Window, tile.window);
+				self.disconnect_window_signals(win);
+			});
 		}
 
 		_reset_layout() {
@@ -167,13 +193,18 @@ module Workspace {
 
 		// after turbulence, windows may have shuffled. we best make sure we own all windows that we should,
 		// and that we don't own any windows that have moved to other workspaces.
-		check_all_windows = _duck_grab_op(function() {
+		check_all_windows = _duck_grab_op(function(is_resuming?:boolean) {
 			var self:Workspace = this;
 			var win:MetaWindow;
+			var changed = false;
 			var expected_meta_windows:MetaWindow[] = self.meta_windows();
+			var layout_windows:MutterWindow.Window[] = [];
 			var layout_meta_windows:MetaWindow[] = [];
+
 			self.layout.each(<Anon>function(tile:Tiling.TiledWindow) {
-				layout_meta_windows.push((<MutterWindow.Window>tile.window).meta_window);
+				var win = as<MutterWindow.Window>(MutterWindow.Window, tile.window);
+				layout_windows.push(win);
+				layout_meta_windows.push(win.meta_window);
 			});
 
 			// check for windows in layout but not workspace window list
@@ -182,6 +213,12 @@ module Workspace {
 				if(expected_meta_windows.indexOf(win) == -1) {
 					self.log.debug("removing unexpected window from workspace " + self + ": " + win.get_title());
 					self.on_window_remove(null, win, true);
+					changed = true;
+				} else {
+					if (is_resuming) {
+						// reattach all signal handlers
+						self.connect_window_signals(layout_windows[i]);
+					}
 				}
 			}
 
@@ -189,6 +226,7 @@ module Workspace {
 			for (var i=0; i<expected_meta_windows.length; i++) {
 				win = expected_meta_windows[i];
 				if(layout_meta_windows.indexOf(win) == -1 && WindowProperties.can_be_tiled(win)) {
+					changed = true;
 					// we add new windows after a minor delay so that removal from the current workspace happens first
 					// (as removal will wipe out all attached signals)
 					Mainloop.idle_add(function () {
@@ -197,6 +235,12 @@ module Workspace {
 						return false;
 					});
 				}
+			}
+
+			if (is_resuming && !changed) {
+				// force a relayout on resume
+				// (if changed is true, this will happen after new windows are dealt with)
+				this.layout.layout();
 			}
 		})
 
@@ -276,6 +320,31 @@ module Workspace {
 			}
 		}
 
+		private connect_window_signals(win:MutterWindow.Window) {
+			var self:Workspace = this;
+			var bind_to_window_change = function(event_name, relevant_grabs, cb) {
+				// we only care about events *after* at least one relevant grab_op,
+				var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, function() {
+					if (self.screen.count > 1) {
+						self.check_all_windows();
+					}
+					cb(win);
+				});
+
+				self.extension.connect_and_track(self, win, event_name + '-changed', signal_handler);
+			};
+
+			bind_to_window_change('position', move_ops,     Lang.bind(self, self.on_window_moved, win));
+			bind_to_window_change('size',     resize_ops,   Lang.bind(self, self.on_window_resized, win));
+			self.extension.connect_and_track(self, win.meta_window, 'notify::minimized', Lang.bind(self, self.on_window_minimize_changed));
+		}
+
+		private disconnect_window_signals(win:MutterWindow.Window) {
+			this.log.debug("Disconnecting signals from " + win);
+			this.extension.disconnect_tracked_signals(this, win);
+			this.extension.disconnect_tracked_signals(this, win.meta_window);
+		}
+
 		on_window_create = _duck_turbulence(_duck_overview(function(workspace, meta_window:MetaWindow, reason?) {
 			var self:Workspace = this;
 			self._with_window_actor(meta_window, function(actor) {
@@ -303,21 +372,7 @@ module Workspace {
 					return;
 				}
 
-				var bind_to_window_change = function(event_name, relevant_grabs, cb) {
-					// we only care about events *after* at least one relevant grab_op,
-					var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, function() {
-						if (self.screen.count > 1) {
-							self.check_all_windows();
-						}
-						cb(win);
-					});
-
-					self.extension.connect_and_track(self, win, event_name + '-changed', signal_handler);
-				};
-
-				bind_to_window_change('position', move_ops,     Lang.bind(self, self.on_window_moved, win));
-				bind_to_window_change('size',     resize_ops,   Lang.bind(self, self.on_window_resized, win));
-				self.extension.connect_and_track(self, meta_window, 'notify::minimized', Lang.bind(self, self.on_window_minimize_changed));
+				self.connect_window_signals(win);
 
 				var tile_pref = win.tile_preference;
 				var should_auto_tile;
@@ -362,12 +417,12 @@ module Workspace {
 		_on_window_remove(workspace, meta_window, force?:boolean) {
 			var self:Workspace = this;
 			var win = self.extension.get_window(meta_window);
-			self.log.debug("on_window_remove for " + win + " (" + self +")");
-			self.extension.disconnect_tracked_signals(self, win);
-			self.extension.disconnect_tracked_signals(self, meta_window);
 
 			var removed = self.layout.on_window_killed(win);
-			if (force && !removed) {
+			if (removed) {
+				self.log.debug("on_window_remove for " + win + " (" + self +")");
+				self.disconnect_window_signals(win);
+			} else if (force) {
 				self.log.error("Unable to remove window: " + win);
 				self.layout.each(<Anon>function(tile:Tiling.TiledWindow, idx) {
 					if (tile.window === win) {

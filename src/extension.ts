@@ -41,6 +41,14 @@ module Extension {
 		(ws:Workspace.Workspace):void
 	}
 
+	interface WorkspaceUpdateMode {
+		paranoid: boolean
+		is_resuming: boolean
+	}
+	var checkWorkspacesMode =      { paranoid: true,  is_resuming: false };
+	var initializeWorkspacesMode = { paranoid: false, is_resuming: true  };
+	var workspacesChangedMode =    { paranoid: false, is_resuming: false };
+
 	export class Ext implements SignalOwner, Emitter {
 		private enabled: boolean
 		private log: Logger
@@ -51,13 +59,13 @@ module Extension {
 		connect_and_track: {(owner:SignalOwner, subject:GObject, name:string, cb:Function)}
 		disconnect_tracked_signals: {(owner:SignalOwner, subject?:GObject)}
 		get_workspace:{(ws:MetaWorkspace):Workspace.Workspace}
-		private update_workspaces:{(defensive?:boolean)}
+		private update_workspaces:{(WorkspaceUpdateMode)}
 		get_workspace_at:{(idx:number):Workspace.Workspace}
-		private workspaces: Workspace.Workspace[];
-		private bounds: Tiling.Bounds
+		private workspaces: Workspace.Workspace[] = []
+		private bounds: Tiling.Bounds = null
 		get_window: {(meta_window:MetaWindow, create_if_necessary?:boolean):MutterWindow.Window}
-		private windows: { [index: string] : MutterWindow.Window; }
-		private dead_windows: MutterWindow.Window[]
+		private windows: { [index: string] : MutterWindow.Window; } = {}
+		private dead_windows: MutterWindow.Window[] = []
 		private mark_window_as_active:{(win: MutterWindow.Window):void}
 		remove_window:{(win: MutterWindow.Window):void}
 		private gc_windows:{():void}
@@ -75,10 +83,9 @@ module Extension {
 		private _init_indicator:{():void}
 		private _init_screen:{():void}
 		private _unbind_keys:{():void}
-		private _disconnect_workspaces:{():void}
+		private _disable_workspaces:{():void}
 		screen:any
-		private _reset_state:{():void}
-		private _bound_keybindings:{[index: string]:boolean}
+		private _bound_keybindings:{[index: string]:boolean} = {}
 		private _pending_actions:Function[] = []
 		emit:{(name):void}
 		private perform_when_overview_is_hidden:{(action:Function):void}
@@ -148,7 +155,7 @@ module Extension {
 			// shellshape Workspace (as defined in shellshape/workspace.js).
 			self.get_workspace = function get_workspace(meta_workspace:MetaWorkspace):Workspace.Workspace {
 				assert(meta_workspace);
-				self.update_workspaces(true);
+				self.update_workspaces(checkWorkspacesMode);
 
 				// It's more efficient to use use MetaWorkspace#index(),
 				// but it terminates gnome-shell if the workspace has been removed
@@ -162,7 +169,7 @@ module Extension {
 			};
 
 			self.get_workspace_at = function get_workspace_at(idx:number) {
-				self.update_workspaces(true);
+				self.update_workspaces(checkWorkspacesMode);
 				var ws = self.workspaces[idx];
 				assert(ws);
 				return ws;
@@ -469,10 +476,9 @@ module Extension {
 				self.emit('layout-changed');
 			};
 
-			self.update_workspaces = function(defensive?:boolean) {
-				defensive = defensive === true;
-				if (defensive && !Logging.PARANOID) return; // don't bother
-				var logm = defensive ? 'error' : 'debug';
+			self.update_workspaces = function(mode:WorkspaceUpdateMode) {
+				if (mode.paranoid && !Logging.PARANOID) return; // don't bother
+				var logm = mode.paranoid ? 'error' : 'debug';
 
 				// modified from gnome-shell/js/ui/workspacesView.js
 				var old_n = self.workspaces.length;
@@ -509,7 +515,15 @@ module Extension {
 
 					var lostWorkspaces = self.workspaces.splice(removedIndex, removedNum);
 					for (var l = 0; l < lostWorkspaces.length; l++) {
-						lostWorkspaces[l]._disable();
+						lostWorkspaces[l].destroy();
+					}
+				}
+
+				if (mode.is_resuming) {
+					// tell all pre-existing windows (that are still around) to
+					// resume (reattach signals, relayout, etc)
+					for (var w = 0; w < Math.min(old_n, self.workspaces.length); w++) {
+						self.workspaces[w].enable();
 					}
 				}
 
@@ -523,8 +537,8 @@ module Extension {
 
 			// Connect callbacks to all workspaces
 			self._init_workspaces = function() {
-				self.connect_and_track(self, global.screen, 'notify::n-workspaces', self.update_workspaces);
-				self.update_workspaces();
+				self.connect_and_track(self, global.screen, 'notify::n-workspaces', function() { self.update_workspaces(workspacesChangedMode); });
+				self.update_workspaces(initializeWorkspacesMode);
 				var display = self.current_display();
 				//TODO: need to disconnect and reconnect when old display changes
 				//      (when does that happen?)
@@ -627,19 +641,6 @@ module Extension {
 				Indicator.ShellshapeIndicator.enable(self);
 			};
 
-			// Resets the runtime state of the extension,
-			// basically all of the things that will be
-			// repopuplated in enable().
-			self._reset_state = function() {
-				self.enabled = false;
-				// reset stateful variables
-				self.workspaces = [];
-				self.windows = {};
-				self.dead_windows = [];
-				self.bounds = null;
-				self._bound_keybindings = {};
-			};
-
 			var Screen = function() {
 				this.bounds = new Bounds();
 				this.update();
@@ -671,7 +672,6 @@ module Extension {
 			// in the process.
 			self.enable = function() {
 				self.log.info("shellshape enable() called");
-				self._reset_state();
 				self.enabled = true;
 
 				self.screen = new Screen();
@@ -766,21 +766,20 @@ module Extension {
 
 			// Disconnects from *all* workspaces.  Disables and removes
 			// them from our cache
-			self._disconnect_workspaces = function() {
+			self._disable_workspaces = function() {
 				for (var i=0; i<self.workspaces.length; i++) {
-					self.workspaces[i]._disable();
+					self.workspaces[i].disable();
 				}
-				self.workspaces = [];
 			};
 
 			// Disable the extension.
 			self.disable = function() {
+				self.enabled = false;
 				self.log.info("shellshape disable() called");
 				self._do(function() { Indicator.ShellshapeIndicator.disable();}, "disable indicator");
-				self._do(self._disconnect_workspaces, "disable workspaces");
+				self._do(self._disable_workspaces, "disable workspaces");
 				self._do(self._unbind_keys, "unbind keys");
 				self._do(function() { self.disconnect_tracked_signals(self); }, "disconnect signals");
-				self._reset_state();
 				self.log.info("shellshape disabled");
 			};
 
@@ -808,8 +807,7 @@ function init() {
 		return {x: pointerX, y: pointerY};
 	};
 
-	var ext = new Extension.Ext();
-	return ext;
+	return new Extension.Ext();
 }
 
 function main() {
