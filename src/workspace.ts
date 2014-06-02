@@ -7,6 +7,7 @@ module Workspace {
 	var Lang = imports.lang;
 	var Meta = imports.gi.Meta;
 	var WindowProperties = MutterWindow.WindowProperties;
+	var SIGNALS_ON_ACTORS = !Util.shell_version_gte(3,11);
 
 	export interface Change {
 		pending: boolean
@@ -305,11 +306,12 @@ module Workspace {
 			else this.log.debug("ducking grab op...");
 		}
 
-		private _with_window_actor(meta_window:MetaWindow, cb, initial?:boolean) {
+		// TODO: this can go away once we drop support for 0.10
+		_with_window_actor(meta_window:MetaWindow, cb:VoidFunc, initial?:boolean) {
 			var self:Workspace = this;
 			var actor = MutterWindow.WindowProperties.get_actor(meta_window);
 			if (actor) {
-				cb(actor);
+				cb();
 			} else {
 				if (initial === false) {
 					self.log.warn("actor unavailable for " + meta_window.get_title());
@@ -324,6 +326,7 @@ module Workspace {
 
 		private connect_window_signals(win:MutterWindow.Window) {
 			var self:Workspace = this;
+			var emitter = SIGNALS_ON_ACTORS ? win : win.meta_window;
 			var bind_to_window_change = function(event_name, relevant_grabs, cb) {
 				// we only care about events *after* at least one relevant grab_op,
 				var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, function() {
@@ -333,23 +336,26 @@ module Workspace {
 					cb(win);
 				});
 
-				Util.connect_and_track(self, win, event_name + '-changed', signal_handler);
+				Util.connect_and_track(self, emitter, event_name + '-changed', signal_handler);
 			};
 
-			bind_to_window_change('position', move_ops,     Lang.bind(self, self.on_window_moved, win));
-			bind_to_window_change('size',     resize_ops,   Lang.bind(self, self.on_window_resized, win));
+			bind_to_window_change('position', move_ops,     Lang.bind(self, self.on_window_moved, emitter));
+			bind_to_window_change('size',     resize_ops,   Lang.bind(self, self.on_window_resized, emitter));
 			Util.connect_and_track(self, win.meta_window, 'notify::minimized', Lang.bind(self, self.on_window_minimize_changed));
 		}
 
 		private disconnect_window_signals(win:MutterWindow.Window) {
 			this.log.debug("Disconnecting signals from " + win);
-			Util.disconnect_tracked_signals(this, win);
+			if (SIGNALS_ON_ACTORS) {
+				// `win` acts as a proxy for the actor which doesn't get GC'd behind our back
+				Util.disconnect_tracked_signals(this, win);
+			}
 			Util.disconnect_tracked_signals(this, win.meta_window);
 		}
 
 		on_window_create:{(w:MetaWindow, reason?:string):void} = _duck_turbulence(_duck_overview(function(meta_window:MetaWindow, reason?:string) {
 			var self:Workspace = this;
-			self._with_window_actor(meta_window, function(actor) {
+			self._with_window_actor(meta_window, function() {
 				var ws = meta_window.get_workspace();
 				if(!WindowProperties.can_be_tiled(meta_window)) {
 					// self.log.debug("can\'t be tiled");
@@ -452,5 +458,11 @@ module Workspace {
 				return false;
 			}
 		}
+	}
+
+	if (!SIGNALS_ON_ACTORS) {
+		Workspace.prototype._with_window_actor = function(meta_window:MetaWindow, cb, initial?:boolean) {
+			cb();
+		};
 	}
 }

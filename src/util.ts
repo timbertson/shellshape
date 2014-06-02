@@ -48,4 +48,24 @@ module Util {
 		}
 	}
 
+	var _shell_version:number[];
+	export function shell_version_gte(major:number, minor:number) {
+		if (_shell_version == null) {
+			var ver_string = imports.misc.config.PACKAGE_VERSION;
+			_shell_version = ver_string.split('.').slice(0,2).map(function(i) { return parseInt(i, 10); });
+			if (_shell_version.length !== 2) throw new Error("can't parse shell version: " + ver_string);
+			this.log.error("Parsed shell version: " + _shell_version.join("//"));
+		}
+		var required = [major, minor];
+		for (var i=0; i<required.length; i++) {
+			if (_shell_version[i] > required[i]) {
+				return true;
+			}
+			if (_shell_version[i] < required[i]) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 }
