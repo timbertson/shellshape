@@ -64,13 +64,15 @@ module MutterWindow {
 		}
 		
 		static should_auto_tile(w:MetaWindow):boolean {
-			return this.can_be_tiled(w) && this.is_resizeable(w) &&
-				!(this.floating_window(w) || this.on_all_workspaces(w));
+			return this.can_be_tiled(w) && this.is_resizeable(w) && !(this.floating_window(w));
 		}
 
 		static can_be_tiled(w:MetaWindow):boolean {
 			if (w.is_skip_taskbar()) {
 				// this.log.debug("uninteresting window: " + this);
+				return false;
+			}
+			if (this.on_all_workspaces(w)) {
 				return false;
 			}
 			var window_class = this.window_class(w);

@@ -211,7 +211,7 @@ module Workspace {
 			// check for windows in layout but not workspace window list
 			for (var i=0; i<layout_meta_windows.length; i++) {
 				win = layout_meta_windows[i];
-				if(expected_meta_windows.indexOf(win) == -1) {
+				if(expected_meta_windows.indexOf(win) == -1 || !WindowProperties.can_be_tiled(win)) {
 					self.log.debug("removing unexpected window from workspace " + self + ": " + win.get_title());
 					self.on_window_remove(win, true);
 					changed = true;
