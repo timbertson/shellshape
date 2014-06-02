@@ -1316,6 +1316,7 @@ module Tiling {
 				}
 			};
 			this.update_original_rect();
+			this.reset_offset();
 		}
 
 		id() {
