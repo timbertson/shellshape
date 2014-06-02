@@ -56,6 +56,7 @@ interface BoundSignal {
 
 interface Global {
 	get_current_time(): number
+	create_app_launch_context(...args: any[]):any
 	screen: Screen
 	log: Function
 	display: any

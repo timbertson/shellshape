@@ -128,14 +128,15 @@ module Indicator {
 
 			(function() {
 				for(var i=0; i<self.menu_entries.length; i++) {
-					var item_props = self.menu_entries[i];
-					var item = new PopupImageMenuItem(item_props.label, item_props.icon);
-					items.addMenuItem(item);
-					item.connect('activate', function() {
-						self.log.debug("callback for [" + item_props.label + "] received by " + self);
-						self._set_active_item(item_props);
-						self._current_workspace().set_layout(item_props.layout);
-					});
+					(function(item_props) { // workaround for lack of `let` in typescript
+						var item = new PopupImageMenuItem(item_props.label, item_props.icon);
+						items.addMenuItem(item);
+						item.connect('activate', function() {
+							self.log.debug("callback for [" + item_props.label + "] received by " + self);
+							self._set_active_item(item_props);
+							self._current_workspace().set_layout(item_props.layout);
+						});
+					})(self.menu_entries[i]);
 				}
 			})();
 
@@ -147,9 +148,10 @@ module Indicator {
 					var uuid = "shellshape@gfxmonk.net";
 					var appSys = Shell.AppSystem.get_default();
 					var app = appSys.lookup_app('gnome-shell-extension-prefs.desktop');
-					app.launch(
-						global.display.get_current_time_roundtrip(),
-						['extension:///' + uuid], -1, null);
+					var info = app.get_app_info();
+					var timestamp = global.display.get_current_time_roundtrip();
+					info.launch_uris(['extension:///' + uuid],
+					                 global.create_app_launch_context(timestamp, -1));
 				});
 				items.addMenuItem(item);
 			})();
