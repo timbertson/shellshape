@@ -313,6 +313,7 @@ module Workspace {
 			} else {
 				if (initial === false) {
 					self.log.warn("actor unavailable for " + meta_window.get_title());
+					return;
 				}
 				Mainloop.idle_add(function() {
 					self._with_window_actor(meta_window, cb, false);
