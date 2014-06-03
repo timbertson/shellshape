@@ -1337,7 +1337,6 @@ module Tiling {
 		tile() {
 			if (this.managed) {
 				this.log.debug("resetting offset for window " + this);
-				this.reset_offset();
 			} else {
 				this.managed = true;
 				this.window.set_tile_preference(true);
