@@ -1,8 +1,7 @@
-tests/*.js
-.tags
-0inst
-_coffee_specs
-video
+/tools/tsc
+/.tags
+/0inst
+/video
 *.stamp
 /*-git/
 /gup

@@ -1,3 +1,0 @@
-#!bash -eux
-gup -u compile
-0install run --not-before=0.4 http://gfxmonk.net/dist/0install/coffee-spec.xml -v tests
