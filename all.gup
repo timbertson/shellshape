@@ -1,2 +1,2 @@
 #!bash -eu
-gup -u compile
+gup -u compile shellshape-local.xml

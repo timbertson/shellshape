@@ -1,5 +1,5 @@
 set -eu
-if [ "$GUP_XTRACE" = 1 ]; then
+if [ "${GUP_XTRACE:-}" = 1 ]; then
 	set -x
 fi
 gup -u "${BASH_SOURCE[0]}"

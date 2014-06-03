@@ -15,13 +15,19 @@ This may lag (sometimes months) behind the development release, as they perform 
 
 ### Running a local version
 
-To run your own checkout, you should be able to clone this repo and run `0install run shellshape-local.xml`.
+To build the latest version, you'll need to install `npm` (the node.js package manager). You'll also need python. Then:
 
-To compile stuff (if you change things), run `make` or `tools/gup`.
+ 1. clone this repo
+ 2. run `tools/gup compile`
+ 3. If you have 0install, you can then just run:
 
-If you don't want to (or can't) use 0install, you can instead install the development version locally (using a symlink in ~/.local/share/gnome-shell/extensions). This will set one up for you:
+        `0install run shellshape-local.xml`.
 
-    make dev-install
+    Otherwise, you can install the extension to a symlink in ~/.local/share/gnome-shell/extensions using:
+
+        `tools/gup dev-install`
+
+To compile stuff (if you change things), run `tools/gup compile`. You can add e.g `-j3` to compile stuff in parallel.
 
 ## running on arch linux
 
