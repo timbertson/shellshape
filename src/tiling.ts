@@ -333,18 +333,18 @@ module Tiling {
 			return rv;
 		}
 
-		select_cycle(diff) {
-			var cycled, filtered;
-			cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, function(active, neighbor) {
+		select_cycle(diff):boolean {
+			var cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, function(active, neighbor) {
 				neighbor.item.activate();
 			});
 			if (!cycled) {
 				// no active window - just select the first visible window if there is one
-				filtered = this.filter(this.is_visible, this.items);
+				var filtered = this.filter(this.is_visible, this.items);
 				if (filtered.length > 0) {
 					filtered[0].activate();
 				}
 			}
+			return cycled;
 		}
 
 		sorted_view(filter:Predicate<TiledWindow>) {
@@ -352,16 +352,17 @@ module Tiling {
 		}
 
 		private _with_active_and_neighbor_when_filtered(filter:Predicate<TiledWindow>, diff:number, cb:Function) {
-			var filtered, filtered_active_idx, new_idx,
-				_this = this;
-			filtered = this.sorted_view(filter);
-			filtered_active_idx = this._index_where(filtered, function(obj) {
-				return _this.is_active(obj.item);
+			var self:TileCollection = this;
+			var filtered = this.sorted_view(filter);
+			var filtered_active_idx = this._index_where(filtered, function(obj) {
+				return self.is_active(obj.item);
 			});
 			if (filtered_active_idx === null) {
+				this.log.debug("active tile not found");
 				return false;
 			}
-			new_idx = this._wrap_index(filtered_active_idx + diff, filtered.length);
+			var new_idx = this._wrap_index(filtered_active_idx + diff, filtered.length);
+			this.log.debug("active tile found at index " + filtered_active_idx + ", neighbor idx = " + new_idx);
 			cb(filtered[filtered_active_idx], filtered[new_idx]);
 			return true;
 		}
@@ -390,9 +391,8 @@ module Tiling {
 			}
 		}
 
-		_index_where(elems, cond) {
-			var i, _i, _ref;
-			for (i = _i = 0, _ref = elems.length; 0 <= _ref ? _i < _ref : _i > _ref; i = 0 <= _ref ? ++_i : --_i) {
+		_index_where<T>(elems:T[], cond:Predicate<T>) {
+			for (var i = 0; i<elems.length; i++) {
 				if (cond(elems[i])) {
 					return i;
 				}
