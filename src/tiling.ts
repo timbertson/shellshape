@@ -679,7 +679,7 @@ module Tiling {
 		}
 	
 		each(func:IterFunc<TiledWindow>) {
-			this.tiles.each(func);
+			return this.tiles.each(func);
 		}
 	
 		contains(win:HasId) {
@@ -692,7 +692,7 @@ module Tiling {
 				self.log.warn("Layout.tile_for(null)");
 				return false;
 			}
-			return this.tiles.each(function(tile, idx) {
+			return this.tiles.each(function(tile:TiledWindow, idx) {
 				if (tile.window === win) {
 					func(tile, idx);
 					return STOP;
@@ -720,8 +720,8 @@ module Tiling {
 			});
 		}
 	
-		select_cycle(offset) {
-			this.tiles.select_cycle(offset);
+		select_cycle(offset):boolean {
+			return this.tiles.select_cycle(offset);
 		}
 	
 		add(win:Window, active_win:Window) {

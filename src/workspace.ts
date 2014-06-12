@@ -437,9 +437,16 @@ module Workspace {
 					if ((<MutterWindow.Window>tile.window).meta_window === meta_window) {
 						self.log.error("And yet: Found meta_window match at index: " + idx);
 					}
+					// the above code should be impossible to trigger, but it does, so try again for paranoia:
+					removed = self.layout.on_window_killed(win);
+					if (removed) {
+						self.log.error("Removing window the _second_ time worked");
+					}
 				});
 			}
-			self.extension.remove_window(win);
+			if (removed) {
+				self.extension.remove_window(win);
+			}
 		}
 		on_window_remove:{(w:MetaWindow, force?:boolean):void} = _duck_turbulence(_duck_overview(this._on_window_remove));
 
