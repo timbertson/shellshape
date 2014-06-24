@@ -5,4 +5,11 @@ ZIP_FILE=0inst/shellshape.zip
 rm -f $ZIP_FILE
 
 cd shellshape
-zip -r ../$ZIP_FILE * --exclude '*.do' --exclude='*.gup*' --exclude='*Makefile' --exclude '*.stamp' --exclude '*.coffee'
+zip -r ../$ZIP_FILE * \
+	--exclude '*.do' \
+	--exclude='gup/*' \
+	--exclude='_sources' \
+	--exclude='*.gup*' \
+	--exclude='*Makefile' \
+	--exclude='*.stamp' \
+	;
