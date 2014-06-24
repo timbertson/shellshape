@@ -79,14 +79,16 @@ GPLv3
 
 ## Changelog
 
-### version 0.9
- - Support for gnome-shell 3.12
+### version 0.10
  - Fairly large overhaul to codebase:
     - Removed coffeescript, now using typescript instead. This is a JavaScript superset (so for the most part it's _just JavaScript_), but with optional static typing.
       This has improved the quality of the code in a number of places (it uncovered a number of dumb type-related bugs), and removes the need for contributors to know CoffeeScript.
     - Lots of cleanup of state management. This improves a number of circumstances where shellshape and gnome-shell disagree about the state of windows / workspaces, etc.
     - Made "default layout" setting apply instantly, rather then require a restart.
     - Additional misc bugs fixed while going through the codebase.
+
+### version 0.9
+ - Support for gnome-shell 3.12
 
 ### version 0.8
  - Preliminary support for multiple monitors
