@@ -21,15 +21,19 @@ This may lag (sometimes months) behind the development release, as they perform 
 
 ### Running a local version
 
-To run your own checkout, you should be able to clone this repo and run `0install run shellshape-local.xml`.
+To build the latest version, you'll need to install `npm` (the node.js package manager). You'll also need python. Then:
 
-To compile stuff (if you change things), run `make` or `tools/gup`.
+ 1. clone this repo
+ 2. run `tools/gup compile`
+ 3. If you have 0install, you can then just run:
 
-If you don't want to (or can't) use 0install, you can instead install the development version locally (using a symlink in ~/.local/share/gnome-shell/extensions):
+        0install run shellshape-local.xml
 
-    make dev-install
+    Otherwise, you can install the extension to a symlink in ~/.local/share/gnome-shell/extensions using:
 
-If you're shy about that and want to see what it does, take a peek in `dev-install.gup`.
+        tools/gup dev-install
+
+To compile stuff (after changing some source code), run `tools/gup compile`. You can add e.g `-j3` to compile stuff in parallel.
 
 ## running on arch linux
 
@@ -80,6 +84,17 @@ If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/
 GPLv3
 
 ## Changelog
+
+### version 0.10
+ - Fairly large overhaul to codebase:
+    - Removed coffeescript, now using typescript instead. This is a JavaScript superset (so for the most part it's _just JavaScript_), but with optional static typing.
+      This has improved the quality of the code in a number of places (it uncovered a number of dumb type-related bugs), and removes the need for contributors to know CoffeeScript.
+    - Lots of cleanup of state management. This improves a number of circumstances where shellshape and gnome-shell disagree about the state of windows / workspaces, etc.
+    - Made &quot;default layout&quot; setting apply instantly, rather then require a restart.
+    - Additional misc bugs fixed while going through the codebase.
+
+### version 0.9
+ - Support for gnome-shell 3.12
 
 ### version 0.8
  - Preliminary support for multiple monitors
@@ -138,5 +153,5 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="shellshape/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		
-	<implementation id="." version="0.9.0-post"/></group>
+	<implementation id="." version="0.10.0-post"/></group>
 </interface>
