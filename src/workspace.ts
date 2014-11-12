@@ -431,10 +431,11 @@ module Workspace {
 			} else if (force) {
 				self.log.error("Unable to remove window: " + win);
 				self.layout.each(function(tile:Tiling.TiledWindow, idx) {
-					if (tile.window === win) {
+					var tileWindow = <MutterWindow.Window>tile.window;
+					if (tileWindow === win) {
 						self.log.error("And yet: Found window match at index: " + idx);
 					}
-					if ((<MutterWindow.Window>tile.window).meta_window === meta_window) {
+					if (tileWindow.meta_window === meta_window) {
 						self.log.error("And yet: Found meta_window match at index: " + idx);
 					}
 					// the above code should be impossible to trigger, but it does, so try again for paranoia:
