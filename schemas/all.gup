@@ -1,0 +1,2 @@
+#!bash -eu
+gup -u gschemas.compiled

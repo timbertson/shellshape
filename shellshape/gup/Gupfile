@@ -1,3 +1,0 @@
-make-js:
-	prefs.js
-	extension.js

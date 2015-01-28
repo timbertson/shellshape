@@ -1,2 +1,2 @@
 #!bash -eu
-gup -u shellshape/xbrowser.js
+gup -u ../build/xbrowser/all

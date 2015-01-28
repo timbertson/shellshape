@@ -1,0 +1,2 @@
+#!bash -eu
+./npm-dep.sh mocha bin/mocha "$1"

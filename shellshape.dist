@@ -1,5 +1,6 @@
 --dereference
---exclude=*.do
+--exclude=*.gup
+--exclude=.sources
 --exclude=*.stamp
 gnome-shell.desktop
 xdg

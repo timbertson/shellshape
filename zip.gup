@@ -8,7 +8,7 @@ cd shellshape
 zip -r ../$ZIP_FILE * \
 	--exclude '*.do' \
 	--exclude='gup/*' \
-	--exclude='_sources' \
+	--exclude='.sources' \
 	--exclude='*.gup*' \
 	--exclude='*Makefile' \
 	--exclude='*.stamp' \

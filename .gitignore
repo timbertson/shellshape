@@ -1,4 +1,5 @@
 /tools/tsc
+/tools/mocha
 /.tags
 /0inst
 /video
@@ -6,3 +7,5 @@
 /*-git/
 /gup
 /cruft
+/node_modules
+.sources

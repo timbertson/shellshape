@@ -1,3 +1,0 @@
-#!bash -eu
-. gup/common.sh
-rm -f *.js _*

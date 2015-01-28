@@ -131,6 +131,25 @@ module Tiling {
 			return rect.pos.x === 0 && rect.pos.y === 0 && rect.size.x === 0 && rect.size.y === 0;
 		}
 
+		static intersect(a, b) {
+			if (
+				a.pos.x + a.size.x < b.pos.x ||  // b to right of a
+				a.pos.y + a.size.y < b.pos.y ||  // b below a
+				b.pos.x + b.size.x < a.pos.x ||  // a to right of b
+				b.pos.y + b.size.y < a.pos.y     // a below b
+			) return null;
+
+			var xpos = Math.max(a.pos.x, b.pos.x);
+			var ypos = Math.max(a.pos.y, b.pos.y);
+			var w = Math.min(a.pos.x + a.size.x, b.pos.x + b.size.x) - xpos;
+			var h = Math.min(a.pos.y + a.size.y, b.pos.y + b.size.y) - ypos;
+
+			return {
+				pos: { x: xpos, y: ypos },
+				rect: { x: w, y:h }
+			}
+		}
+
 		static shrink(rect, border_px) {
 			return {
 				pos: {
@@ -744,6 +763,20 @@ module Tiling {
 			}
 			return true;
 		}
+
+		// spread(wins:Window[]) {
+		// 	// move all windows in `wins` to minimize overlaps with other (tiled) windows
+		// 	var self = this;
+		// 	wins.forEach(function(win:Window) {
+		// 		self.managed_tile_for(win, function(subject) {
+		// 			self._each_tiled(function(avoid) {
+		// 				if(subject === avoid) return;
+		// 				// if there is overlay, move `subject` as much as it can / needs to to minimize overlap
+		// 				
+		// 			})
+		// 		});
+		// 	});
+		// }
 
 		restore_original_positions() {
 			// Sets all window positions back to original states.

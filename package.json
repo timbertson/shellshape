@@ -1,0 +1,8 @@
+{ "name": "shellshape"
+, "private": "true"
+, "dependencies":
+  { "mocha": "*"
+  , "typescript": "*"
+  }
+}
+

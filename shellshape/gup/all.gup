@@ -1,3 +1,6 @@
 #!bash -eu
-. gup/common.sh
-gup -u extension.js prefs.js
+sources="../build/gjs/extension.js ../build/gjs/prefs.js"
+gup -u $sources
+for f in $sources; do
+	ln -sfn $f ./
+done

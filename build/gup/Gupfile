@@ -1,0 +1,5 @@
+make-js:
+	*/*.js
+
+collect-sources:
+  */.sources

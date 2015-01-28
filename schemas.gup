@@ -1,2 +1,0 @@
-#!bash -eu
-gup -u schemas/gschemas.compiled
