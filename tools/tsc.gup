@@ -1,5 +1,7 @@
 #!bash -eu
+gup --always
 tsc="../node_modules/typescript/bin/tsc"
+pkg="../node_modules/typescript/package.json"
 
 if [ ! -e "$tsc" ]; then
 	echo -e "$tsc not found\nInstalling TypeScript..." >&2
@@ -8,3 +10,4 @@ if [ ! -e "$tsc" ]; then
 	popd >/dev/null
 fi
 ln -s "$tsc" "$1"
+gup --contents "$pkg"

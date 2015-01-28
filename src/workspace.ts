@@ -1,6 +1,7 @@
 /// <reference path="common.ts" />
 /// <reference path="extension.ts" />
 /// <reference path="tiling.ts" />
+/// <reference path="mutter_window.ts" />
 module Workspace {
 
 	var Mainloop = imports.mainloop;

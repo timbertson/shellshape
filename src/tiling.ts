@@ -1,5 +1,5 @@
 /// <reference path="common.ts" />
-/// <reference path="mutter_window.ts" />
+/// <reference path="logging.ts" />
 
 module Tiling {
 	// external symbols (may or may not exist in a given env)
@@ -8,6 +8,9 @@ module Tiling {
 
 	// nodejs:
 	declare var exports:any, require: any;
+
+	export var BORDER_RESIZE_INCREMENT = 0.05;
+	export var WINDOW_ONLY_RESIZE_INCREMENT = BORDER_RESIZE_INCREMENT * 2;
 
 	export interface Window {
 		// implemented by mutter_window
@@ -27,7 +30,7 @@ module Tiling {
 		rect():Rect
 	}
 
-	export interface Bounds {
+	export interface Bounds extends Rect {
 		update(newMonitor?:any):void
 	}
 

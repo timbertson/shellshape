@@ -396,8 +396,6 @@ module Extension {
 				}
 
 				self.log.debug("adding keyboard handlers for Shellshape");
-				var BORDER_RESIZE_INCREMENT = 0.05;
-				var WINDOW_ONLY_RESIZE_INGREMENT = BORDER_RESIZE_INCREMENT * 2;
 				handle('tile-current-window',           function() { self.current_layout().tile(self.current_window())});
 				handle('untile-current-window',         function() { self.current_layout().untile(self.current_window()); });
 				handle('adjust-splits-to-fit',          function() { self.current_layout().adjust_splits_to_fit(self.current_window()); });
@@ -421,19 +419,19 @@ module Extension {
 
 				// move a window's borders
 				// to resize it
-				handle('increase-main-split',           function() { self.current_layout().adjust_main_window_area(+BORDER_RESIZE_INCREMENT); });
-				handle('decrease-main-split',           function() { self.current_layout().adjust_main_window_area(-BORDER_RESIZE_INCREMENT); });
-				handle('increase-minor-split',          function() { self.current_layout().adjust_current_window_size(+BORDER_RESIZE_INCREMENT); });
-				handle('decrease-minor-split',          function() { self.current_layout().adjust_current_window_size(-BORDER_RESIZE_INCREMENT); });
+				handle('increase-main-split',           function() { self.current_layout().adjust_main_window_area(+Tiling.BORDER_RESIZE_INCREMENT); });
+				handle('decrease-main-split',           function() { self.current_layout().adjust_main_window_area(-Tiling.BORDER_RESIZE_INCREMENT); });
+				handle('increase-minor-split',          function() { self.current_layout().adjust_current_window_size(+Tiling.BORDER_RESIZE_INCREMENT); });
+				handle('decrease-minor-split',          function() { self.current_layout().adjust_current_window_size(-Tiling.BORDER_RESIZE_INCREMENT); });
 
 				// resize a window without
 				// affecting others
-				handle('decrease-main-size',            function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
-				handle('increase-main-size',            function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'x'); });
-				handle('decrease-minor-size',           function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
-				handle('increase-minor-size',           function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT, 'y'); });
-				handle('decrease-size',                 function() { self.current_layout().scale_current_window(-WINDOW_ONLY_RESIZE_INGREMENT); });
-				handle('increase-size',                 function() { self.current_layout().scale_current_window(+WINDOW_ONLY_RESIZE_INGREMENT); });
+				handle('decrease-main-size',            function() { self.current_layout().scale_current_window(-Tiling.WINDOW_ONLY_RESIZE_INCREMENT, 'x'); });
+				handle('increase-main-size',            function() { self.current_layout().scale_current_window(+Tiling.WINDOW_ONLY_RESIZE_INCREMENT, 'x'); });
+				handle('decrease-minor-size',           function() { self.current_layout().scale_current_window(-Tiling.WINDOW_ONLY_RESIZE_INCREMENT, 'y'); });
+				handle('increase-minor-size',           function() { self.current_layout().scale_current_window(+Tiling.WINDOW_ONLY_RESIZE_INCREMENT, 'y'); });
+				handle('decrease-size',                 function() { self.current_layout().scale_current_window(-Tiling.WINDOW_ONLY_RESIZE_INCREMENT); });
+				handle('increase-size',                 function() { self.current_layout().scale_current_window(+Tiling.WINDOW_ONLY_RESIZE_INCREMENT); });
 
 				handle('switch-workspace-down',         function() { self.switch_workspace(+1); });
 				handle('switch-workspace-up',           function() { self.switch_workspace(-1); });

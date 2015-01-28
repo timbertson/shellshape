@@ -1,5 +1,5 @@
 #!bash -eu
-. gup/common.sh
+. "$(dirname "$(readlink -f "$0")")"/common.sh
 gup --always
 compile_sources > "$1"
 gup --contents "$1"
