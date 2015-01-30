@@ -3,12 +3,6 @@
 
 module Tiling {
 	// external symbols (may or may not exist in a given env)
-	// GJS:
-	declare var log:Void_Varargs, imports: any;
-
-	// nodejs:
-	declare var exports:any, require: any;
-
 	export var BORDER_RESIZE_INCREMENT = 0.05;
 	export var WINDOW_ONLY_RESIZE_INCREMENT = BORDER_RESIZE_INCREMENT * 2;
 
@@ -57,7 +51,7 @@ module Tiling {
 
 	var STOP = '_stop_iter';
 
-	var ArrayUtil = {
+	export var ArrayUtil = {
 		divide_after: function(num, items) {
 			return [items.slice(0, num), items.slice(num)];
 		},
@@ -78,7 +72,7 @@ module Tiling {
 		throw "override get_mouse_position()";
 	};
 
-	class Tile {
+	export class Tile {
 		static copy_rect(rect:Rect) : Rect {
 			return {
 				pos: {
@@ -114,24 +108,24 @@ module Tiling {
 			return [rect, new_rect];
 		}
 
-		static add_diff_to_rect(rect, diff) {
+		static add_diff_to_rect(rect:Rect, diff:Rect) {
 			return {
 				pos: Tile.point_add(rect.pos, diff.pos),
 				size: Tile.point_add(rect.size, diff.size)
 			};
 		}
 
-		static ensure_rect_exists(rect) {
+		static ensure_rect_exists(rect:Rect) {
 			rect.size.x = Math.max(1, rect.size.x);
 			rect.size.y = Math.max(1, rect.size.y);
 			return rect;
 		}
 
-		static zero_rect(rect) {
+		static zero_rect(rect:Rect) {
 			return rect.pos.x === 0 && rect.pos.y === 0 && rect.size.x === 0 && rect.size.y === 0;
 		}
 
-		static intersect(a, b) {
+		static intersect(a:Rect, b:Rect):Rect {
 			if (
 				a.pos.x + a.size.x < b.pos.x ||  // b to right of a
 				a.pos.y + a.size.y < b.pos.y ||  // b below a
@@ -146,7 +140,7 @@ module Tiling {
 
 			return {
 				pos: { x: xpos, y: ypos },
-				rect: { x: w, y:h }
+				size: { x: w, y:h }
 			}
 		}
 
@@ -223,7 +217,7 @@ module Tiling {
 			};
 		}
 		
-		static point_is_within(point, rect) {
+		static point_is_within(point:Point2d, rect:Rect) {
 			return this.within(point.x, rect.pos.x, rect.pos.x + rect.size.x) && this.within(point.y, rect.pos.y, rect.pos.y + rect.size.y);
 		}
 
@@ -1333,7 +1327,7 @@ module Tiling {
 			}
 		}
 
-		constructor(win, state:LayoutState) {
+		constructor(win:Window, state:LayoutState) {
 			this.log = Logging.getLogger("shellshape.tiling.TiledWindow");
 			this.window = win;
 			this.bounds = state.bounds;
@@ -1481,7 +1475,7 @@ module Tiling {
 			combined_rect = Tile.add_diff_to_rect(this.rect, this.offset);
 			change_required = Tile.move_rect_within(combined_rect, screen_rect);
 			if (!Tile.zero_rect(change_required)) {
-				log("moving tile " + (j(change_required)) + " to keep it onscreen");
+				this.log.debug("moving tile " + (j(change_required)) + " to keep it onscreen");
 				this.offset = Tile.add_diff_to_rect(this.offset, change_required);
 				this.layout();
 			}
@@ -1551,30 +1545,6 @@ module Tiling {
 
 		is_active() {
 			return this.window.is_active();
-		}
-	}
-
-
-
-
-
-
-	/********* Exports *******************/
-	
-
-	// hacky stuff for running in the browser, node & gjs
-	if (typeof log === "undefined" || log === null) {
-		if (typeof require !== "undefined" && require !== null) {
-			log = require('util').log;
-
-		} else {
-			if (typeof console !== "undefined" && console !== null) {
-				log = function(s) { console.log(s); };
-
-			} else {
-				log = function(s) { };
-
-			}
 		}
 	}
 }

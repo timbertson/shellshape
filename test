@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eu
+gup -u build/node/all tools/mocha
+./tools/mocha --check-leaks "$@" tests/
