@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
 	<schema id="org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings" path="/org/gnome/shell/extensions/net/gfxmonk/shellshape/keybindings/">
-		<key type="as" name="tile-current-window">             <default>["&lt;Mod4&gt;p"]</default><summary>Tile (place) the current window</summary><description>Tile (place) the current window.</description></key>
+		<key type="as" name="tile-current-window">             <default>["&lt;Mod4&gt;o"]</default><summary>Tile (place) the current window</summary><description>Tile (place) the current window.</description></key>
 		<key type="as" name="untile-current-window">           <default>["&lt;Mod4&gt;y"]</default><summary>Untile (yank) the current window</summary><description>Untile (yank) the current window.</description></key>
 		<key type="as" name="adjust-splits-to-fit">            <default>["&lt;Mod4&gt;&lt;Shift&gt;p"]</default><summary>Adjust tile boundaries to fit window</summary><description>Adjust tile boundaries to fit window.</description></key>
 		<key type="as" name="increase-main-window-count">      <default>["&lt;Mod4&gt;comma"]</default><summary>More windows in the master area</summary><description>More windows in the master area.</description></key>
@@ -15,7 +15,7 @@
 		<key type="as" name="focus-main-window">               <default>["&lt;Mod4&gt;space"]</default><summary>Select main window</summary><description>Select main window.</description></key>
 		<key type="as" name="swap-current-window-with-main">   <default>["&lt;Mod4&gt;&lt;Shift&gt;space"]</default><summary>Swap with main window</summary><description>Swap with main window.</description></key>
 
-		<key type="as" name="set-layout-tiled-vertical">       <default>["&lt;Mod4&gt;d"]</default><summary>Switch workspace to vertical tiled mode</summary><description>Switch workspace to vertical tiled mode.</description></key>
+		<key type="as" name="set-layout-tiled-vertical">       <default>["&lt;Mod4&gt;v"]</default><summary>Switch workspace to vertical tiled mode</summary><description>Switch workspace to vertical tiled mode.</description></key>
 		<key type="as" name="set-layout-floating">             <default>["&lt;Mod4&gt;f"]</default><summary>Switch workspace to floating mode</summary><description>Switch workspace to floating mode.</description></key>
 		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;g"]</default><summary>Switch workspace to horizontal tiled mode</summary><description>Switch workspace to horizontal tiled mode.</description></key>
 		<key type="as" name="set-layout-fullscreen">           <default>["&lt;Mod4&gt;&lt;Shift&gt;f"]</default><summary>Switch workspace to full screen mode</summary><description>Switch workspace to full screen mode.</description></key>
@@ -41,7 +41,7 @@
 		<key type="as" name="move-window-workspace-down">      <default>["&lt;Mod4&gt;&lt;Alt&gt;&lt;Shift&gt;j"]</default><summary>Move window to workspace below</summary><description>Move window to workspace below.</description></key>
 
 		<key type="as" name="toggle-maximize">                 <default>["&lt;Mod4&gt;z"]</default><summary>Toggle window maximized state</summary><description>Toggle window maximized state.</description></key>
-		<key type="as" name="minimize-window">                 <default>["&lt;Mod4&gt;m"]</default><summary>Minimize window</summary><description>Minimize window.</description></key>
-		<key type="as" name="unminimize-last-window">          <default>["&lt;Mod4&gt;&lt;Shift&gt;m"]</default><summary>Un-minimize last window</summary><description>Un-minimize last window.</description></key>
+		<key type="as" name="minimize-window">                 <default>["&lt;Mod4&gt;x"]</default><summary>Minimize window</summary><description>Minimize window.</description></key>
+		<key type="as" name="unminimize-last-window">          <default>["&lt;Mod4&gt;&lt;Shift&gt;x"]</default><summary>Un-minimize last window</summary><description>Un-minimize last window.</description></key>
 	</schema>
 </schemalist>
