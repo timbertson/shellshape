@@ -2,7 +2,7 @@ declare var process:any;
 module Logging {
 	export function getLogger(name:string):Logger {
 		var noop = function() {};
-		return process.env['DEBUG'] === '1' ? {
+		return (typeof process) !== 'undefined' && process.env['DEBUG'] === '1' ? {
 			debug: console.log,
 			info: console.log,
 			warn: console.warn,
