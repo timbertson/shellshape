@@ -20,6 +20,9 @@
 		<key type="as" name="set-layout-tiled-horizontal">     <default>["&lt;Mod4&gt;g"]</default><summary>Switch workspace to horizontal tiled mode</summary><description>Switch workspace to horizontal tiled mode.</description></key>
 		<key type="as" name="set-layout-fullscreen">           <default>["&lt;Mod4&gt;&lt;Shift&gt;f"]</default><summary>Switch workspace to full screen mode</summary><description>Switch workspace to full screen mode.</description></key>
 
+		<key type="as" name="next-layout">                     <default>["''"]</default><summary>Switch workspace to next mode</summary><description>Switch workspace to next mode.</description></key>
+		<key type="as" name="prev-layout">                     <default>["''"]</default><summary>Switch workspace previous mode</summary><description>Switch workspace to previous mode.</description></key>
+
 		<key type="as" name="increase-main-split">             <default>["&lt;Mod4&gt;l"]</default><summary>Grow master area</summary><description>Grow master area.</description></key>
 		<key type="as" name="decrease-main-split">             <default>["&lt;Mod4&gt;h"]</default><summary>Shrink master area</summary><description>Shrink master area.</description></key>
 		<key type="as" name="increase-minor-split">            <default>["&lt;Mod4&gt;i"]</default><summary>grow a slave area</summary><description>grow a slave area.</description></key>

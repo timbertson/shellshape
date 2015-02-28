@@ -91,6 +91,8 @@ module Extension {
 		disconnect:{(sig:GObjectSignal):void}
 		private perform_when_overview_is_hidden:{(action:Function):void}
 		private change_layout:{(any)}
+		private next_layout:{():void}
+		private previous_layout:{():void}
 		focus_window:MutterWindow.Window
 		enable:{():void}
 		disable:{():void}
@@ -416,6 +418,8 @@ module Extension {
 				handle('set-layout-tiled-horizontal',   function() { self.change_layout(Tiling.HorizontalTiledLayout); });
 				handle('set-layout-floating',           function() { self.change_layout(Tiling.FloatingLayout); });
 				handle('set-layout-fullscreen',         function() { self.change_layout(Tiling.FullScreenLayout); });
+				handle('next-layout',                   function() { self.next_layout() });
+				handle('prev-layout',                   function() { self.previous_layout() });
 
 				// move a window's borders
 				// to resize it
@@ -455,6 +459,42 @@ module Extension {
 				// ShellshapeIndicator uses it to update the "current layout" display.
 				self.emit('layout-changed');
 			};
+
+            self.next_layout = function() {
+                var current_layout = self.current_workspace().active_layout;
+                switch (current_layout) {
+                case Tiling.FloatingLayout:
+                    self.change_layout(Tiling.VerticalTiledLayout);
+                    break;
+                case Tiling.VerticalTiledLayout:
+                    self.change_layout(Tiling.HorizontalTiledLayout);
+                    break;
+                case Tiling.HorizontalTiledLayout:
+                    self.change_layout(Tiling.FullScreenLayout);
+                    break;
+                case Tiling.FullScreenLayout:
+                    self.change_layout(Tiling.FloatingLayout);
+                    break;
+                }
+            };
+
+            self.previous_layout = function() {
+                var current_layout = self.current_workspace().active_layout;
+                switch (current_layout) {
+                case Tiling.FloatingLayout:
+                    self.change_layout(Tiling.FullScreenLayout);
+                    break;
+                case Tiling.VerticalTiledLayout:
+                    self.change_layout(Tiling.FloatingLayout);
+                    break;
+                case Tiling.HorizontalTiledLayout:
+                    self.change_layout(Tiling.VerticalTiledLayout);
+                    break;
+                case Tiling.FullScreenLayout:
+                    self.change_layout(Tiling.HorizontalTiledLayout);
+                    break;
+                }
+            };
 
 			self.update_workspaces = function(mode:WorkspaceUpdateMode) {
 				if (mode.paranoid && !Logging.PARANOID) return; // don't bother
