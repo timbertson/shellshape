@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
 	<schema id="org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings" path="/org/gnome/shell/extensions/net/gfxmonk/shellshape/keybindings/">
-		<key type="as" name="tile-current-window">             <default>["&lt;Mod4&gt;o"]</default><summary>Tile (place) the current window</summary><description>Tile (place) the current window.</description></key>
+		<key type="as" name="tile-current-window">             <default>["&lt;Mod4&gt;semicolon"]</default><summary>Tile (place) the current window</summary><description>Tile (place) the current window.</description></key>
 		<key type="as" name="untile-current-window">           <default>["&lt;Mod4&gt;y"]</default><summary>Untile (yank) the current window</summary><description>Untile (yank) the current window.</description></key>
 		<key type="as" name="adjust-splits-to-fit">            <default>["&lt;Mod4&gt;&lt;Shift&gt;p"]</default><summary>Adjust tile boundaries to fit window</summary><description>Adjust tile boundaries to fit window.</description></key>
 		<key type="as" name="increase-main-window-count">      <default>["&lt;Mod4&gt;comma"]</default><summary>More windows in the master area</summary><description>More windows in the master area.</description></key>
