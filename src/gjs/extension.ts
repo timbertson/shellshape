@@ -33,6 +33,12 @@ module Extension {
 		'horizontal': Tiling.HorizontalTiledLayout,
 		'fullscreen': Tiling.FullScreenLayout
 	};
+	var LAYOUT_ORDER = [
+		Tiling.FloatingLayout,
+		Tiling.VerticalTiledLayout,
+		Tiling.HorizontalTiledLayout,
+		Tiling.FullScreenLayout
+	];
 
 	export interface Emitter {
 		emit(name:string)
@@ -460,41 +466,27 @@ module Extension {
 				self.emit('layout-changed');
 			};
 
-            self.next_layout = function() {
-                var current_layout = self.current_workspace().active_layout;
-                switch (current_layout) {
-                case Tiling.FloatingLayout:
-                    self.change_layout(Tiling.VerticalTiledLayout);
-                    break;
-                case Tiling.VerticalTiledLayout:
-                    self.change_layout(Tiling.HorizontalTiledLayout);
-                    break;
-                case Tiling.HorizontalTiledLayout:
-                    self.change_layout(Tiling.FullScreenLayout);
-                    break;
-                case Tiling.FullScreenLayout:
-                    self.change_layout(Tiling.FloatingLayout);
-                    break;
-                }
-            };
+			var modulo = function(n, range) {
+				return (n+range)%range;
+			}
 
-            self.previous_layout = function() {
-                var current_layout = self.current_workspace().active_layout;
-                switch (current_layout) {
-                case Tiling.FloatingLayout:
-                    self.change_layout(Tiling.FullScreenLayout);
-                    break;
-                case Tiling.VerticalTiledLayout:
-                    self.change_layout(Tiling.FloatingLayout);
-                    break;
-                case Tiling.HorizontalTiledLayout:
-                    self.change_layout(Tiling.VerticalTiledLayout);
-                    break;
-                case Tiling.FullScreenLayout:
-                    self.change_layout(Tiling.HorizontalTiledLayout);
-                    break;
-                }
-            };
+			var shift_layout = function(diff:number) {
+				var current_layout = self.current_workspace().active_layout;
+				var idx = LAYOUT_ORDER.indexOf(current_layout);
+				if(idx === -1) throw new Error("Unknown current_layout");
+				var new_idx = modulo(idx+diff, LAYOUT_ORDER.length);
+				var new_layout = LAYOUT_ORDER[new_idx];
+				self.log.debug("Current idx = "+idx+", new layout["+(new_idx)+"] = "+new_layout);
+				self.change_layout(new_layout);
+			};
+
+			self.next_layout = function() {
+				shift_layout(1);
+			};
+
+			self.previous_layout = function() {
+				shift_layout(-1);
+			};
 
 			self.update_workspaces = function(mode:WorkspaceUpdateMode) {
 				if (mode.paranoid && !Logging.PARANOID) return; // don't bother

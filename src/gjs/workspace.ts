@@ -248,6 +248,7 @@ module Workspace {
 		})
 
 		set_layout(cls) {
+			if(!cls) throw new Error("invalid layout");
 			this.active_layout = cls;
 			this.layout = new cls(this.layout_state);
 			this.log.debug("laying out according to new layout: " + this.layout);
