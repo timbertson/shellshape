@@ -392,7 +392,7 @@ module Extension {
 					var flags = Meta.KeyBindingFlags.NONE;
 		
 					// API for 3.8+ only
-                    var KeyBindingMode = Shell.ActionMode ? "ActionMode" : "KeyBindingMode";
+					var KeyBindingMode = Shell.ActionMode ? "ActionMode" : "KeyBindingMode";
 					var added = Main.wm.addKeybinding(
 						name,
 						gsettings,
