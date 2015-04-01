@@ -392,11 +392,12 @@ module Extension {
 					var flags = Meta.KeyBindingFlags.NONE;
 		
 					// API for 3.8+ only
+                    var KeyBindingMode = Shell.ActionMode ? "ActionMode" : "KeyBindingMode";
 					var added = Main.wm.addKeybinding(
 						name,
 						gsettings,
 						flags,
-						Shell.KeyBindingMode.NORMAL | Shell.KeyBindingMode.MESSAGE_TRAY,
+						Shell[KeyBindingMode].NORMAL | Shell[KeyBindingMode].MESSAGE_TRAY,
 						handler);
 					if(!added) {
 						throw("failed to add keybinding handler for: " + name);

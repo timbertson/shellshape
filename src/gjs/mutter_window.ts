@@ -203,7 +203,7 @@ module MutterWindow {
 
 		// dimensions
 		rect():Tiling.Rect {
-			var r:any = this.meta_window.get_outer_rect();
+			var r:any = this.meta_window.get_frame_rect();
 			return {
 				pos:  { x: r.x, y:r.y },
 				size: { x: r.width, y:r.height }
