@@ -33,6 +33,28 @@ To compile stuff (after changing some source code), run `tools/gup compile`. You
 
 You may want to try [this user-maintained package](https://aur.archlinux.org/packages.php?ID=50257) if the normal method doesn't work for you, but I have no idea what it will do to your system.
 
+## Hacking
+
+The source code is all TypeScript. This is mostly like JavaScript, but it has optional type annotations, a module system, and (sometimes) it yells at you when you do something that makes no sense. Which is a nicer experience than gnome-shell yelling at you, crashing, and disabling all of your extensions.
+
+ - `interactive/`: run the core tiling code in the browser (_without_ killing gnome shell when you break something ;))
+ - `src/tiling.ts`: core tiling & layout stuff
+ - `src/gjs`: gnome-shell specific stuff (mutter integration, extension system, indicator, etc)
+ - `src/node`: nodejs shim, used for running tests
+ - `src/xbrowser`: browser shim, used for `interactive/index.html`
+ - `src/stub`: nodejs shim, used for running tests
+ - `shellshape/`: third party libs, metadata.json, translations, gschemas, etc
+
+Build targets with `tools/gup`. Targets exist wherever there is a corresponding `*.gup` file. You can find those with:
+
+    $ git ls-files | fgrep '.gup' | sed -e 's!/gup/!/!;s!\.gup$!!'
+
+Not all of them will work, as some might depend on tools only I happen to have installed. Patches welcome if you find + fix that sort of thing.
+
+## Debugging
+
+If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/shellshape.log`. You can set values other than `all` if you want to debug on specific topics (available topics include `extension`, `indicator`, `tiling`, `workspace` and `window`) - they should be set as a comma-delimited string, e.g `SHELLSHAPE_DEBUG=workspace,tiling`.
+
 ## "It doesn't work"
 
 If you don't know why, here's some things to check:
@@ -65,14 +87,6 @@ Some helpful folk have created graphical (SVG) versions of the keyboard shortcut
 
  - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
  - [Desktop wallpaper](http://dl.dropbox.com/u/1879450/shellshape.svg) - Andreas Wallberg ([source](https://github.com/gfxmonk/shellshape/issues/95))
-
-## Hacking
-The core layout stuff is in `tiling.coffee`. This should run in both the shell and in the web browser (see `interactive/index.html`; useful for testing layout changes). The mutter / gnome-shell integration is provided by the other .js files in the root directory (except for `tiling.js`, it is generated from `tiling.coffee`).
-
-## Debugging
-If you export `SHELLSHAPE_DEBUG=all`, you will get a debug log written to `/tmp/shellshape.log`. You can set values other than `all` if you want to debug on specific topics (available topics include `extension`, `indicator`, `tiling`, `workspace` and `window`) - they should be set as a comma-delimited string, e.g `SHELLSHAPE_DEBUG=workspace,tiling`.
-
-**Note** debugging like this won't work unless you run using `0install`.
 
 ## Licence
 GPLv3
