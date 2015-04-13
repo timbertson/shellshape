@@ -153,5 +153,5 @@ GPLv3
 		<environment insert="xdg/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		<environment insert="shellshape/data" mode="prepend" name="XDG_DATA_DIRS"/>
 		
-	<implementation id="." version="0.10.0-post"/></group>
+	<implementation id="." version="0.11.0-post"/></group>
 </interface>
