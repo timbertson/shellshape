@@ -70,20 +70,12 @@ To report a bug or crash, please see the [github issues page](https://github.com
 
 If you symlink the provided `gnome-shell.desktop` file to `~/.local/share/applications/`, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.
 
-## Friends
-This extension is best used with the natural window placement extension.
-
-Other extensions I use and recommend:
-
- - alternate status menu (the fact that this is not default bewilders me)
- - workspace switcher
-
-All of these should be available from your package manager, or [the gnome shell extensions page](https://live.gnome.org/GnomeShell/Extensions)
-
 ## Keyboard shortcuts
 
 Are listed at [http://gfxmonk.net/shellshape/](http://gfxmonk.net/shellshape/)
 Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:
+
+**Note:** These are for versions prior to 0.12. Anyone want to update them?
 
  - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
  - [Desktop wallpaper](http://dl.dropbox.com/u/1879450/shellshape.svg) - Andreas Wallberg ([source](https://github.com/gfxmonk/shellshape/issues/95))
@@ -92,6 +84,11 @@ Some helpful folk have created graphical (SVG) versions of the keyboard shortcut
 GPLv3
 
 ## Changelog
+
+### version 0.12
+ - gnome-shell 3.16 compatibility
+ - Changes to keyboard shortcuts
+ - Next/Previous layout shortcuts (not bound by default)
 
 ### version 0.10
  - Fairly large overhaul to codebase:
