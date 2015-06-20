@@ -1,6 +1,8 @@
 /// <reference path="common.ts" />
 /// <reference path="logging.ts" />
 
+function noop() { };
+
 module Tiling {
 	// external symbols (may or may not exist in a given env)
 	export var BORDER_RESIZE_INCREMENT = 0.05;
@@ -859,6 +861,13 @@ module Tiling {
 				this.log.warn("couldn't find tile for window: " + win);
 			}
 		}
+
+		override_external_change(win:Window) {
+			// The window has resized itself. Put it back!
+			var found = this.tile_for(win, function(tile, idx) {
+				tile.enforce_layout();
+			});
+		}
 	
 		// all the actions that are specific to an actual tiling layout are NOOP'd here,
 		// so the keyboard handlers don't have to worry whether it's a valid thing to call
@@ -1313,9 +1322,11 @@ module Tiling {
 		rect: Rect
 		offset: Rect
 		original_rect: Rect
+		enforce_layout: VoidFunc
 
 		private static minimized_counter = 0;
 		private static active_window_override = null;
+		private _recent_overrides;
 
 		static with_active_window(win, f:VoidFunc) {
 			var _old = TiledWindow.active_window_override;
@@ -1329,6 +1340,8 @@ module Tiling {
 
 		constructor(win:Window, state:LayoutState) {
 			this.log = Logging.getLogger("shellshape.tiling.TiledWindow");
+			this.enforce_layout = this._enforce_layout;
+			this._recent_overrides = []
 			this.window = win;
 			this.bounds = state.bounds;
 			this.maximized = false;
@@ -1365,6 +1378,9 @@ module Tiling {
 		}
 
 		tile() {
+			// we're being explicitly tiled; reactivate enforce_layout()
+			this.enforce_layout = this._enforce_layout;
+
 			if (this.managed) {
 				this.log.debug("resetting offset for window " + this);
 			} else {
@@ -1373,6 +1389,25 @@ module Tiling {
 				this.original_rect = this.window.rect();
 			}
 			this.reset_offset();
+		}
+
+		_enforce_layout() {
+			// The window has unexpectedly moved since last layout().
+			// Put it back in it's place, but if this has happened
+			// more than a few times in the last 2s then stop (because
+			// it's probably going to keep trying)
+			var now = Date.now();
+			var threshold = now = 2000;
+			this.enforce_layout = noop;
+			this._recent_overrides = this._recent_overrides.filter(function(t) {
+				return t > threshold;
+			});
+			if(this._recent_overrides.length > 6) {
+				this.log.warn("window " + this.window + " has seen too many override_layout() calls in the last 2s - ignoring");
+				return;
+			}
+			this._recent_overrides.push(now);
+			this.layout();
 		}
 
 		reset_offset():void {

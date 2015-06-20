@@ -14,6 +14,11 @@ module Workspace {
 		pending: boolean
 	}
 
+	interface GrabOpResponder {
+		after_grab: Function
+		unexpected?: Function
+	}
+
 	function _duck_overview<T extends Function>(fn:T):T {
 		return <T>function() {
 			var _this = this;
@@ -265,7 +270,7 @@ module Workspace {
 			return this.description;
 		}
 
-		_grab_op_signal_handler(change:Change, relevant_grabs, cb) {
+		_grab_op_signal_handler(change:Change, relevant_grabs, responder:GrabOpResponder) {
 			// grab_ops occur continually throughout the course of a move / resize.
 			// Unfortunately, there's no grab_op "end" signal. So on the first
 			// grab_op we set change.pending, and keep triggering checks
@@ -284,9 +289,15 @@ module Workspace {
 						// it's critical that this flag be reset before cb() happens, otherwise the
 						// callback will (frequently) trigger a stream of feedback events.
 						change.pending = false;
-						if(grab_op == Meta.GrabOp.NONE && change_happened) {
-							this.log.debug("change event completed");
-							cb.call(this);
+						if(grab_op == Meta.GrabOp.NONE) {
+							if (change_happened) {
+								this.log.debug("change event completed");
+								responder.after_grab.call(this);
+							} else {
+								if(responder.unexpected) {
+									responder.unexpected.call(this);
+								}
+							}
 						}
 					}
 					return false;
@@ -298,9 +309,9 @@ module Workspace {
 			return op_handler;
 		}
 
-		_duck_grab_op(cb) {
+		_duck_grab_op(cb:Function) {
 			var change = {pending: false};
-			var handler = this._grab_op_signal_handler(change, all_grab_ops, cb);
+			var handler = this._grab_op_signal_handler(change, all_grab_ops, {after_grab: cb});
 			// fire handler immediately
 			handler();
 			// if it isn't waiting, call the function immediately
@@ -331,11 +342,17 @@ module Workspace {
 			var emitter = SIGNALS_ON_ACTORS ? win : win.meta_window;
 			var bind_to_window_change = function(event_name, relevant_grabs, cb) {
 				// we only care about events *after* at least one relevant grab_op,
-				var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, function() {
-					if (self.screen.count > 1) {
-						self.check_all_windows();
-					}
-					cb(win);
+				var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, {
+					after_grab: function() {
+						if (self.screen.count > 1) {
+							self.check_all_windows();
+						}
+						cb(win);
+					},
+					unexpected: function() {
+						self.log.debug(event_name + " change occurred outside of grab");
+						self.on_window_unexpected_change(win)
+					},
 				});
 
 				Util.connect_and_track(self, emitter, event_name + '-changed', signal_handler);
@@ -414,8 +431,10 @@ module Workspace {
 		// NOTE: these two get shellshape `Window` objects as their callback argument, *not* MetaWindow
 		_on_window_moved(win) { this.layout.on_window_moved(win); }
 		_on_window_resized(win) { this.layout.on_window_resized(win); }
+		_on_window_unexpected_change(win) { this.layout.override_external_change(win); }
 		on_window_moved   = _duck_overview(this._on_window_moved)
 		on_window_resized = _duck_overview(this._on_window_resized)
+		on_window_unexpected_change = _duck_overview(this._on_window_unexpected_change)
 
 		on_window_minimize_changed(meta_window) {
 			this.log.debug("window minimization state changed for window " + meta_window);
