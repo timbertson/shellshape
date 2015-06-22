@@ -862,12 +862,7 @@ module Tiling {
 			}
 		}
 
-		override_external_change(win:Window) {
-			// The window has resized itself. Put it back!
-			var found = this.tile_for(win, function(tile, idx) {
-				tile.enforce_layout();
-			});
-		}
+		override_external_change(win:Window) { }
 	
 		// all the actions that are specific to an actual tiling layout are NOOP'd here,
 		// so the keyboard handlers don't have to worry whether it's a valid thing to call
@@ -1161,6 +1156,13 @@ module Tiling {
 				// }
 				self.layout();
 				return true;
+			});
+		}
+
+		override_external_change(win:Window) {
+			// The window has resized itself. Put it back!
+			var found = this.tile_for(win, function(tile, idx) {
+				tile.enforce_layout();
 			});
 		}
 	
