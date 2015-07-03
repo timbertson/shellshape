@@ -867,41 +867,23 @@ module Tiling {
 		// all the actions that are specific to an actual tiling layout are NOOP'd here,
 		// so the keyboard handlers don't have to worry whether it's a valid thing to call
 		
-		on_split_resize_start(win:Window) {
-			return null;
-		}
+		on_split_resize_start(win:Window) { }
 	
-		adjust_splits_to_fit(win:Window) {
-			return null;
-		}
+		adjust_splits_to_fit(win:Window) { }
 	
-		add_main_window_count(i) {
-			return null;
-		}
+		add_main_window_count(i) { }
 	
-		adjust_main_window_area(diff) {
-			return null;
-		}
+		adjust_main_window_area(diff) { }
 	
-		adjust_current_window_size(diff) {
-			return null;
-		}
+		adjust_current_window_size(diff) { }
 	
-		scale_current_window(amount:number, axis?:string) {
-			return null;
-		}
+		scale_current_window(amount:number, axis?:string) { }
 	
-		adjust_split_for_tile(opts:{tile: TiledWindow; diff_ratio: number; axis: string }) {
-			return null;
-		}
+		adjust_split_for_tile(opts:{tile: TiledWindow; diff_ratio: number; axis: string }) { }
 	
-		activate_main_window() {
-			return null;
-		}
+		activate_main_window() { }
 	
-		swap_active_with_main() {
-			return null;
-		}
+		swap_active_with_main() { }
 	}
 
 	export class FloatingLayout extends BaseLayout {
@@ -1532,7 +1514,9 @@ module Tiling {
 			} else {
 				is_active = this.is_active();
 			}
-			this.window.move_resize(this.active_rect());
+			var active_rect = this.active_rect();
+			this.window.move_resize(active_rect);
+			// this.log.debug("Laying out " + this.window + " in rect " + j(active_rect));
 			if (is_active) {
 				this.window.activate_before_redraw("layout");
 			}
