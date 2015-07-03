@@ -699,6 +699,10 @@ module Tiling {
 		each(func:IterFunc<TiledWindow>) {
 			return this.tiles.each(func);
 		}
+
+		each_tiled(func:IterFunc<TiledWindow>) {
+			return this.tiles.each_tiled(func);
+		}
 	
 		contains(win:HasId) {
 			return this.tiles.contains(win);
@@ -765,7 +769,7 @@ module Tiling {
 		// 	var self = this;
 		// 	wins.forEach(function(win:Window) {
 		// 		self.managed_tile_for(win, function(subject) {
-		// 			self._each_tiled(function(avoid) {
+		// 			self.each_tiled(function(avoid) {
 		// 				if(subject === avoid) return;
 		// 				// if there is overlay, move `subject` as much as it can / needs to to minimize overlap
 		// 				
@@ -779,7 +783,7 @@ module Tiling {
 			// NOTE: does _not_ actually release tiles, because
 			// we may want to resume this state when the extension
 			// gets re-enabled
-			this.tiles.each_tiled(function(tile) {
+			this.each_tiled(function(tile) {
 				tile.window.move_resize(tile.original_rect);
 			});
 		}
@@ -917,10 +921,9 @@ module Tiling {
 		}
 	
 		layout(accommodate_window) {
-			this.each(function(tile) {
-				return tile.window.maximize();
+			this.each_tiled(function(tile) {
+				tile.window.maximize();
 			});
-			return this.layout;
 		}
 	}
 	
@@ -942,10 +945,6 @@ module Tiling {
 	
 		toString() {
 			return "[object BaseTiledLayout]";
-		}
-	
-		_each_tiled(func:IterFunc<TiledWindow>) {
-			return this.tiles.each_tiled(func);
 		}
 	
 		layout(accommodate_window?:TiledWindow) {
@@ -1229,7 +1228,7 @@ module Tiling {
 			var moved = false;
 			if (this.tiles.is_tiled(tile)) {
 				var mouse_pos = get_mouse_position();
-				this._each_tiled(function(swap_candidate, swap_idx) {
+				this.each_tiled(function(swap_candidate, swap_idx) {
 					var target_rect: Rect;
 					target_rect = Tile.shrink(swap_candidate.rect, 20);
 					if (swap_idx === idx) {
