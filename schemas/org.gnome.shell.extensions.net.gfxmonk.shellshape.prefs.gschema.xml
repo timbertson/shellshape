@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
 	<schema id="org.gnome.shell.extensions.net.gfxmonk.shellshape.prefs" path="/org/gnome/shell/extensions/net/gfxmonk/shellshape/prefs/">
+		<key type="b" name="show-indicator">
+			<default>true</default>
+			<summary>Whether or not to show the indicator in the status bar.</summary>
+			<description/>
+		</key>
 		<key type="i" name="max-autotiled-windows">
 			<default>5</default>
 			<summary>Stop auto-tiling new windows when there are this many windows already tiled.</summary>

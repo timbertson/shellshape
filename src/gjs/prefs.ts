@@ -34,6 +34,35 @@ function buildPrefsWidget() {
 	});
 
 	var label = new Gtk.Label({
+		label: _("<b>General:</b>"),
+		use_markup: true,
+		xalign: 0
+	});
+	vbox.add(label);
+
+	(function() {
+		var hbox = new Gtk.Box({
+			orientation: Gtk.Orientation.HORIZONTAL,
+			spacing: 20
+		});
+
+		var checkbutton = new Gtk.CheckButton({ label: _("Show indicator in status panel") });
+
+		hbox.pack_end(checkbutton, true, true, 0);
+		vbox.add(hbox);
+
+		var pref = config.SHOW_INDICATOR;
+		checkbutton.set_active(pref.get());
+		checkbutton.connect('toggled', function(sw) {
+			var oldval = pref.get();
+			var newval = sw.get_active();
+			if (newval != pref.get()) {
+				pref.set(newval);
+			}
+		});
+	})();
+
+	var label = new Gtk.Label({
 		label: _("<b>Tiling:</b>"),
 		use_markup: true,
 		xalign: 0

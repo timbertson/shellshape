@@ -89,6 +89,7 @@ module Extension {
 		private _init_screen:{():void}
 		private _unbind_keys:{():void}
 		private _disable_workspaces:{():void}
+		private _disable_indicator:{():void}
 		screen:any
 		private _bound_keybindings:{[index: string]:boolean} = {}
 		private _pending_actions:Function[] = []
@@ -573,6 +574,23 @@ module Extension {
 			self._init_prefs = function() {
 				var initial = true;
 
+				// show-indicator
+				(function() {
+					var pref = self.prefs.SHOW_INDICATOR;
+					var update = function() {
+						var val = pref.get();
+						self.log.debug("setting show-indicator to " + val);
+						if (val) {
+							Indicator.ShellshapeIndicator.enable(self);
+						} else {
+							Indicator.ShellshapeIndicator.disable();
+						}
+					};
+					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
+					update();
+				})();
+
+
 				// default layout
 				(function() {
 					var default_layout = self.prefs.DEFAULT_LAYOUT;
@@ -651,7 +669,17 @@ module Extension {
 
 			// Enable ShellshapeIndicator
 			self._init_indicator = function() {
-				Indicator.ShellshapeIndicator.enable(self);
+				var pref = self.prefs.SHOW_INDICATOR;
+				if (pref.get()) {
+					Indicator.ShellshapeIndicator.enable(self);
+				}
+			};
+
+			self._disable_indicator = function() {
+				var pref = self.prefs.SHOW_INDICATOR;
+				if (pref.get()) {
+					Indicator.ShellshapeIndicator.disable();
+				}
 			};
 
 			var Screen = function() {
@@ -767,7 +795,7 @@ module Extension {
 			self.disable = function() {
 				self.enabled = false;
 				self.log.info("shellshape disable() called");
-				self._do(function() { Indicator.ShellshapeIndicator.disable();}, "disable indicator");
+				self._do(self._disable_indicator, "disable indicator");
 				self._do(self._disable_workspaces, "disable workspaces");
 				self._do(self._unbind_keys, "unbind keys");
 				self._do(function() { Util.disconnect_tracked_signals(self); }, "disconnect signals");

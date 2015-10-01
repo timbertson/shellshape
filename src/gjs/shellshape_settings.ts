@@ -98,12 +98,19 @@ module ShellshapeSettings {
 	export function Prefs() {
 		var self = this;
 		var settings = this.settings = get_local_gsettings(PREFS);
+		var get_boolean = function():boolean { return settings.get_boolean(this.key); };
+		var set_boolean = function(v:boolean) { settings.set_boolean(this.key, v); };
 		var get_int = function():number { return settings.get_int(this.key); };
 		var set_int = function(v:number) { settings.set_int(this.key, v); };
-
 		var get_string = function():String { return settings.get_string(this.key); };
 		var set_string = function(v:String) { settings.set_string(this.key, v); };
 
+		this.SHOW_INDICATOR = {
+			key: 'show-indicator',
+			gsettings: settings,
+			get: get_boolean,
+			set: set_boolean,
+		};
 		this.MAX_AUTOTILE = {
 			key: 'max-autotiled-windows',
 			gsettings: settings,
