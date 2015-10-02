@@ -1,2 +1,9 @@
 #!bash -eu
-./npm-dep.sh typescript bin/tsc "$1"
+tsc="$(which tsc 2>/dev/null || true)"
+if [ -n "$tsc" ]; then
+	echo "using system tsc at ${tsc}"
+	gup -u "$tsc"
+	ln -sfn "$tsc" "$1"
+else
+	./npm-dep.sh typescript bin/tsc "$1"
+fi
