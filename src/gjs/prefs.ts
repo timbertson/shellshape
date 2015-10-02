@@ -54,7 +54,6 @@ function buildPrefsWidget() {
 		var pref = config.SHOW_INDICATOR;
 		checkbutton.set_active(pref.get());
 		checkbutton.connect('toggled', function(sw) {
-			var oldval = pref.get();
 			var newval = sw.get_active();
 			if (newval != pref.get()) {
 				pref.set(newval);
@@ -94,7 +93,6 @@ function buildPrefsWidget() {
 		var pref = config.MAX_AUTOTILE;
 		scale.set_value(pref.get());
 		scale.connect('value-changed', function(sw) {
-			var oldval = pref.get();
 			var newval = sw.get_value();
 			if (newval != pref.get()) {
 				pref.set(newval);
@@ -178,7 +176,6 @@ function buildPrefsWidget() {
 		var pref = config.PADDING;
 		scale.set_value(pref.get());
 		scale.connect('value-changed', function(sw) {
-			var oldval = pref.get();
 			var newval = sw.get_value();
 			if (newval != pref.get()) {
 				pref.set(newval);
@@ -212,7 +209,6 @@ function buildPrefsWidget() {
 		var pref = config.SCREEN_PADDING;
 		scale.set_value(pref.get());
 		scale.connect('value-changed', function(sw) {
-			var oldval = pref.get();
 			var newval = sw.get_value();
 			if (newval != pref.get()) {
 				pref.set(newval);
