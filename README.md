@@ -7,10 +7,7 @@ I must thank [bluetile][bluetile], for it was the inspiration for this extension
 
 ## Running it
 
-Briefly, `0install run http://gfxmonk.net/dist/0install/shellshape.xml`. If you don't have `0install`, you should install the `zeroinstall-injector` package first.
-For more details, please see instructions on <http://gfxmonk.net/shellshape/>
-
-You can also install it from [the official gnome shell extensions site](https://extensions.gnome.org/extension/294/shellshape/).
+You can install it from [the official gnome shell extensions site](https://extensions.gnome.org/extension/294/shellshape/).
 This may lag (sometimes months) behind the development release, as they perform manual approval of all updates.
 
 ### Running a local version
@@ -32,6 +29,15 @@ To compile stuff (after changing some source code), run `tools/gup compile`. You
 ## running on arch linux
 
 You may want to try [this user-maintained package](https://aur.archlinux.org/packages.php?ID=50257) if the normal method doesn't work for you, but I have no idea what it will do to your system.
+
+# Important note about ongoing development
+
+I love shellshape, and I love using it. But to be honest, I hate working in gnome-shell these days. It's poorly documented, breaks occasionally, and generally a pain in the ass to hack on (which I do in my spare time). So my main aim in ongoing development is to make sure shellshape keeps working for new gnome releases, and to fix bugs. I may not run the latest gnome version for a while after it's released, because I'm lazy, and being on the cutting edge is not as exciting as it used to be.
+
+I will probably not implement your feature suggestion unless it's brilliant or simple (or both!). It's nothing personal. That's not to say that shellshape will see no new features - if you want to add a new feature, I'll do what I can to get it merged. Please file an issue with your idea first though, so I can let you know how likely it is to (a) be possible, and (b) get merged.
+
+To reflect this, most issues will be tagged with `wishlist` - I am not planning to implement them, but I have no issue with others doing so. I'll try to fix non-wishlist issues myself (_eventually_), especially those tagged "bug". But please feel free to help fix those too, if you can!
+
 
 ## Hacking
 
@@ -84,6 +90,10 @@ Some helpful folk have created graphical (SVG) versions of the keyboard shortcut
 GPLv3
 
 ## Changelog
+
+### version 0.13
+ - gnome-shell 3.18 compatibility
+ - bug fixes, particularly around settings, startup and enable/disable
 
 ### version 0.12
  - gnome-shell 3.16 compatibility
