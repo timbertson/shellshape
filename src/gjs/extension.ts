@@ -572,8 +572,6 @@ module Extension {
 			*              PREFERENCE monitoring
 			* ------------------------------------------------------------- */
 			self._init_prefs = function() {
-				var initial = true;
-
 				// show-indicator
 				(function() {
 					var pref = self.prefs.SHOW_INDICATOR;
@@ -599,13 +597,12 @@ module Extension {
 						var new_layout = LAYOUTS[name];
 						if(new_layout) {
 							self.log.debug("updating default layout to " + name);
-							if (!initial) {
-								var old_layout = Workspace.Default.layout;
-								self.on_all_workspaces(function(ws) {
-									ws.default_layout_changed(old_layout, new_layout);
-								});
-							}
+							var old_layout = Workspace.Default.layout;
+							self.on_all_workspaces(function(ws) {
+								ws.default_layout_changed(old_layout, new_layout);
+							});
 							Workspace.Default.layout = new_layout;
+							self.emit('layout-changed');
 						} else {
 							self.log.error("Unknown layout name: " + name);
 						}
@@ -635,9 +632,7 @@ module Extension {
 						var val = pref.get();
 						self.log.debug("setting padding to " + val);
 						Tiling.LayoutState.padding = val;
-						if (!initial) {
-							self.current_workspace().relayout();
-						}
+						self.current_workspace().relayout();
 					};
 					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
@@ -652,15 +647,11 @@ module Extension {
 						// TODO: this is 2* to maintain consistency with inter-window padding (which is applied twice).
 						// inter-window padding should be applied only once so that this isn't required.
 						self.screen_padding = 2*val;
-						if (!initial) {
-							self.current_workspace().relayout();
-						}
+						self.current_workspace().relayout();
 					};
 					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
 				})();
-				
-				initial = false;
 			};
 
 			/* -------------------------------------------------------------
