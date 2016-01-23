@@ -77,13 +77,16 @@ module Indicator {
 		bound_signals = []
 
 		static enable(ext) {
-			_indicator = new ShellshapeIndicator(ext);
-			Main.panel.addToStatusArea('shellshape-indicator', _indicator);
+			if(!_indicator) {
+				_indicator = new ShellshapeIndicator(ext);
+				Main.panel.addToStatusArea('shellshape-indicator', _indicator);
+			} else {
+				_indicator.enable();
+			}
 		}
 
 		static disable() {
 			_indicator.disable();
-			_indicator = undefined;
 		}
 
 		constructor(ext:Extension.Ext) {
@@ -180,9 +183,20 @@ module Indicator {
 				Lang.bind(this,this._update_indicator));
 		}
 
+		enable() {
+			// XXX wouldn't be necessary if `destroy`() worked properly
+			this.actor.visible = true;
+		}
+
 		disable() {
 			Util.disconnect_tracked_signals(this);
-			this.destroy(); // indicator method
+			// XXX destroy doesn't work - supposed to destroy and emit signal,
+			// but it does nothing. So just hide instead.
+			this.actor.visible = false;
+
+			// this.destroy();
+			// assert(_indicator === this);
+			// _indicator = null;
 		}
 
 		toString() {
