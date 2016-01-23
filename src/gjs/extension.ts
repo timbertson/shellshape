@@ -634,7 +634,7 @@ module Extension {
 					var update = function() {
 						var val = pref.get();
 						self.log.debug("setting padding to " + val);
-						Tiling.BaseLayout.prototype.padding = val;
+						Tiling.LayoutState.padding = val;
 						if (!initial) {
 							self.current_workspace().relayout();
 						}

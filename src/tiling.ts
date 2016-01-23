@@ -75,6 +75,7 @@ module Tiling {
 	};
 
 	export class Tile {
+		static log = Logging.getLogger('shellshape.tiling.Tile');
 		static copy_rect(rect:Rect) : Rect {
 			return {
 				pos: {
@@ -90,15 +91,14 @@ module Tiling {
 
 		static split_rect(rect:Rect, axis, ratio, padding) {
 			var new_rect, new_size_a, new_size_b;
-			padding || (padding = 0);
-			// log("#split_rect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio)
+			// this.log.debug("#split_rect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio)
 			if (ratio > 1 || ratio < 0) {
 				throw "invalid ratio: " + ratio + " (must be between 0 and 1)";
 			}
 			new_size_a = Math.round(rect.size[axis] * ratio);
 			new_size_b = rect.size[axis] - new_size_a;
 			padding = Math.round(Math.min(new_size_a / 2, new_size_b / 2, padding));
-			// log("effective padding is " + padding)
+			// this.log.debug("effective padding is " + padding)
 			new_rect = Tile.copy_rect(rect);
 			rect = Tile.copy_rect(rect);
 			rect.size[axis] = new_size_a - padding;
@@ -613,6 +613,7 @@ module Tiling {
 		tiles: TileCollection
 		splits: SplitStates
 		bounds: Bounds
+		static padding = 0;
 
 		constructor(bounds:Bounds, tiles?:TileCollection) {
 			this.bounds = assert(bounds);
@@ -949,7 +950,7 @@ module Tiling {
 	
 		layout(accommodate_window?:TiledWindow) {
 			this.bounds.update();
-			var padding = this.padding;
+			var padding = LayoutState.padding;
 			var layout_windows = this.tiles.for_layout();
 			this.log.debug("laying out " + layout_windows.length + " windows");
 			if (accommodate_window != null) {
