@@ -86,7 +86,9 @@ module Indicator {
 		}
 
 		static disable() {
-			_indicator.disable();
+			if(_indicator) {
+				_indicator.disable();
+			}
 		}
 
 		constructor(ext:Extension.Ext) {

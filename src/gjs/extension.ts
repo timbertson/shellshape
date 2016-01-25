@@ -571,7 +571,33 @@ module Extension {
 			/* -------------------------------------------------------------
 			*              PREFERENCE monitoring
 			* ------------------------------------------------------------- */
+
 			self._init_prefs = function() {
+				var initial = true;
+				// default layout
+				(function() {
+					var default_layout = self.prefs.DEFAULT_LAYOUT;
+					var update = function() {
+						var name = default_layout.get();
+						var new_layout = LAYOUTS[name];
+						if(new_layout) {
+							self.log.debug("updating default layout to " + name);
+							var old_layout = Workspace.Default.layout;
+							if(!initial) {
+								self.on_all_workspaces(function(ws) {
+									ws.default_layout_changed(old_layout, new_layout);
+								});
+							}
+							Workspace.Default.layout = new_layout;
+							self.emit('layout-changed');
+						} else {
+							self.log.error("Unknown layout name: " + name);
+						}
+					};
+					Util.connect_and_track(self, default_layout.gsettings, 'changed::' + default_layout.key, update);
+					update();
+				})();
+
 				// show-indicator
 				(function() {
 					var pref = self.prefs.SHOW_INDICATOR;
@@ -585,32 +611,9 @@ module Extension {
 						}
 					};
 					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
-					update();
+
+					self._do(update, 'initialize indicator');
 				})();
-
-
-				// default layout
-				(function() {
-					var default_layout = self.prefs.DEFAULT_LAYOUT;
-					var update = function() {
-						var name = default_layout.get();
-						var new_layout = LAYOUTS[name];
-						if(new_layout) {
-							self.log.debug("updating default layout to " + name);
-							var old_layout = Workspace.Default.layout;
-							self.on_all_workspaces(function(ws) {
-								ws.default_layout_changed(old_layout, new_layout);
-							});
-							Workspace.Default.layout = new_layout;
-							self.emit('layout-changed');
-						} else {
-							self.log.error("Unknown layout name: " + name);
-						}
-					};
-					Util.connect_and_track(self, default_layout.gsettings, 'changed::' + default_layout.key, update);
-					update();
-				})();
-
 
 				// max-autotile
 				(function() {
@@ -632,7 +635,9 @@ module Extension {
 						var val = pref.get();
 						self.log.debug("setting padding to " + val);
 						Tiling.LayoutState.padding = val;
-						self.current_workspace().relayout();
+						if(!initial) {
+							self.current_workspace().relayout();
+						}
 					};
 					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
@@ -647,11 +652,15 @@ module Extension {
 						// TODO: this is 2* to maintain consistency with inter-window padding (which is applied twice).
 						// inter-window padding should be applied only once so that this isn't required.
 						self.screen_padding = 2*val;
-						self.current_workspace().relayout();
+						if(!initial) {
+							self.current_workspace().relayout();
+						}
 					};
 					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
 					update();
 				})();
+
+				initial = false;
 			};
 
 			/* -------------------------------------------------------------
