@@ -24,7 +24,7 @@ module Logging {
 				// only the main process should write shellshape.log
 				// (prefs.js is loaded in a separate process, and we don't
 				// want that to overwrite the real logs)
-				var fileAppender = new FileAppender("/tmp/shellshape.log");
+				var fileAppender = new FileAppender(GLib.getenv('SHELLSHAPE_LOG') || "/tmp/shellshape.log");
 				fileAppender.setLayout(new log4js.PatternLayout("%d{HH:mm:ss,SSS} %-5p [%c]: %m"));
 				root_logger.addAppender(fileAppender);
 			}

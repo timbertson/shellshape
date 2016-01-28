@@ -1146,6 +1146,9 @@ module Tiling {
 			var found = this.tile_for(win, function(tile, idx) {
 				tile.enforce_layout();
 			});
+			if(!found) {
+				this.log.warn("override_external_change called for unknown window " + win);
+			}
 		}
 	
 		adjust_splits_to_fit(win) {
@@ -1382,15 +1385,32 @@ module Tiling {
 			// it's probably going to keep trying)
 			var now = Date.now();
 			var threshold = now = 2000;
-			this.enforce_layout = noop;
 			this._recent_overrides = this._recent_overrides.filter(function(t) {
 				return t > threshold;
 			});
 			if(this._recent_overrides.length > 6) {
-				this.log.warn("window " + this.window + " has seen too many override_layout() calls in the last 2s - ignoring");
+				this.log.warn("window " + this.window + " has seen too many enforce_layout() calls in the last 2s - ignoring");
+				this.enforce_layout = noop;
 				return;
 			}
 			this._recent_overrides.push(now);
+			if(Logging.PARANOID) {
+				var expected = this.rect;
+				var actual = this.window.rect();
+				var position_diff = Tile.point_diff(expected.pos, actual.pos);
+				var size_diff = Tile.point_diff(expected.size, actual.size);
+				var max_diff = Math.max(
+					position_diff.x,
+					position_diff.y,
+					size_diff.x,
+					size_diff.y
+				);
+				// give some leeway for weird layout conditions
+				if(max_diff > 50) {
+					this.log.debug("enforcing layout after change on " + this.window);
+					this.log.debug("expected size:" + j(expected) + ", actual size: " + j(actual));
+				}
+			}
 			this.layout();
 		}
 
@@ -1515,8 +1535,8 @@ module Tiling {
 				is_active = this.is_active();
 			}
 			var active_rect = this.active_rect();
-			this.window.move_resize(active_rect);
 			// this.log.debug("Laying out " + this.window + " in rect " + j(active_rect));
+			this.window.move_resize(active_rect);
 			if (is_active) {
 				this.window.activate_before_redraw("layout");
 			}

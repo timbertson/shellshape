@@ -350,7 +350,6 @@ module Workspace {
 						cb(win);
 					},
 					unexpected: function() {
-						self.log.debug(event_name + " change occurred outside of grab");
 						self.on_window_unexpected_change(win)
 					},
 				});

@@ -264,7 +264,7 @@ module Extension {
 			self.current_window = function current_window() {
 				var current = self.current_display()['focus-window'];
 				if(!current) {
-					self.log.debug("no current window");
+					// self.log.debug("no current window");
 					return null;
 				}
 				return self.get_window(current);
