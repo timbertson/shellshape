@@ -106,7 +106,7 @@ module MutterWindow {
 	}
 
 	export class Window implements Tiling.Window, SignalOwner {
-		meta_window: any
+		meta_window: MetaWindow
 		ext: any
 		log: Logger
 		tile_preference: any
@@ -170,10 +170,12 @@ module MutterWindow {
 			);
 		}
 		move_to_workspace(new_index) {
-			this.meta_window.change_workspace_by_index(new_index, false, global.get_current_time());
+			this.meta_window.change_workspace_by_index(new_index, false);
 		}
 		move_resize(r:Tiling.Rect) {
-			this.meta_window.unmaximize(Meta.MaximizeFlags.VERTICAL | Meta.MaximizeFlags.HORIZONTAL);
+			if(this.meta_window.get_maximized() !== 0) {
+				this.meta_window.unmaximize(Meta.MaximizeFlags.VERTICAL | Meta.MaximizeFlags.HORIZONTAL);
+			}
 			var pos = r.pos;
 			var size = r.size;
 			this.meta_window.move_resize_frame(true, pos.x, pos.y, size.x, size.y);

@@ -16,14 +16,31 @@ interface MetaWorkspace extends GObject {
 	index():number
 }
 
+interface MetaRect {
+	x: number
+	y: number
+	width: number
+	height: number
+}
+
 interface MetaWindow extends GObject {
 	get_monitor():number
+	get_frame_rect(): MetaRect
 	get_workspace(): MetaWorkspace
 	get_title():string
 	get_stable_sequence():number
 	get_compositor_private():GObject
 	resizeable: boolean
 	above: boolean
+	minimized: boolean
+	maximized: number
+	minimize: VoidFunc
+	unminimize: VoidFunc
+	unmaximize(flags:number): void
+	maximize(flags:number): void
+	change_workspace_by_index(idx: number, append: boolean):void
+	get_maximized(): number
+	move_resize_frame(userOp: boolean, x: number, y: number, w: number, h: number):void
 	is_skip_taskbar(): boolean
 	is_on_all_workspaces(): boolean
 	get_wm_class(): string
