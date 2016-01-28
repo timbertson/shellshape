@@ -145,7 +145,7 @@ module Extension {
 			// shellshape Workspace (as defined in shellshape/workspace.js).
 			self.get_workspace = function get_workspace(meta_workspace:MetaWorkspace):Workspace.Workspace {
 				assert(meta_workspace);
-				self.update_workspaces(checkWorkspacesMode);
+				// self.update_workspaces(checkWorkspacesMode);
 
 				// It's more efficient to use use MetaWorkspace#index(),
 				// but it terminates gnome-shell if the workspace has been removed
@@ -159,8 +159,11 @@ module Extension {
 			};
 
 			self.get_workspace_at = function get_workspace_at(idx:number) {
-				self.update_workspaces(checkWorkspacesMode);
+				// self.update_workspaces(checkWorkspacesMode);
 				var ws = self.workspaces[idx];
+				if(!ws) {
+					throw new Error("workspace["+ idx+"] not present");
+				}
 				assert(ws);
 				return ws;
 			};
@@ -611,8 +614,6 @@ module Extension {
 						}
 					};
 					Util.connect_and_track(self, pref.gsettings, 'changed::' + pref.key, update);
-
-					self._do(update, 'initialize indicator');
 				})();
 
 				// max-autotile
