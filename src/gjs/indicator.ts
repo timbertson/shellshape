@@ -44,7 +44,7 @@ module Indicator {
 				text: text
 			});
 			this._icon = new St.Icon({
-				style_class: 'system-status-icon'
+				style_class: 'popup-menu-icon'
 			});
 			this.actor.add(this._icon, { align: St.Align.START });
 			this.actor.add(this.label);
