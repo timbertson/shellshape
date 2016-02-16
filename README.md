@@ -26,9 +26,8 @@ To build the latest version, you'll need to install `npm` (the node.js package m
 
 To compile stuff (after changing some source code), run `tools/gup compile`. You can add e.g `-j3` to compile stuff in parallel.
 
-## running on arch linux
-
-You may want to try [this user-maintained package](https://aur.archlinux.org/packages.php?ID=50257) if the normal method doesn't work for you, but I have no idea what it will do to your system.
+## Package manager
+ * **Arch Linux :** [```gnome-shell-extension-shellshape-git```](https://aur.archlinux.org/packages/gnome-shell-extension-shellshape-git/) from AUR
 
 # Important note about ongoing development
 
