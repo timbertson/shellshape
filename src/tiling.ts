@@ -867,7 +867,7 @@ module Tiling {
 			}
 		}
 
-		override_external_change(win:Window) { }
+		override_external_change(win:Window, delayed:boolean) { }
 	
 		// all the actions that are specific to an actual tiling layout are NOOP'd here,
 		// so the keyboard handlers don't have to worry whether it's a valid thing to call
@@ -1141,10 +1141,10 @@ module Tiling {
 			});
 		}
 
-		override_external_change(win:Window) {
+		override_external_change(win:Window, delayed:boolean) {
 			// The window has resized itself. Put it back!
 			var found = this.tile_for(win, function(tile, idx) {
-				tile.enforce_layout();
+				tile.enforce_layout(delayed);
 			});
 			if(!found) {
 				this.log.warn("override_external_change called for unknown window " + win);
@@ -1309,7 +1309,7 @@ module Tiling {
 		rect: Rect
 		offset: Rect
 		original_rect: Rect
-		enforce_layout: VoidFunc
+		enforce_layout: (delayed:boolean) => void
 
 		private static minimized_counter = 0;
 		private static active_window_override = null;
@@ -1355,7 +1355,7 @@ module Tiling {
 
 		update_original_rect = function() {
 			this.original_rect = this.window.rect();
-			this.log.debug("window " + this + " remembering new rect of " + (JSON.stringify(this.original_rect)));
+			this.log.debug("window " + this + " remembering original rect of " + (JSON.stringify(this.original_rect)));
 		}
 
 		resume_original_state() {
@@ -1378,13 +1378,13 @@ module Tiling {
 			this.reset_offset();
 		}
 
-		_enforce_layout() {
+		_enforce_layout(delayed: boolean) {
 			// The window has unexpectedly moved since last layout().
 			// Put it back in it's place, but if this has happened
 			// more than a few times in the last 2s then stop (because
 			// it's probably going to keep trying)
 			var now = Date.now();
-			var threshold = now = 2000;
+			var threshold = now - 2000;
 			this._recent_overrides = this._recent_overrides.filter(function(t) {
 				return t > threshold;
 			});
@@ -1393,7 +1393,9 @@ module Tiling {
 				this.enforce_layout = noop;
 				return;
 			}
-			this._recent_overrides.push(now);
+			if(!delayed) {
+				this._recent_overrides.push(now);
+			}
 			if(Logging.PARANOID) {
 				var expected = this.rect;
 				var actual = this.window.rect();
@@ -1406,6 +1408,7 @@ module Tiling {
 					size_diff.y
 				);
 				// give some leeway for weird layout conditions
+				this.log.debug("enforce_layout: max_diff is " + max_diff);
 				if(max_diff > 50) {
 					this.log.debug("enforcing layout after change on " + this.window);
 					this.log.debug("expected size:" + j(expected) + ", actual size: " + j(actual));
