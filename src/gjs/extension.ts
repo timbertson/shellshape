@@ -308,68 +308,6 @@ module Extension {
 				});
 			};
 
-			// Pretty messy stuff: The overview workspace thumbnail area inserts a new workspace
-			// by simply moving everything one workspace up and leaving a hole where the new workspace
-			// is supposed to go. This means that our Shellshape.Workspace objects (keyed by
-			// meta_workspace object) are now attached to the wrong meta_workspace.
-			//
-			// The attachment to workspace object is not itself a problem, but we need to move
-			// all the user-facing details (layout and tile state) in the same way that the
-			// overview moves the windows.
-			//
-			// Note that this function is executed once at construction time, not during init()
-			// (and is never unbound). It doesn't *do* anything while the extension is inactive,
-			// but there's no correct way to undo a monkey-patching if other extensions also
-			// monkey-patched the same function.
-			(function() {
-				return; // NOTE: DISABLED until bugs are ironed out.
-				var src = imports.ui.workspaceThumbnail.ThumbnailsBox.prototype;
-				var orig = src.acceptDrop;
-				var replace = function(old_idx, new_idx) {
-					self.log.debug("copying layout from workspace[" + old_idx + "] to workspace[" + new_idx + "]");
-					if(old_idx == new_idx) return;
-					self.get_workspace_at(new_idx)._take_layout_from(self.get_workspace_at(old_idx));
-				};
-
-				var replacement = function() {
-					var subject = this;
-					if(!self.enabled) return orig.apply(subject, arguments);
-
-					var _dropPlaceholderPos = subject._dropPlaceholderPos;
-					self.on_all_workspaces(function(ws) { ws.turbulence.enter(); });
-					self.log.debug("acceptDrop start");
-					var ret = orig.apply(subject, arguments);
-					self.log.debug("acceptDrop returned: " + String(ret));
-					self.log.debug("_dropPlaceholderPos: " + String(_dropPlaceholderPos));
-					if(ret === true && _dropPlaceholderPos != -1) {
-						// a new workspace was inserted at _dropPlaceholderPos
-						_dropPlaceholderPos = _dropPlaceholderPos + 0; // just in case it's null or something daft.
-						self.log.debug("looks like a new workspace was inserted at position " + _dropPlaceholderPos);
-						var num_workspaces = global.screen.get_n_workspaces();
-						for (var i=num_workspaces - 1; i > _dropPlaceholderPos; i--) {
-							replace(i-1, i);
-						}
-						self.get_workspace_at(_dropPlaceholderPos)._take_layout_from(null);
-
-						// confusing things will happen if we ever get two workspaces referencing the
-						// same layout, so make sure it hasn't happened:
-						var layouts = [];
-						for (var i=0; i<num_workspaces; i++) {
-							var layout = self.get_workspace_at(i).layout;
-							if(layouts.indexOf(layout) != -1) {
-								throw new Error("Aliasing error! two workspaces ended up with the same layout: " + i + " and " + layouts.indexOf(layout));
-							}
-							layouts.push(layout);
-						}
-						self.emit('layout-changed');
-					};
-					self.log.debug("acceptDrop end");
-					self.on_all_workspaces(function(ws) { ws.turbulence.leave(); });
-					return ret;
-				};
-				src.acceptDrop = replacement;
-			})();
-
 			self.perform_when_overview_is_hidden = function(action) {
 				if(Main.overview.visible) {
 					self.log.debug("Overview currently visible - delaying action");
