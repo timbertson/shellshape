@@ -1,8 +1,8 @@
 { "name": "shellshape"
 , "private": "true"
 , "dependencies":
-  { "mocha": "*"
-  , "typescript": "*"
+  { "mocha": "^2.4.5"
+  , "typescript": "^1.8.10"
   }
 }
 
