@@ -1,3 +1,5 @@
+<img src="http://gfxmonk.net/dist/status/project/shellshape.png">
+
 # shellshape
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
 
@@ -16,11 +18,7 @@ To build the latest version, you'll need to install `npm` (the node.js package m
 
  1. clone this repo
  2. run `tools/gup compile`
- 3. If you have 0install, you can then just run:
-
-        0install run shellshape-local.xml
-
-    Otherwise, you can install the extension to a symlink in ~/.local/share/gnome-shell/extensions using:
+ 3. you can install the extension to a symlink in ~/.local/share/gnome-shell/extensions using:
 
         tools/gup dev-install
 
