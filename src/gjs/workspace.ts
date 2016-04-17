@@ -430,7 +430,15 @@ module Workspace {
 		// NOTE: these two get shellshape `Window` objects as their callback argument, *not* MetaWindow
 		_on_window_moved(win) { this.layout.on_window_moved(win); }
 		_on_window_resized(win) { this.layout.on_window_resized(win); }
-		_on_window_unexpected_change(win) { this.layout.override_external_change(win); }
+		_on_window_unexpected_change(win) {
+			var self = this;
+			Mainloop.idle_add(function() {
+				self.layout.override_external_change(win, false);
+				Mainloop.timeout_add_seconds(1, function() {
+					self.layout.override_external_change(win, true);
+				});
+			});
+		}
 		on_window_moved   = _duck_overview(this._on_window_moved)
 		on_window_resized = _duck_overview(this._on_window_resized)
 		on_window_unexpected_change = _duck_overview(this._on_window_unexpected_change)
@@ -449,14 +457,14 @@ module Workspace {
 				self.log.debug("on_window_remove for " + win + " (" + self +")");
 				self.disconnect_window_signals(win);
 			} else if (force) {
-				self.log.error("Unable to remove window: " + win);
+				self.log.warn("Unable to remove window: " + win);
 				self.layout.each(function(tile:Tiling.TiledWindow, idx) {
 					var tileWindow = <MutterWindow.Window>tile.window;
 					if (tileWindow === win) {
-						self.log.error("And yet: Found window match at index: " + idx);
+						self.log.error("Logical error: Found window match at index: " + idx);
 					}
 					if (tileWindow.meta_window === meta_window) {
-						self.log.error("And yet: Found meta_window match at index: " + idx);
+						self.log.error("Logical error: Found meta_window match at index: " + idx);
 					}
 					// the above code should be impossible to trigger, but it does, so try again for paranoia:
 					removed = self.layout.on_window_killed(win);
