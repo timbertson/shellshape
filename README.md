@@ -69,10 +69,6 @@ If you don't know why, here's some things to check:
 
 To report a bug or crash, please see the [github issues page](https://github.com/gfxmonk/shellshape/issues).
 
-## Replace gnome-shell
-
-If you symlink the provided `gnome-shell.desktop` file to `~/.local/share/applications/`, gnome-session will use that to launch gnome-shell instead of the system's gnome-shell. Uninstalling is as simple as removing that file.
-
 ## Keyboard shortcuts
 
 Are listed at [http://gfxmonk.net/shellshape/](http://gfxmonk.net/shellshape/)
