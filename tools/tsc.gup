@@ -1,5 +1,5 @@
 #!bash -eu
-tsc="$(which tsc 2>/dev/null || true)"
+tsc="$(which -a tsc 2>/dev/null | fgrep -v "$PWD" | head -n 1 || true)"
 if [ -n "$tsc" ]; then
 	echo "using system tsc at ${tsc}"
 	gup -u "$tsc"
