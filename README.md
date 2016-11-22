@@ -72,6 +72,9 @@ To report a bug or crash, please see the [github issues page](https://github.com
 ## Keyboard shortcuts
 
 Are listed at [http://gfxmonk.net/shellshape/](http://gfxmonk.net/shellshape/)
+
+To modify the defaults point dconf-editor at org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings
+
 Some helpful folk have created graphical (SVG) versions of the keyboard shortcuts, to serve as a handy reference:
 
 **Note:** These are for versions prior to 0.12. Anyone want to update them?
