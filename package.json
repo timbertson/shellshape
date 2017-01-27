@@ -2,7 +2,7 @@
 , "private": "true"
 , "dependencies":
   { "mocha": "^2.4.5"
-  , "typescript": "^1.8.10"
+  , "typescript": "^2.1.5"
   }
 }
 

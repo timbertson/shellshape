@@ -1,5 +1,6 @@
 declare var process:any;
 module Logging {
+	export var PARANOID = false;
 	export function getLogger(name:string):Logger {
 		var noop = function() {};
 		return (typeof process) !== 'undefined' && process.env['DEBUG'] === '1' ? {

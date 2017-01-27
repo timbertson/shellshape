@@ -445,13 +445,12 @@ module Tiling {
 		}
 
 		indexOf(item:HasId) {
-			var id, idx,
-				_this = this;
+			var id, idx;
 			id = item.id();
 			idx = -1;
-			this.each(function(tile, _idx) {
+			this.each((tile, _idx) => {
 				if (tile.id() === id) {
-					_this.log.debug("found id " + id);
+					this.log.debug("found id " + id);
 					idx = _idx;
 					return STOP;
 				}
@@ -1073,18 +1072,16 @@ module Tiling {
 		}
 	
 		activate_main_window() {
-			var _this = this;
-			this.tiles.main(function(win) {
+			this.tiles.main((win) => {
 				win.activate();
 			});
 		}
 	
 		swap_active_with_main() {
-			var _this = this;
-			this.tiles.active(function(tile, idx) {
-				_this.tiles.main(function(main_tile, main_idx) {
-					_this.tiles.swap_at(idx, main_idx);
-					_this.layout();
+			this.tiles.active((tile, idx) => {
+				this.tiles.main((main_tile, main_idx) => {
+					this.tiles.swap_at(idx, main_idx);
+					this.layout();
 				});
 			});
 		}
