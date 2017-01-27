@@ -349,7 +349,7 @@ describe('Basic Tile functions', function() {
         x: 100,
         y: 200
       }
-    }, 'x', 0.5), [
+    }, 'x', 0.5, 0), [
       {
         pos: {
           x: 0,
@@ -369,7 +369,7 @@ describe('Basic Tile functions', function() {
           y: 200
         }
       }
-    ]);
+    ], 0);
   });
   it('should split y', function() {
     return eq(Tile.split_rect({
@@ -381,7 +381,7 @@ describe('Basic Tile functions', function() {
         x: 100,
         y: 200
       }
-    }, 'y', 0.5), [
+    }, 'y', 0.5, 0), [
       {
         pos: {
           x: 0,
@@ -413,7 +413,7 @@ describe('Basic Tile functions', function() {
         x: 100,
         y: 200
       }
-    }, 'y', 0.1), [
+    }, 'y', 0.1, 0), [
       {
         pos: {
           x: 0,
@@ -802,21 +802,26 @@ describe('VerticalTiledLayout', function() {
   });
   describe('padded layout scenario', function() {
     var layout, num_tiles, tile, tiled_windows, window1, window2, window3, window4;
-    layout = _new_layout(800, 600);
-    layout.padding = 10;
-    num_tiles = function() {
-      return _num_tiles(layout);
-    };
-    tiled_windows = function() {
-      return _tiled_windows(layout);
-    };
-    tile = function(w) {
-      return _tile(layout, w);
-    };
-    window1 = new MockWindow('window1');
-    window2 = new MockWindow('window2');
-    window3 = new MockWindow('window3');
-    window4 = new MockWindow('window4');
+    afterEach(function() {
+      tiling.LayoutState.padding = 0;
+    });
+    beforeEach(function() {
+      layout = _new_layout(800, 600);
+      tiling.LayoutState.padding = 10;
+      num_tiles = function() {
+        return _num_tiles(layout);
+      };
+      tiled_windows = function() {
+        return _tiled_windows(layout);
+      };
+      tile = function(w) {
+        return _tile(layout, w);
+      };
+      window1 = new MockWindow('window1');
+      window2 = new MockWindow('window2');
+      window3 = new MockWindow('window3');
+      window4 = new MockWindow('window4');
+    });
     it('should not pad a fullscreen window', function() {
       tile(window1);
       eq(num_tiles(), 1);
@@ -828,6 +833,7 @@ describe('VerticalTiledLayout', function() {
       }));
     });
     it('should pad both sides of a single split', function() {
+      tile(window1);
       tile(window2);
       eq(num_tiles(), 2);
       eq(window1.rect(), to_rect({
@@ -844,6 +850,8 @@ describe('VerticalTiledLayout', function() {
       }));
     });
     it('should pad both sides of a secondary split', function() {
+      tile(window1);
+      tile(window2);
       tile(window3);
       eq(num_tiles(), 3);
       eq(window1.rect(), to_rect({
@@ -866,6 +874,9 @@ describe('VerticalTiledLayout', function() {
       }));
     });
     it('should pad all joins in a multiple-split layout', function() {
+      tile(window1);
+      tile(window2);
+      tile(window3);
       tile(window4);
       eq(window1.rect(), to_rect({
         x: 0,

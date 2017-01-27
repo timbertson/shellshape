@@ -89,24 +89,25 @@ module Tiling {
 			};
 		}
 
-		static split_rect(rect:Rect, axis, ratio, padding) {
+		static split_rect(rect:Rect, axis:string, ratio:number, padding:number) {
 			var new_rect, new_size_a, new_size_b;
-			// this.log.debug("#split_rect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio)
+			// this.log.debug("#split_rect: splitting rect of " + j(rect) + " along the " + axis + " axis with ratio " + ratio);
 			if (ratio > 1 || ratio < 0) {
 				throw "invalid ratio: " + ratio + " (must be between 0 and 1)";
 			}
 			new_size_a = Math.round(rect.size[axis] * ratio);
 			new_size_b = rect.size[axis] - new_size_a;
+			// this.log.debug("new_size_a = " + new_size_a + ", new_size_b = " + new_size_b + ", padding is " + padding);
 			padding = Math.round(Math.min(new_size_a / 2, new_size_b / 2, padding));
-			// this.log.debug("effective padding is " + padding)
+			// this.log.debug("effective padding is " + padding);
 			new_rect = Tile.copy_rect(rect);
 			rect = Tile.copy_rect(rect);
 			rect.size[axis] = new_size_a - padding;
 			new_rect.size[axis] = new_size_b - padding;
 			new_rect.pos[axis] += new_size_a + padding;
 
-			// log("rect copy: " + j(rect))
-			// log("new_rect: " + j(new_rect))
+			// this.log.debug("rect copy: " + j(rect));
+			// this.log.debug("new_rect: " + j(new_rect));
 			return [rect, new_rect];
 		}
 
@@ -677,7 +678,6 @@ module Tiling {
 	}
 	
 	export class BaseLayout {
-		padding = 0;
 		state: LayoutState
 		tiles: TileCollection
 		log: Logger
