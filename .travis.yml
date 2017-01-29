@@ -1,0 +1,4 @@
+script:
+ - "tools/travis-build.sh"
+notifications:
+  email: false
