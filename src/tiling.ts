@@ -33,6 +33,7 @@ module Tiling {
 	interface IndexedTiledWindow {
 		item: TiledWindow
 		index: number
+		toString(): String
 	}
 
 	var Axis = {
