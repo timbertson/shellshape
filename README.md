@@ -80,7 +80,6 @@ Some helpful folk have created graphical (SVG) versions of the keyboard shortcut
 **Note:** These are for versions prior to 0.12. Anyone want to update them?
 
  - [Keyboard overlay image](https://github.com/downloads/gfxmonk/shellshape/keyboardshortcuts.svg) - Jordan Klassen
- - [Desktop wallpaper](http://dl.dropbox.com/u/1879450/shellshape.svg) - Andreas Wallberg ([source](https://github.com/gfxmonk/shellshape/issues/95))
 
 ## Licence
 GPLv3
