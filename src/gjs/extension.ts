@@ -100,7 +100,7 @@ module Extension {
 		private change_layout:{(any)}
 		private next_layout:{():void}
 		private previous_layout:{():void}
-		focus_window:MutterWindow.Window
+		focus_window:MutterWindow.Window = null
 		enable:{():void}
 		disable:{():void}
 
