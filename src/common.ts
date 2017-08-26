@@ -110,7 +110,7 @@ interface Logger {
 }
 
 interface Lang {
-	bind<T>(subject:Object, fn:T):T
+	bind<T>(subject:Object, fn:Function):T
 }
 
 function assert<T extends Object>(x:T) {

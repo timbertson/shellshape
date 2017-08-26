@@ -1,3 +1,3 @@
 Lang = {
-	bind: function(subj, fn) { return fn.bind(subj); },
+	bind: function(subj, fn: Function) { return fn.bind(subj); },
 }
