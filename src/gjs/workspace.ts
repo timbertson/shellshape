@@ -8,7 +8,6 @@ module Workspace {
 	var Lang = imports.lang;
 	var Meta = imports.gi.Meta;
 	var WindowProperties = MutterWindow.WindowProperties;
-	var SIGNALS_ON_ACTORS = !Util.shell_version_gte(3,11);
 
 	export interface Change {
 		pending: boolean
@@ -319,27 +318,31 @@ module Workspace {
 			else this.log.debug("ducking grab op...");
 		}
 
-		// TODO: this can go away once we drop support for 0.10
-		_with_window_actor(meta_window:MetaWindow, cb:VoidFunc, initial?:boolean) {
+		_with_ready_window(meta_window:MetaWindow, cb:VoidFunc) {
+			// Trying to act too quickly on a window can cause race
+			// conditions and segfaults, e.g. https://github.com/timbertson/shellshape/issues/169
+
 			var self:Workspace = this;
-			var actor = MutterWindow.WindowProperties.get_actor(meta_window);
-			if (actor) {
-				cb();
-			} else {
-				if (initial === false) {
-					self.log.warn("actor unavailable for " + meta_window.get_title());
-					return;
+			function attempt(remainingAttempts: number) {
+				if (MutterWindow.WindowProperties.is_ready(meta_window)) {
+					cb();
+				} else {
+					if (remainingAttempts === 0) {
+						self.log.warn("Valid window unavailable for " + meta_window.get_title());
+						return;
+					}
+					Mainloop.idle_add(function() {
+						attempt(remainingAttempts-1);
+						return false;
+					});
 				}
-				Mainloop.idle_add(function() {
-					self._with_window_actor(meta_window, cb, false);
-					return false;
-				});
 			}
+			attempt(5);
 		}
 
 		private connect_window_signals(win:MutterWindow.Window) {
 			var self:Workspace = this;
-			var emitter = SIGNALS_ON_ACTORS ? win : win.meta_window;
+			var emitter = win.meta_window;
 			var bind_to_window_change = function(event_name, relevant_grabs, cb) {
 				// we only care about events *after* at least one relevant grab_op,
 				var signal_handler = self._grab_op_signal_handler({pending:false}, relevant_grabs, {
@@ -364,16 +367,12 @@ module Workspace {
 
 		private disconnect_window_signals(win:MutterWindow.Window) {
 			this.log.debug("Disconnecting signals from " + win);
-			if (SIGNALS_ON_ACTORS) {
-				// `win` acts as a proxy for the actor which doesn't get GC'd behind our back
-				Util.disconnect_tracked_signals(this, win);
-			}
 			Util.disconnect_tracked_signals(this, win.meta_window);
 		}
 
 		on_window_create:{(w:MetaWindow, reason?:string):void} = _duck_turbulence(_duck_overview(function(meta_window:MetaWindow, reason?:string) {
 			var self:Workspace = this;
-			self._with_window_actor(meta_window, function() {
+			self._with_ready_window(meta_window, function() {
 				var ws = meta_window.get_workspace();
 				if(!WindowProperties.can_be_tiled(meta_window)) {
 					// self.log.debug("can\'t be tiled");
@@ -391,6 +390,7 @@ module Workspace {
 				}
 
 				var win = self.extension.get_window(meta_window);
+
 				self.log.debug("on_window_create for " + win);
 				var added = self.layout.add(win, self.extension.focus_window);
 				if (!added) {
@@ -494,11 +494,5 @@ module Workspace {
 				return false;
 			}
 		}
-	}
-
-	if (!SIGNALS_ON_ACTORS) {
-		Workspace.prototype._with_window_actor = function(meta_window:MetaWindow, cb, initial?:boolean) {
-			cb();
-		};
 	}
 }

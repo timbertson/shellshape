@@ -32,6 +32,15 @@ module MutterWindow {
 			return w.get_stable_sequence();
 		}
 
+		static is_ready(w: MetaWindow) {
+			var rect = w.get_frame_rect();
+			if (rect.width == 0 || rect.height == 0) {
+				Util.log.warn("is_ready() returning false due to zero-sized frame");
+				return false;
+			}
+			return true;
+		}
+
 		private static is_resizeable(w:MetaWindow):boolean {
 			return w.resizeable;
 		}
@@ -87,21 +96,6 @@ module MutterWindow {
 			var result = this.tileable_window_types.indexOf(window_type) != -1;
 			// this.log.debug("window " + this + " with type == " + window_type + " can" + (result ? "" : " NOT") + " be tiled");
 			return result;
-		}
-
-		static get_actor(w:MetaWindow):GObject {
-			try {
-				// terribly unobvious name for "this MetaWindow's associated MetaWindowActor"
-				return w.get_compositor_private();
-			} catch (e) {
-				// not implemented for some special windows - ignore them
-				Util.log.warn("couldn't call get_compositor_private for window " + w, e);
-				if(w.get_compositor_private) {
-					Util.log.warn("But the function exists! aborting...");
-					throw(e);
-				}
-			}
-			return null;
 		}
 	}
 
@@ -210,25 +204,6 @@ module MutterWindow {
 				pos:  { x: r.x, y:r.y },
 				size: { x: r.width, y:r.height }
 			};
-		}
-
-		private get_actor() {
-			return WindowProperties.get_actor(this.meta_window);
-		}
-
-		// proxy signals through to actor. If we attach signals directly to the actor, it
-		// disappears before we can detach them and we leak BoundSignal objects.
-		connect(name:string, cb) {
-			var actor = this.get_actor();
-			return actor.connect.apply(actor, arguments);
-		}
-		disconnect(sig) {
-			var actor = this.get_actor();
-			if (!actor) {
-				this.log.debug("Can't disconnect signal - actor is destroyed");
-				return;
-			}
-			return actor.disconnect.apply(actor, arguments);
 		}
 	}
 }
