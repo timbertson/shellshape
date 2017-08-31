@@ -292,6 +292,12 @@ module Tiling {
 			return item.is_active();
 		}
 
+		num_tiled(): number {
+			var len = 0;
+			this.each_tiled(() => len += 1)
+			return len;
+		}
+
 		private sort_order(item: TiledWindow) {
 			if (this.is_tiled(item)) {
 				return 0;
@@ -1019,8 +1025,11 @@ module Tiling {
 			return _results;
 		}
 	
-		add_main_window_count(i) {
-			this.main_split.primary_windows += i;
+		add_main_window_count(i: number) {
+			var updated = this.main_split.primary_windows + i;
+			updated = Math.max(0, updated);
+			updated = Math.min(updated, this.tiles.num_tiled());
+			this.main_split.primary_windows = updated;
 			return this.layout();
 		}
 	
