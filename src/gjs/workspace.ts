@@ -331,13 +331,13 @@ module Workspace {
 						self.log.warn("Valid window unavailable for " + meta_window.get_title());
 						return;
 					}
-					Mainloop.idle_add(function() {
+					Mainloop.timeout_add(10, function() {
 						attempt(remainingAttempts-1);
 						return false;
 					});
 				}
 			}
-			attempt(5);
+			attempt(50);
 		}
 
 		private connect_window_signals(win:MutterWindow.Window) {
