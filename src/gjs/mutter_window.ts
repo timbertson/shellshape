@@ -158,9 +158,7 @@ module MutterWindow {
 				function() {
 					// self.log.debug("Activating window " + self + " (" + reason + ")");
 					self._activate(time);
-				},
-				null, //data
-				null //notify
+				}
 			);
 		}
 		move_to_workspace(new_index) {
