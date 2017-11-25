@@ -238,6 +238,7 @@ module Layout {
 			this.active_tile(function(tile) {
 				tile.update_desired_rect();
 				tile.scale_by(amount, axis);
+				tile.center_window();
 				tile.ensure_within(bounds);
 				tile.layout();
 			});

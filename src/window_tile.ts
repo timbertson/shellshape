@@ -33,6 +33,7 @@ module WindowTile {
 		}
 
 		abstract desired_rect(): Tiling.Rect;
+		abstract center_window(): void;
 		protected abstract add_diff_to_desired_rect(diff: Tiling.Rect): void;
 		abstract update_desired_rect();
 		abstract release(): void;
@@ -218,6 +219,7 @@ module WindowTile {
 
 		release() { }
 		tile() { }
+		center_window() { }
 		swapped_with(other: BaseTiledWindow) {
 			this.update_desired_rect();
 			other.update_desired_rect();
@@ -309,16 +311,14 @@ module WindowTile {
 		}
 
 		reset_offset():void {
-			this.offset = {
-				pos: {
-					x: 0,
-					y: 0
-				},
-				size: {
-					x: 0,
-					y: 0
-				}
-			};
+			this.offset = Tile.zero_rect();
+		}
+
+		center_window() {
+			var tile_center = Tile.rect_center(this.rect);
+			var window_center = Tile.rect_center(this.window.rect());
+			var movement_required = Tile.point_diff(window_center, tile_center);
+			this.offset.pos = Tile.point_add(this.offset.pos, movement_required);
 		}
 
 		desired_rect():Tiling.Rect {
