@@ -1,6 +1,7 @@
 /// <reference path="common.ts" />
 /// <reference path="extension_impl.ts" />
 /// <reference path="tiling.ts" />
+/// <reference path="layout.ts" />
 /// <reference path="mutter_window.ts" />
 module Workspace {
 
@@ -105,24 +106,24 @@ module Workspace {
 	}
 
 	export class Default {
-		static layout = Tiling.FloatingLayout
+		static layout = Layout.FloatingLayout
 		static max_autotile:number = null
 	}
 
 	export class Workspace implements SignalOwner {
 		log: Logger
-		layout_state: Tiling.LayoutState
+		layout_state: Layout.LayoutState
 		meta_workspace: MetaWorkspace
 		extension: Extension.Ext
 		turbulence: any
 		screen: any
 		active_layout: any // class
-		layout: Tiling.BaseLayout
+		layout: Layout.BaseLayout
 		bound_signals = []
 		private description:string // just used for toString(), but needs to be pre-baked
 		_do: {(action:Function, desc:string, fail?:boolean):any}
 
-		constructor(meta_workspace:MetaWorkspace, layout_state:Tiling.LayoutState, ext:Extension.Ext) {
+		constructor(meta_workspace:MetaWorkspace, layout_state:Layout.LayoutState, ext:Extension.Ext) {
 			var self = this;
 			assert(meta_workspace);
 			assert(layout_state);

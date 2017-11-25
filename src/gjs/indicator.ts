@@ -107,22 +107,22 @@ module Indicator {
 			this.menu_entries = [
 				{
 					label: 'Floating',
-					layout: Tiling.FloatingLayout,
+					layout: Layout.FloatingLayout,
 					icon: 'window-tile-floating-symbolic'
 				},
 				{
 					label: 'Vertical',
-					layout: Tiling.VerticalTiledLayout,
+					layout: Layout.VerticalTiledLayout,
 					icon: 'window-tile-vertical-symbolic'
 				},
 				{
 					label: 'Horizontal',
-					layout: Tiling.HorizontalTiledLayout,
+					layout: Layout.HorizontalTiledLayout,
 					icon: 'window-tile-horizontal-symbolic'
 				},
 				{
 					label: 'Full Screen',
-					layout: Tiling.FullScreenLayout,
+					layout: Layout.FullScreenLayout,
 					icon: 'window-tile-full-symbolic'
 				}
 			];

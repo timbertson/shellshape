@@ -10,6 +10,7 @@
 /// <reference path="shellshape_settings.ts" />
 /// <reference path="indicator.ts" />
 /// <reference path="tiling.ts" />
+/// <reference path="layout.ts" />
 
 var Lang: Lang = imports.lang;
 
@@ -28,16 +29,16 @@ module Extension {
 	var KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
 	var LAYOUTS = {
-		'floating': Tiling.FloatingLayout,
-		'vertical': Tiling.VerticalTiledLayout,
-		'horizontal': Tiling.HorizontalTiledLayout,
-		'fullscreen': Tiling.FullScreenLayout
+		'floating': Layout.FloatingLayout,
+		'vertical': Layout.VerticalTiledLayout,
+		'horizontal': Layout.HorizontalTiledLayout,
+		'fullscreen': Layout.FullScreenLayout
 	};
 	var LAYOUT_ORDER = [
-		Tiling.FloatingLayout,
-		Tiling.VerticalTiledLayout,
-		Tiling.HorizontalTiledLayout,
-		Tiling.FullScreenLayout
+		Layout.FloatingLayout,
+		Layout.VerticalTiledLayout,
+		Layout.HorizontalTiledLayout,
+		Layout.FullScreenLayout
 	];
 
 	export interface Emitter {
@@ -76,7 +77,7 @@ module Extension {
 		private gc_windows:{():void}
 		current_workspace:{():Workspace.Workspace}
 		private mutter_workspace:{(idx?:number):MetaWorkspace}
-		private current_layout:{():Tiling.BaseLayout}
+		private current_layout:{():Layout.BaseLayout}
 		private on_all_workspaces:{(cb:WorkspaceCB):void}
 		private current_display:{():any}
 		private current_window:{():MutterWindow.Window}
@@ -363,10 +364,10 @@ module Extension {
 				handle('swap-current-window-with-main', function() { self.current_layout().swap_active_with_main(); });
 
 				// layout changers
-				handle('set-layout-tiled-vertical',     function() { self.change_layout(Tiling.VerticalTiledLayout); });
-				handle('set-layout-tiled-horizontal',   function() { self.change_layout(Tiling.HorizontalTiledLayout); });
-				handle('set-layout-floating',           function() { self.change_layout(Tiling.FloatingLayout); });
-				handle('set-layout-fullscreen',         function() { self.change_layout(Tiling.FullScreenLayout); });
+				handle('set-layout-tiled-vertical',     function() { self.change_layout(Layout.VerticalTiledLayout); });
+				handle('set-layout-tiled-horizontal',   function() { self.change_layout(Layout.HorizontalTiledLayout); });
+				handle('set-layout-floating',           function() { self.change_layout(Layout.FloatingLayout); });
+				handle('set-layout-fullscreen',         function() { self.change_layout(Layout.FullScreenLayout); });
 				handle('next-layout',                   function() { self.next_layout() });
 				handle('prev-layout',                   function() { self.previous_layout() });
 
@@ -451,7 +452,7 @@ module Extension {
 						// any attempt at two monitors may have to be taken up here
 						// as well.
 
-						var state = new Tiling.LayoutState(self.bounds);
+						var state = new Layout.LayoutState(self.bounds);
 						self.workspaces[w] = new Workspace.Workspace(meta_workspace, state, self);
 					}
 				} else if (new_n < old_n) {
@@ -573,7 +574,7 @@ module Extension {
 					var update = function() {
 						var val = pref.get();
 						self.log.debug("setting padding to " + val);
-						Tiling.LayoutState.padding = val;
+						Layout.LayoutState.padding = val;
 						if(!initial) {
 							self.current_workspace().relayout();
 						}
