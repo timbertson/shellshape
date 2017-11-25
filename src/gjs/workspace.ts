@@ -20,16 +20,6 @@ module Workspace {
 		unexpected?: Function
 	}
 
-	function _duck_turbulence<T extends Function>(fn:T):T {
-		return <T>function() {
-			var _this = this;
-			var _args = arguments;
-			this.turbulence.add_action(function() {
-				return fn.apply(_this, _args);
-			});
-		};
-	};
-
 	function _duck_grab_op<T extends Function>(fn:T):T {
 		return <T>function() {
 			var _this = this;
@@ -54,48 +44,6 @@ module Workspace {
 	var all_grab_ops = move_ops.concat(resize_ops);
 
 
-	// TubulentState allows actions to be delayed - applied when the turbulence is
-	// over, but ONLY if this instance was not affected ("shaken").
-	class TurbulentState {
-		log: Logger
-		active:boolean
-		pending: Function[]
-		affected = false
-		cleanup: Function // may be null
-
-		constructor() {
-			this.active = false;
-			this.pending = [];
-			this.log = Logging.getLogger("shellshape.workspace.turbulence");
-		}
-		enter() {
-			this.active = true;
-			this.affected = false;
-		}
-		shake() { // is perhaps taking the metaphor too far ;)
-			this.affected = true;
-		}
-		add_action(f:Function) {
-			if(this.active) {
-				this.pending.push(f);
-			} else {
-				f();
-			}
-		}
-		leave() {
-			if(this.affected) {
-				this.log.debug("ignoring " + this.pending.length + " actions due to turbulence");
-				this.active = false;
-				if(this.cleanup) this.cleanup();
-			} else {
-				for (var i=0; i<this.pending.length; i++) {
-					this.pending[i]();
-				}
-			}
-			this.pending = [];
-		}
-	}
-
 	export class Default {
 		static layout = Layout.FloatingLayout
 		static max_autotile:number = null
@@ -106,7 +54,6 @@ module Workspace {
 		layout_state: Layout.LayoutState
 		meta_workspace: MetaWorkspace
 		extension: Extension.Ext
-		turbulence: any
 		screen: any
 		active_layout: any // class
 		layout: Layout.BaseLayout
@@ -127,9 +74,6 @@ module Workspace {
 			this.description = "<# Workspace at idx " + (meta_workspace.index()) + ": " + meta_workspace + " >";
 			this.screen = ext.screen;
 			this.enable(true);
-			this.turbulence = new TurbulentState();
-			this.turbulence.cleanup = Lang.bind(this, this.check_all_windows);
-
 			this.set_layout(Default.layout);
 		}
 
@@ -137,7 +81,7 @@ module Workspace {
 			var self:Workspace = this;
 			self.disable();
 			self.meta_windows().map(Lang.bind(self, function(win) {
-				self._on_window_remove(win);
+				self.on_window_remove(win);
 			}));
 		}
 
@@ -175,8 +119,6 @@ module Workspace {
 
 		relayout() { this.layout.layout(); }
 
-		// after turbulence, windows may have shuffled. we best make sure we own all windows that we should,
-		// and that we don't own any windows that have moved to other workspaces.
 		check_all_windows = _duck_grab_op(function(is_resuming?:boolean) {
 			var self:Workspace = this;
 			var win:MetaWindow;
@@ -355,7 +297,7 @@ module Workspace {
 			Util.disconnect_tracked_signals(this, win.meta_window);
 		}
 
-		on_window_create:{(w:MetaWindow, reason?:string):void} = _duck_turbulence(function(meta_window:MetaWindow, reason?:string) {
+		on_window_create(meta_window:MetaWindow, reason?:string):void {
 			var self:Workspace = this;
 			self._with_ready_window(meta_window, function() {
 				var ws = meta_window.get_workspace();
@@ -400,7 +342,7 @@ module Workspace {
 					self.layout.tile(win);
 				}
 			});
-		})
+		}
 
 		has_tile_space_left() {
 			var n = 0;
@@ -430,7 +372,7 @@ module Workspace {
 			this.layout.layout();
 		}
 
-		_on_window_remove(meta_window, force?:boolean) {
+		on_window_remove(meta_window, force?:boolean) {
 			var self:Workspace = this;
 			var win = self.extension.get_window(meta_window);
 
@@ -459,7 +401,6 @@ module Workspace {
 				self.extension.remove_window(win);
 			}
 		}
-		on_window_remove:{(w:MetaWindow, force?:boolean):void} = _duck_turbulence(this._on_window_remove);
 
 		meta_windows():MetaWindow[] {
 			var wins = this.meta_workspace.list_windows();
