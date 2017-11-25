@@ -13,14 +13,12 @@ module Layout {
 	export class LayoutState {
 		// shared state for every layout type. Includes distinct @splits
 		// objects for both directions
-		tiles: Tiling.TileCollection
 		splits: Tiling.SplitStates
 		bounds: Tiling.Bounds
 		static padding = 0;
 
-		constructor(bounds:Tiling.Bounds, tiles?:Tiling.TileCollection) {
+		constructor(bounds:Tiling.Bounds) {
 			this.bounds = assert(bounds);
-			this.tiles = tiles || new Tiling.TileCollection();
 			this.splits = {
 				'x': {
 					main: new Tiling.MultiSplit('x', 1),
@@ -49,6 +47,8 @@ module Layout {
 		bounds: Tiling.Bounds
 		tiles: Tiling.TileCollection
 		log: Logger
+
+		protected abstract create_tile(win: Tiling.Window, state: LayoutState): WindowTile.BaseTiledWindow;
 	
 		constructor(name, state:LayoutState) {
 			this.log = Logging.getLogger("shellshape.tiling." + name);
@@ -61,9 +61,7 @@ module Layout {
 			return "[object BaseLayout]";
 		}
 
-		layout(accommodate_window?: WindowTile.BaseTiledWindow):void {
-			throw new Error("To be overridden");
-		}
+		abstract layout(accommodate_window?: WindowTile.BaseTiledWindow):void;
 	
 		each(func:IterFunc<WindowTile.BaseTiledWindow>) {
 			return this.tiles.each(func);
@@ -114,8 +112,6 @@ module Layout {
 		select_cycle(offset):boolean {
 			return this.tiles.select_cycle(offset);
 		}
-
-		protected abstract create_tile(win: Tiling.Window, state: LayoutState): WindowTile.BaseTiledWindow;
 	
 		add(win:Tiling.Window, active_win:Tiling.Window) {
 			var self = this;
@@ -259,6 +255,8 @@ module Layout {
 		protected create_tile(win: Tiling.Window, state: LayoutState) {
 			return new WindowTile.FloatingWindowTile(win, state);
 		}
+
+		layout(accommodate_window) {}
 	}
 
 	export class FloatingLayout extends NonTiledLayout {
@@ -269,16 +267,8 @@ module Layout {
 		toString() {
 			return "[object FloatingLayout]";
 		}
-	
-		layout(accommodate_window):void {
-			var self = this;
-			this.state.tiles.each(function(tile) {
-				self.log.debug("resetting window state...");
-				tile.restore_original_position();
-				return tile.layout();
-			});
-			// now don't bother laying out anything again!
-			this.layout = function(accommodate_window) { };
+
+		restore_original_positions() {
 		}
 	}
 	
@@ -308,13 +298,12 @@ module Layout {
 			this.main_axis = axis;
 			this.main_split = state.splits[this.main_axis].main;
 			this.splits = state.splits[this.main_axis].minor;
-			this.tiles = state.tiles;
 		}
 
 		protected create_tile(win: Tiling.Window, state: LayoutState) {
 			return new WindowTile.TiledWindow(win, state);
 		}
-	
+
 		toString() {
 			return "[object BaseTiledLayout]";
 		}

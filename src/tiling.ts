@@ -1,6 +1,5 @@
 /// <reference path="common.ts" />
 /// <reference path="logging.ts" />
-/// <reference path="layout.ts" />
 
 function noop() { };
 
@@ -446,10 +445,11 @@ module Tiling {
 
 		swap_at(idx1, idx2) {
 			// @log.debug("swapping items at index #{idx1} and #{idx2}")
-			var _orig;
-			_orig = this.items[idx2];
-			this.items[idx2] = this.items[idx1];
-			return this.items[idx1] = _orig;
+			var w1 = this.items[idx1];
+			var w2 = this.items[idx2];
+			this.items[idx1] = w2;
+			this.items[idx2] = w1;
+			w1.swapped_with(w2);
 		}
 
 		contains(item:HasId) {
@@ -666,3 +666,4 @@ module Tiling {
 }
 
 /// <reference path="window_tile.ts" />
+/// <reference path="layout.ts" />

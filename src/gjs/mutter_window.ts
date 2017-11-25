@@ -127,6 +127,10 @@ module MutterWindow {
 			this._activate();
 		}
 		private _activate(time?:number) {
+			if (Main.overview.visible) {
+				this.log.debug("not activating window " + this + " while overview is shown");
+				return;
+			}
 			Main.activateWindow(this.meta_window, time);
 		}
 		is_minimized() {

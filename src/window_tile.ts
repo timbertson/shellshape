@@ -16,6 +16,7 @@ module WindowTile {
 		private _was_minimized = false
 		minimized_order = 0
 		rect: Tiling.Rect
+		original_rect: Tiling.Rect
 		managed = false
 
 		private static minimized_counter = 0;
@@ -31,13 +32,12 @@ module WindowTile {
 			}
 		}
 
-		protected abstract desired_rect(): Tiling.Rect;
+		abstract desired_rect(): Tiling.Rect;
 		protected abstract add_diff_to_desired_rect(diff: Tiling.Rect): void;
 		abstract update_desired_rect();
-		abstract update_original_rect();
 		abstract release(): void;
-		abstract restore_original_position(): void;
 		abstract tile(): void;
+		abstract swapped_with(other: BaseTiledWindow): void;
 
 		constructor(win:Tiling.Window, state:Layout.LayoutState) {
 			this.log = Logging.getLogger("shellshape.tiling.BaseTiledWindow");
@@ -121,6 +121,15 @@ module WindowTile {
 			this.layout();
 		}
 
+		update_original_rect() {
+			this.original_rect = this.window.rect();
+			this.log.debug("window " + this + " remembering original rect of " + (JSON.stringify(this.original_rect)));
+		}
+
+		restore_original_position() {
+			this.window.move_resize(this.original_rect);
+		}
+
 		ensure_within(screen_rect) {
 			var change_required = Tile.move_rect_within(this.desired_rect(), screen_rect);
 			if (!Tile.is_zero(change_required)) {
@@ -199,7 +208,7 @@ module WindowTile {
 			return "<\#FloatingWindowTile of " + this.window.toString() + ">";
 		}
 
-		protected desired_rect() {
+		desired_rect() {
 			return this.rect;
 		}
 
@@ -209,8 +218,14 @@ module WindowTile {
 
 		release() { }
 		tile() { }
-		restore_original_position() { }
-		update_original_rect() { }
+		swapped_with(other: BaseTiledWindow) {
+			// TODO: enable when floating tile collection is sorted by position, not tile order
+			// this.update_desired_rect();
+			// other.update_desired_rect();
+      //
+			// var my_rect = Tile.copy_rect(this.desired_rect());
+			// this.set_rect(other.desired_rect()); other.set_rect(my_rect);
+		}
 
 		update_desired_rect() {
 			this.rect = this.window.rect();
@@ -219,7 +234,6 @@ module WindowTile {
 
 	export class TiledWindow extends BaseTiledWindow {
 		offset: Tiling.Rect
-		original_rect: Tiling.Rect
 		enforce_layout: (delayed:boolean) => void
 		private _recent_overrides;
 
@@ -234,11 +248,6 @@ module WindowTile {
 
 		toString() {
 			return "<\#TiledWindow of " + this.window.toString() + ">";
-		}
-
-		update_original_rect() {
-			this.original_rect = this.window.rect();
-			this.log.debug("window " + this + " remembering original rect of " + (JSON.stringify(this.original_rect)));
 		}
 
 		release() {
@@ -256,7 +265,7 @@ module WindowTile {
 			} else {
 				this.managed = true;
 				this.window.set_tile_preference(true);
-				this.original_rect = this.window.rect();
+				this.update_original_rect();
 			}
 			this.reset_offset();
 		}
@@ -313,16 +322,12 @@ module WindowTile {
 			};
 		}
 
-		protected desired_rect():Tiling.Rect {
+		desired_rect():Tiling.Rect {
 			return Tile.add_diff_to_rect(this.rect, this.offset);
 		}
 
 		protected add_diff_to_desired_rect(diff: Tiling.Rect) {
 			this.offset = Tile.add_diff_to_rect(this.offset, diff);
-		}
-
-		restore_original_position() {
-			this.window.move_resize(this.original_rect);
 		}
 
 		update_desired_rect() {
@@ -335,5 +340,7 @@ module WindowTile {
 			};
 			this.log.debug("updated tile offset to " + (j(this.offset)));
 		}
+
+		swapped_with(other: BaseTiledWindow) { }
 	}
 }

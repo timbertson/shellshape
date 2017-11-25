@@ -20,16 +20,6 @@ module Workspace {
 		unexpected?: Function
 	}
 
-	function _duck_overview<T extends Function>(fn:T):T {
-		return <T>function() {
-			var _this = this;
-			var _args = arguments;
-			this.extension.perform_when_overview_is_hidden(function() {
-				return fn.apply(_this, _args);
-			});
-		}
-	};
-
 	function _duck_turbulence<T extends Function>(fn:T):T {
 		return <T>function() {
 			var _this = this;
@@ -136,12 +126,11 @@ module Workspace {
 			this._do = ext._do;
 			this.description = "<# Workspace at idx " + (meta_workspace.index()) + ": " + meta_workspace + " >";
 			this.screen = ext.screen;
-			this.set_layout(Default.layout);
 			this.enable(true);
 			this.turbulence = new TurbulentState();
 			this.turbulence.cleanup = Lang.bind(this, this.check_all_windows);
-			// add all initial windows
-			this.meta_windows().map(function(win) { self.on_window_create(win); });
+
+			this.set_layout(Default.layout);
 		}
 
 		destroy() {
@@ -184,21 +173,7 @@ module Workspace {
 			this.set_layout(Default.layout);
 		}
 
-		_take_layout_from(other) {
-			this.turbulence.shake();
-			if(!other) {
-				this._reset_layout();
-				return;
-			}
-			var keys = ['layout_state', 'layout', 'active_layout'];
-			for(var i=0; i<keys.length; i++) {
-				this[keys[i]] = other[keys[i]];
-			}
-			this.relayout();
-		}
-
-		private _relayout() { this.layout.layout(); }
-		relayout = _duck_overview(this._relayout);
+		relayout() { this.layout.layout(); }
 
 		// after turbulence, windows may have shuffled. we best make sure we own all windows that we should,
 		// and that we don't own any windows that have moved to other workspaces.
@@ -256,7 +231,15 @@ module Workspace {
 		set_layout(cls) {
 			if(!cls) throw new Error("invalid layout");
 			this.active_layout = cls;
+			if (this.layout) {
+				this.layout.restore_original_positions();
+			}
 			this.layout = new cls(this.layout_state);
+
+			// add all initial windows
+			var self = this;
+			this.meta_windows().map(function(win) { self.on_window_create(win); });
+
 			this.log.debug("laying out according to new layout: " + this.layout);
 			this.layout.layout();
 		}
@@ -372,7 +355,7 @@ module Workspace {
 			Util.disconnect_tracked_signals(this, win.meta_window);
 		}
 
-		on_window_create:{(w:MetaWindow, reason?:string):void} = _duck_turbulence(_duck_overview(function(meta_window:MetaWindow, reason?:string) {
+		on_window_create:{(w:MetaWindow, reason?:string):void} = _duck_turbulence(function(meta_window:MetaWindow, reason?:string) {
 			var self:Workspace = this;
 			self._with_ready_window(meta_window, function() {
 				var ws = meta_window.get_workspace();
@@ -417,7 +400,7 @@ module Workspace {
 					self.layout.tile(win);
 				}
 			});
-		}))
+		})
 
 		has_tile_space_left() {
 			var n = 0;
@@ -430,9 +413,9 @@ module Workspace {
 		// These functions are bound to the workspace and not the layout directly, since
 		// the layout may change at any moment
 		// NOTE: these two get shellshape `Window` objects as their callback argument, *not* MetaWindow
-		_on_window_moved(win) { this.layout.on_window_moved(win); }
-		_on_window_resized(win) { this.layout.on_window_resized(win); }
-		_on_window_unexpected_change(win) {
+		on_window_moved(win) { this.layout.on_window_moved(win); }
+		on_window_resized(win) { this.layout.on_window_resized(win); }
+		on_window_unexpected_change(win) {
 			var self = this;
 			Mainloop.idle_add(function() {
 				self.layout.override_external_change(win, false);
@@ -441,9 +424,6 @@ module Workspace {
 				});
 			});
 		}
-		on_window_moved   = _duck_overview(this._on_window_moved)
-		on_window_resized = _duck_overview(this._on_window_resized)
-		on_window_unexpected_change = _duck_overview(this._on_window_unexpected_change)
 
 		on_window_minimize_changed(meta_window) {
 			this.log.debug("window minimization state changed for window " + meta_window);
@@ -479,7 +459,7 @@ module Workspace {
 				self.extension.remove_window(win);
 			}
 		}
-		on_window_remove:{(w:MetaWindow, force?:boolean):void} = _duck_turbulence(_duck_overview(this._on_window_remove));
+		on_window_remove:{(w:MetaWindow, force?:boolean):void} = _duck_turbulence(this._on_window_remove);
 
 		meta_windows():MetaWindow[] {
 			var wins = this.meta_workspace.list_windows();

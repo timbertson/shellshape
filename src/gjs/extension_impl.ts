@@ -93,11 +93,9 @@ module Extension {
 		private _disable_indicator:{():void}
 		screen:any
 		private _bound_keybindings:{[index: string]:boolean} = {}
-		private _pending_actions:Function[] = []
 		emit:{(name):void}
 		connect:{(name:string, cb:Function):GObjectSignal}
 		disconnect:{(sig:GObjectSignal):void}
-		private perform_when_overview_is_hidden:{(action:Function):void}
 		private change_layout:{(any)}
 		private next_layout:{():void}
 		private previous_layout:{():void}
@@ -298,26 +296,9 @@ module Extension {
 
 			self._init_overview = function _init_overview() {
 				Util.connect_and_track(self, Main.overview, 'hiding', function() {
-					if(self._pending_actions.length > 0) {
-						self.log.debug("Overview hiding - performing " + self._pending_actions.length + " pending actions");
-						for(var i=0; i<self._pending_actions.length; i++) {
-							self._do(self._pending_actions[i], "pending action " + i);
-						}
-						self._pending_actions = [];
-					}
 					self.gc_windows();
 				});
 			};
-
-			self.perform_when_overview_is_hidden = function(action) {
-				if(Main.overview.visible) {
-					self.log.debug("Overview currently visible - delaying action");
-					self._pending_actions.push(action);
-				} else {
-					action();
-				}
-			};
-
 
 			/* -------------------------------------------------------------
 			*                          KEYBINDINGS
