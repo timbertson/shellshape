@@ -1,5 +1,10 @@
 declare var imports: any;
 
+interface logFn {
+	(message: string): void;
+}
+declare var log: logFn;
+
 interface GObject {
 	connect(name:String, cb:Function):GObjectSignal
 	disconnect(signal:GObjectSignal):void

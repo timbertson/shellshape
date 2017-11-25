@@ -1,0 +1,16 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -i python3 -p python3Packages.pygobject3 -p gnome3.dconf.lib
+# vim: set syntax=python:
+
+import os, sys
+buildInputs = os.environ.get('buildInputs', '')
+extraModules = []
+for path in buildInputs.split():
+	if not path: continue
+	modulePath = os.path.join(path, 'lib/gio/modules')
+	if os.path.exists(modulePath):
+		extraModules.append(modulePath)
+os.environ['GIO_EXTRA_MODULES'] = ' '.join(extraModules)
+
+reload_script = os.path.dirname(__file__) + '/../reload.py'
+os.execv(sys.executable, ['python3', reload_script])

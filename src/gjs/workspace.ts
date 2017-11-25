@@ -1,5 +1,5 @@
 /// <reference path="common.ts" />
-/// <reference path="extension.ts" />
+/// <reference path="extension_impl.ts" />
 /// <reference path="tiling.ts" />
 /// <reference path="mutter_window.ts" />
 module Workspace {
