@@ -32,7 +32,7 @@ module Tiling {
 	}
 
 	interface IndexedTiledWindow {
-		item: BaseTiledWindow
+		item: WindowTile.BaseTiledWindow
 		index: number
 		toString(): String
 	}
@@ -265,7 +265,7 @@ module Tiling {
 
 
 	export class TileCollection {
-		items:BaseTiledWindow[] = []
+		items:WindowTile.BaseTiledWindow[] = []
 		log = Logging.getLogger("shellshape.tiling.TileCollection");
 
 		constructor() {
@@ -274,25 +274,25 @@ module Tiling {
 			this.is_tiled = Lang.bind(this, this._is_tiled);
 		}
 
-		is_visible = function(item: BaseTiledWindow) {
+		is_visible = function(item: WindowTile.BaseTiledWindow) {
 			return !item.is_minimized();
 		}
 
-		is_minimized = function(item: BaseTiledWindow) {
+		is_minimized = function(item: WindowTile.BaseTiledWindow) {
 			return item.is_minimized();
 		}
 
-		is_visible_and_untiled:Predicate<BaseTiledWindow>
-		private _is_visible_and_untiled(item: BaseTiledWindow) {
+		is_visible_and_untiled:Predicate<WindowTile.BaseTiledWindow>
+		private _is_visible_and_untiled(item: WindowTile.BaseTiledWindow) {
 			return (!this.is_tiled(item)) && this.is_visible(item);
 		}
 
-		is_tiled:Predicate<BaseTiledWindow>
-		private _is_tiled(item: BaseTiledWindow) {
+		is_tiled:Predicate<WindowTile.BaseTiledWindow>
+		private _is_tiled(item: WindowTile.BaseTiledWindow) {
 			return item.managed && this.is_visible(item);
 		}
 
-		is_active = function(item: BaseTiledWindow) {
+		is_active = function(item: WindowTile.BaseTiledWindow) {
 			return item.is_active();
 		}
 
@@ -302,7 +302,7 @@ module Tiling {
 			return len;
 		}
 
-		private sort_order(item: BaseTiledWindow) {
+		private sort_order(item: WindowTile.BaseTiledWindow) {
 			if (this.is_tiled(item)) {
 				return 0;
 			} else if (this.is_visible(item)) {
@@ -377,11 +377,11 @@ module Tiling {
 			return cycled;
 		}
 
-		sorted_view(filter:Predicate<BaseTiledWindow>) {
+		sorted_view(filter:Predicate<WindowTile.BaseTiledWindow>) {
 			return this.filter<IndexedTiledWindow>(function(obj) { return filter(obj.item); }, this.sorted_with_indexes());
 		}
 
-		private _with_active_and_neighbor_when_filtered(filter:Predicate<BaseTiledWindow>, diff:number, cb:Function) {
+		private _with_active_and_neighbor_when_filtered(filter:Predicate<WindowTile.BaseTiledWindow>, diff:number, cb:Function) {
 			var self:TileCollection = this;
 			var filtered = this.sorted_view(filter);
 			var filtered_active_idx = this._index_where(filtered, function(obj) {
@@ -397,7 +397,7 @@ module Tiling {
 			return true;
 		}
 
-		most_recently_minimized = function(f:VoidFunc1<BaseTiledWindow>) {
+		most_recently_minimized = function(f:VoidFunc1<WindowTile.BaseTiledWindow>) {
 			var filtered, sorted;
 			filtered = this.filter(this.is_minimized, this.items);
 			if (filtered.length > 0) {
@@ -478,7 +478,7 @@ module Tiling {
 			this.items.push(item);
 		}
 
-		each(f:IterFunc<BaseTiledWindow>):boolean {
+		each(f:IterFunc<WindowTile.BaseTiledWindow>):boolean {
 			for (var i=0; i<this.items.length; i++) {
 				var ret = f(this.items[i], i);
 				if (ret === STOP) {
@@ -488,11 +488,11 @@ module Tiling {
 			return false;
 		}
 
-		each_tiled(f:IterFunc<BaseTiledWindow>):void {
+		each_tiled(f:IterFunc<WindowTile.BaseTiledWindow>):void {
 			this._filtered_each(this.is_tiled, f);
 		}
 
-		_filtered_each(filter:Predicate<BaseTiledWindow>, f:IterFunc<BaseTiledWindow>) {
+		_filtered_each(filter:Predicate<WindowTile.BaseTiledWindow>, f:IterFunc<WindowTile.BaseTiledWindow>) {
 			this.each(function(tile, idx) {
 				if (filter(tile)) {
 					f(tile, idx);
@@ -500,7 +500,7 @@ module Tiling {
 			});
 		}
 
-		active(f:IterFunc<BaseTiledWindow>) {
+		active(f:IterFunc<WindowTile.BaseTiledWindow>) {
 			var self = this;
 			this.each(function(item, idx) {
 				if (self.is_active(item)) {
@@ -520,11 +520,11 @@ module Tiling {
 			return this.items.splice(idx, 1);
 		}
 
-		insert_at(idx, item:BaseTiledWindow) {
+		insert_at(idx, item:WindowTile.BaseTiledWindow) {
 			return this.items.splice(idx, 0, item);
 		}
 
-		main(f:IterFunc<BaseTiledWindow>) {
+		main(f:IterFunc<WindowTile.BaseTiledWindow>) {
 			var self = this;
 			self.each(function(tile, idx) {
 				if (self.is_tiled(tile)) {
@@ -663,333 +663,6 @@ module Tiling {
 		pos: Point2d
 		size: Point2d
 	}
-
-	export abstract class BaseTiledWindow {
-		log: Logger
-		window: Window
-		bounds: any
-		maximized = false
-		private _was_minimized = false
-		minimized_order = 0
-		rect: Rect
-		managed = false
-
-		private static minimized_counter = 0;
-		private static active_window_override = null;
-
-		static with_active_window(win, f:VoidFunc) {
-			var _old = BaseTiledWindow.active_window_override;
-			BaseTiledWindow.active_window_override = win;
-			try {
-				f();
-			} finally {
-				BaseTiledWindow.active_window_override = _old;
-			}
-		}
-
-		protected abstract desired_rect(): Rect;
-		protected abstract add_diff_to_desired_rect(diff: Rect): void;
-		abstract update_desired_rect();
-		abstract update_original_rect();
-		abstract release(): void;
-		abstract restore_original_position(): void;
-		abstract tile(): void;
-
-		constructor(win:Window, state:Layout.LayoutState) {
-			this.log = Logging.getLogger("shellshape.tiling.BaseTiledWindow");
-			this.window = win;
-			this.bounds = state.bounds;
-			this.maximized = false;
-			this._was_minimized = false;
-			this.minimized_order = 0;
-			this.rect = Tile.zero_rect();
-			this.update_original_rect();
-		}
-
-		id() {
-			return this.window.id();
-		}
-
-		toggle_maximize() {
-			if (this.maximized) {
-				this.unmaximize();
-			} else {
-				this.maximize();
-			}
-		}
-
-		is_minimized() {
-			var min;
-			min = this.window.is_minimized();
-			if (min && !this._was_minimized) {
-				// the window with the highest minimise order is the most-recently minimized
-				this.minimized_order = BaseTiledWindow.minimized_counter++;
-			}
-			this._was_minimized = min;
-			return min;
-		}
-
-		maximize() {
-			if (!this.maximized) {
-				this.maximized = true;
-				this.update_desired_rect();
-				this.layout();
-			}
-		}
-
-		unmaximize() {
-			if (this.maximized) {
-				this.maximized = false;
-				if (!this.managed) {
-					this.log.debug("unmaximize caused layout()");
-				}
-				this.layout();
-			}
-		}
-
-		unminimize() {
-			this.window.unminimize();
-		}
-
-		minimize() {
-			this.window.minimize();
-		}
-
-		protected _resize(size) {
-			this.rect.size = {
-				x: size.x,
-				y: size.y
-			};
-		}
-
-		protected _move(pos) {
-			this.rect.pos = {
-				x: pos.x,
-				y: pos.y
-			};
-		}
-
-		set_rect(r) {
-			// log("offset rect to " + j(@offset))
-			// @log.debug("tile has new rect: " + j(r))
-			this._resize(r.size);
-			this._move(r.pos);
-			this.layout();
-		}
-
-		ensure_within(screen_rect) {
-			var change_required = Tile.move_rect_within(this.desired_rect(), screen_rect);
-			if (!Tile.is_zero(change_required)) {
-				this.log.debug("moving tile " + (j(change_required)) + " to keep it onscreen");
-				this.add_diff_to_desired_rect(change_required);
-				this.layout();
-			}
-		}
-
-		layout() {
-			var is_active;
-			if (BaseTiledWindow.active_window_override) {
-				is_active = BaseTiledWindow.active_window_override === this;
-			} else {
-				is_active = this.is_active();
-			}
-			var active_rect = this.active_rect();
-			// this.log.debug("Laying out " + this.window + " in rect " + j(active_rect));
-			this.window.move_resize(active_rect);
-			if (is_active) {
-				this.window.activate_before_redraw("layout");
-			}
-		}
-
-		protected active_rect():Rect {
-			// returns the currently active rect for the window, including
-			//  - maximize state
-			//  - non-zero rect
-			//  - tile rect + user-controlled offset
-			var rect = (this.maximized
-				? Tile.shrink(this.bounds, 20)
-				: this.desired_rect()
-			);
-			return Tile.ensure_rect_exists(rect)
-		}
-
-		scale_by(amount, axis) {
-			var window_rect = this.window.rect();
-			if (axis != null) {
-				this._scale_by(amount, axis, window_rect);
-			} else {
-				// scale in both directions
-				this._scale_by(amount, 'x', window_rect);
-				this._scale_by(amount, 'y', window_rect);
-			}
-		}
-
-		protected _scale_by(amount, axis, window_rect) {
-			var current_dim = window_rect.size[axis];
-			var diff_px = amount * current_dim;
-
-			var update = Tile.zero_rect();
-			update.pos[axis] = - (diff_px / 2);
-			update.size[axis] = diff_px;
-			this.log.debug("scale_by(" + amount + ", " + axis + ", " + window_rect + ") => " + update);
-			this.add_diff_to_desired_rect(update);
-		}
-
-		activate() {
-			this.window.activate();
-		}
-
-		is_active() {
-			return this.window.is_active();
-		}
-	}
-	
-	export class FloatingWindowTile extends BaseTiledWindow {
-		constructor(win:Window, state:Layout.LayoutState) {
-			super(win, state);
-			this.managed = true;
-			this.update_desired_rect();
-		}
-
-		toString() {
-			return "<\#FloatingWindowTile of " + this.window.toString() + ">";
-		}
-
-		protected desired_rect() {
-			return this.rect;
-		}
-
-		protected add_diff_to_desired_rect(diff: Rect) {
-			this.rect = Tile.add_diff_to_rect(this.rect, diff);
-		}
-
-		release() { }
-		tile() { }
-		restore_original_position() { }
-		update_original_rect() { }
-
-		update_desired_rect() {
-			this.rect = this.window.rect();
-		}
-	}
-
-	export class TiledWindow extends BaseTiledWindow {
-		offset: Rect
-		original_rect: Rect
-		enforce_layout: (delayed:boolean) => void
-		private _recent_overrides;
-
-		constructor(win:Window, state:Layout.LayoutState) {
-			super(win, state);
-			this.managed = false;
-			this.enforce_layout = this._enforce_layout;
-			this._recent_overrides = []
-
-			this.reset_offset();
-		}
-
-		toString() {
-			return "<\#TiledWindow of " + this.window.toString() + ">";
-		}
-
-		update_original_rect() {
-			this.original_rect = this.window.rect();
-			this.log.debug("window " + this + " remembering original rect of " + (JSON.stringify(this.original_rect)));
-		}
-
-		release() {
-			this.set_rect(this.original_rect);
-			this.managed = false;
-			this.window.set_tile_preference(false);
-		}
-
-		tile() {
-			// we're being explicitly tiled; reactivate enforce_layout()
-			this.enforce_layout = this._enforce_layout;
-
-			if (this.managed) {
-				this.log.debug("resetting offset for window " + this);
-			} else {
-				this.managed = true;
-				this.window.set_tile_preference(true);
-				this.original_rect = this.window.rect();
-			}
-			this.reset_offset();
-		}
-
-		_enforce_layout(delayed: boolean) {
-			// The window has unexpectedly moved since last layout().
-			// Put it back in it's place, but if this has happened
-			// more than a few times in the last 2s then stop (because
-			// it's probably going to keep trying)
-			var now = Date.now();
-			var threshold = now - 2000;
-			this._recent_overrides = this._recent_overrides.filter(function(t) {
-				return t > threshold;
-			});
-			if(this._recent_overrides.length > 6) {
-				this.log.warn("window " + this.window + " has seen too many enforce_layout() calls in the last 2s - ignoring");
-				this.enforce_layout = noop;
-				return;
-			}
-			if(!delayed) {
-				this._recent_overrides.push(now);
-			}
-			if(Logging.PARANOID) {
-				var expected = this.rect;
-				var actual = this.window.rect();
-				var position_diff = Tile.point_diff(expected.pos, actual.pos);
-				var size_diff = Tile.point_diff(expected.size, actual.size);
-				var max_diff = Math.max(
-					position_diff.x,
-					position_diff.y,
-					size_diff.x,
-					size_diff.y
-				);
-				// give some leeway for weird layout conditions
-				this.log.debug("enforce_layout: max_diff is " + max_diff);
-				if(max_diff > 50) {
-					this.log.debug("enforcing layout after change on " + this.window);
-					this.log.debug("expected size:" + j(expected) + ", actual size: " + j(actual));
-				}
-			}
-			this.layout();
-		}
-
-		reset_offset():void {
-			this.offset = {
-				pos: {
-					x: 0,
-					y: 0
-				},
-				size: {
-					x: 0,
-					y: 0
-				}
-			};
-		}
-
-		protected desired_rect():Rect {
-			return Tile.add_diff_to_rect(this.rect, this.offset);
-		}
-
-		protected add_diff_to_desired_rect(diff: Rect) {
-			this.offset = Tile.add_diff_to_rect(this.offset, diff);
-		}
-
-		restore_original_position() {
-			this.window.move_resize(this.original_rect);
-		}
-
-		update_desired_rect() {
-			var rect, win;
-			rect = this.rect;
-			win = this.window.rect();
-			this.offset = {
-				pos: Tile.point_diff(rect.pos, win.pos),
-				size: Tile.point_diff(rect.size, win.size)
-			};
-			this.log.debug("updated tile offset to " + (j(this.offset)));
-		}
-	}
 }
+
+/// <reference path="window_tile.ts" />

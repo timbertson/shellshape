@@ -61,15 +61,15 @@ module Layout {
 			return "[object BaseLayout]";
 		}
 
-		layout(accommodate_window?: Tiling.BaseTiledWindow):void {
+		layout(accommodate_window?: WindowTile.BaseTiledWindow):void {
 			throw new Error("To be overridden");
 		}
 	
-		each(func:IterFunc<Tiling.BaseTiledWindow>) {
+		each(func:IterFunc<WindowTile.BaseTiledWindow>) {
 			return this.tiles.each(func);
 		}
 
-		each_tiled(func:IterFunc<Tiling.BaseTiledWindow>) {
+		each_tiled(func:IterFunc<WindowTile.BaseTiledWindow>) {
 			return this.tiles.each_tiled(func);
 		}
 	
@@ -77,13 +77,13 @@ module Layout {
 			return this.tiles.contains(win);
 		}
 	
-		tile_for(win:Tiling.Window, func:IterFunc<Tiling.BaseTiledWindow>):boolean {
+		tile_for(win:Tiling.Window, func:IterFunc<WindowTile.BaseTiledWindow>):boolean {
 			var self = this;
 			if (!win) {
 				self.log.warn("Layout.tile_for(null)");
 				return false;
 			}
-			return this.tiles.each(function(tile:Tiling.BaseTiledWindow, idx) {
+			return this.tiles.each(function(tile:WindowTile.BaseTiledWindow, idx) {
 				if (tile.window === win) {
 					func(tile, idx);
 					return STOP;
@@ -93,7 +93,7 @@ module Layout {
 			});
 		}
 	
-		managed_tile_for(win:Tiling.Window, func:IterFunc<Tiling.BaseTiledWindow>) {
+		managed_tile_for(win:Tiling.Window, func:IterFunc<WindowTile.BaseTiledWindow>) {
 			// like @tile_for, but ignore floating windows
 			var self = this;
 			return this.tile_for(win, function(tile, idx) {
@@ -115,7 +115,7 @@ module Layout {
 			return this.tiles.select_cycle(offset);
 		}
 
-		protected abstract create_tile(win: Tiling.Window, state: LayoutState): Tiling.BaseTiledWindow;
+		protected abstract create_tile(win: Tiling.Window, state: LayoutState): WindowTile.BaseTiledWindow;
 	
 		add(win:Tiling.Window, active_win:Tiling.Window) {
 			var self = this;
@@ -145,7 +145,7 @@ module Layout {
 			});
 		}
 	
-		active_tile(fn:IterFunc<Tiling.BaseTiledWindow>) {
+		active_tile(fn:IterFunc<WindowTile.BaseTiledWindow>) {
 			return this.tiles.active(fn);
 		}
 	
@@ -166,7 +166,7 @@ module Layout {
 				//       we do a relayout() as a result of the unminimize, and this
 				//       is the only way to make sure we don't activate the previously
 				//       active window.
-				return Tiling.BaseTiledWindow.with_active_window(win, function() { win.unminimize();});
+				return WindowTile.BaseTiledWindow.with_active_window(win, function() { win.unminimize();});
 			});
 		}
 	
@@ -248,7 +248,7 @@ module Layout {
 			});
 		}
 
-		adjust_split_for_tile(opts:{tile: Tiling.BaseTiledWindow; diff_ratio: number; axis: string }) { }
+		adjust_split_for_tile(opts:{tile: WindowTile.BaseTiledWindow; diff_ratio: number; axis: string }) { }
 	
 		activate_main_window() { }
 	
@@ -257,7 +257,7 @@ module Layout {
 
 	class NonTiledLayout extends BaseLayout {
 		protected create_tile(win: Tiling.Window, state: LayoutState) {
-			return new Tiling.FloatingWindowTile(win, state);
+			return new WindowTile.FloatingWindowTile(win, state);
 		}
 	}
 
@@ -312,14 +312,14 @@ module Layout {
 		}
 
 		protected create_tile(win: Tiling.Window, state: LayoutState) {
-			return new Tiling.TiledWindow(win, state);
+			return new WindowTile.TiledWindow(win, state);
 		}
 	
 		toString() {
 			return "[object BaseTiledLayout]";
 		}
 	
-		layout(accommodate_window?:Tiling.BaseTiledWindow) {
+		layout(accommodate_window?:WindowTile.BaseTiledWindow) {
 			this.bounds.update();
 			var padding = LayoutState.padding;
 			var layout_windows = this.tiles.for_layout();
@@ -479,7 +479,7 @@ module Layout {
 		override_external_change(win:Tiling.Window, delayed:boolean) {
 			// The window has resized itself. Put it back!
 			var found = this.tile_for(win, function(tile, idx) {
-				(tile as Tiling.TiledWindow).enforce_layout(delayed);
+				(tile as WindowTile.TiledWindow).enforce_layout(delayed);
 			});
 			if(!found) {
 				this.log.warn("override_external_change called for unknown window " + win);

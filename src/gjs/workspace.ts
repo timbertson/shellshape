@@ -3,6 +3,7 @@
 /// <reference path="tiling.ts" />
 /// <reference path="layout.ts" />
 /// <reference path="mutter_window.ts" />
+/// <reference path="window_tile.ts" />
 module Workspace {
 
 	var Mainloop = imports.mainloop;
@@ -172,7 +173,7 @@ module Workspace {
 			// They're kept in the current state in case we later re-enable() this
 			// workspace object.
 			self.layout.restore_original_positions();
-			self.layout.each(function(tile:Tiling.BaseTiledWindow) {
+			self.layout.each(function(tile:WindowTile.BaseTiledWindow) {
 				var win = as<MutterWindow.Window>(MutterWindow.Window, tile.window);
 				self.disconnect_window_signals(win);
 			});
@@ -209,7 +210,7 @@ module Workspace {
 			var layout_windows:MutterWindow.Window[] = [];
 			var layout_meta_windows:MetaWindow[] = [];
 
-			self.layout.each(function(tile:Tiling.BaseTiledWindow) {
+			self.layout.each(function(tile:WindowTile.BaseTiledWindow) {
 				var win = as<MutterWindow.Window>(MutterWindow.Window, tile.window);
 				layout_windows.push(win);
 				layout_meta_windows.push(win.meta_window);
@@ -459,7 +460,7 @@ module Workspace {
 				self.disconnect_window_signals(win);
 			} else if (force) {
 				self.log.warn("Unable to remove window: " + win);
-				self.layout.each(function(tile:Tiling.BaseTiledWindow, idx) {
+				self.layout.each(function(tile:WindowTile.BaseTiledWindow, idx) {
 					var tileWindow = <MutterWindow.Window>tile.window;
 					if (tileWindow === win) {
 						self.log.error("Logical error: Found window match at index: " + idx);
