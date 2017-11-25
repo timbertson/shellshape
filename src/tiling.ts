@@ -266,11 +266,13 @@ module Tiling {
 	export class TileCollection {
 		items:WindowTile.BaseTiledWindow[] = []
 		log = Logging.getLogger("shellshape.tiling.TileCollection");
+		bounds: Bounds;
 
-		constructor() {
+		constructor(bounds: Bounds) {
 			// provide ready-bound versions of any functions we need to use for filters:
 			this.is_visible_and_untiled = Lang.bind(this, this._is_visible_and_untiled);
 			this.is_tiled = Lang.bind(this, this._is_tiled);
+			this.bounds = bounds;
 		}
 
 		is_visible = function(item: WindowTile.BaseTiledWindow) {
@@ -301,7 +303,7 @@ module Tiling {
 			return len;
 		}
 
-		private sort_order(item: WindowTile.BaseTiledWindow) {
+		protected sort_order(item: WindowTile.BaseTiledWindow, screen_midpoint: Point2d) {
 			if (this.is_tiled(item)) {
 				return 0;
 			} else if (this.is_visible(item)) {
@@ -325,11 +327,11 @@ module Tiling {
 					toString: ts
 				});
 			}
-			// this.log.debug("\nSORTING: #{j items_and_indexes}")
+			var screen_midpoint = Tile.rect_center(this.bounds);
 			var sorted = items_and_indexes.slice().sort(function(a, b) {
 				var ordera, orderb;
-				ordera = self.sort_order(a.item);
-				orderb = self.sort_order(b.item);
+				ordera = self.sort_order(a.item, screen_midpoint);
+				orderb = self.sort_order(b.item, screen_midpoint);
 				if (ordera === orderb) {
 					return a.index - b.index;
 				} else {
@@ -362,7 +364,7 @@ module Tiling {
 			return rv;
 		}
 
-		select_cycle(diff):boolean {
+		select_cycle(diff: number):boolean {
 			var cycled = this._with_active_and_neighbor_when_filtered(this.is_visible, diff, function(active, neighbor) {
 				neighbor.item.activate();
 			});
@@ -376,11 +378,17 @@ module Tiling {
 			return cycled;
 		}
 
-		sorted_view(filter:Predicate<WindowTile.BaseTiledWindow>) {
-			return this.filter<IndexedTiledWindow>(function(obj) { return filter(obj.item); }, this.sorted_with_indexes());
+		private sorted_view(filter:Predicate<WindowTile.BaseTiledWindow>) {
+			return this.filter<IndexedTiledWindow>(function(obj) {
+				return filter(obj.item);
+			}, this.sorted_with_indexes());
 		}
 
-		private _with_active_and_neighbor_when_filtered(filter:Predicate<WindowTile.BaseTiledWindow>, diff:number, cb:Function) {
+		private _with_active_and_neighbor_when_filtered(
+			filter:Predicate<WindowTile.BaseTiledWindow>,
+			diff:number,
+			cb:Function
+		) {
 			var self:TileCollection = this;
 			var filtered = this.sorted_view(filter);
 			var filtered_active_idx = this._index_where(filtered, function(obj) {
@@ -407,7 +415,7 @@ module Tiling {
 			}
 		}
 
-		cycle(diff) {
+		cycle(diff: number) {
 			// only one of these will have any effect, as the active tile is either tiled or untiled
 			var self = this;
 			var done = this._with_active_and_neighbor_when_filtered(this.is_tiled, diff, function(active, neighbor) {
@@ -533,6 +541,52 @@ module Tiling {
 				}
 				return null;
 			});
+		}
+	}
+
+	export class FloatingTileCollection extends TileCollection {
+		protected sort_order(item: WindowTile.BaseTiledWindow, screen_midpoint: Point2d) {
+			if (!this.is_visible) {
+				return 99999;
+			}
+			var window_midpoint = Tile.rect_center(item.desired_rect());
+			var vector = Tile.point_diff(screen_midpoint, window_midpoint);
+			var ratio = vector.y / vector.x;
+			var angle;
+			const half_pi = Math.PI / 2;
+			if (ratio == Infinity) {
+				// directly up (x=0)
+				angle = half_pi;
+			} else if (ratio == -Infinity) {
+				// directly down (x=0)
+				angle = -half_pi;
+			} else {
+				// Left side of screen: angle goes from -pi/2 at screen base, through clockwise to pi/2 at screen top
+				// Right side of screen: -pi/2 at screen top through pi/2 at bottom
+				angle = Math.atan(ratio);
+			}
+
+			if (vector.x > 0) {
+				// RHS
+				angle += Math.PI;
+			}
+			// bump up all angles to be positive
+			angle += Math.PI / 2;
+
+			// Now 0 is at base of screen, going clockwise.
+			// We want just slightly lower than mid-left to be the minimum in terms of sort order
+			var baseline = (3/8) * Math.PI;
+			if (angle < baseline) {
+				angle += Math.PI * 2;
+			}
+			angle -= baseline;
+
+			// this.log.debug("sort order for window " + item + ":")
+			// this.log.debug("sort order window rect = " + j(item.desired_rect()) + ", midpoint = " + j(window_midpoint));
+			// this.log.debug("sort order angle = " + angle + ", vector = " + j(vector));
+			// this.log.debug("sort order ...");
+
+			return angle;
 		}
 	}
 

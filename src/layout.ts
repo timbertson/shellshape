@@ -54,7 +54,7 @@ module Layout {
 			this.log = Logging.getLogger("shellshape.tiling." + name);
 			this.state = assert(state);
 			this.bounds = state.bounds;
-			this.tiles = new Tiling.TileCollection();
+			this.tiles = new Tiling.TileCollection(this.bounds);
 		}
 	
 		toString() {
@@ -211,8 +211,7 @@ module Layout {
 		on_window_resized(win:Tiling.Window) {
 			var self = this;
 			var found = this.tile_for(win, function(tile, idx) {
-				tile.update_original_rect();
-				self.layout();
+				tile.update_desired_rect();
 			});
 			if (!found) {
 				this.log.warn("couldn't find tile for window: " + win);
@@ -262,6 +261,7 @@ module Layout {
 	export class FloatingLayout extends NonTiledLayout {
 		constructor(state) {
 			super('FloatingLayout', state)
+			this.tiles = new Tiling.FloatingTileCollection(state.bounds);
 		}
 	
 		toString() {

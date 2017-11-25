@@ -219,12 +219,11 @@ module WindowTile {
 		release() { }
 		tile() { }
 		swapped_with(other: BaseTiledWindow) {
-			// TODO: enable when floating tile collection is sorted by position, not tile order
-			// this.update_desired_rect();
-			// other.update_desired_rect();
-      //
-			// var my_rect = Tile.copy_rect(this.desired_rect());
-			// this.set_rect(other.desired_rect()); other.set_rect(my_rect);
+			this.update_desired_rect();
+			other.update_desired_rect();
+
+			var my_rect = Tile.copy_rect(this.desired_rect());
+			this.set_rect(other.desired_rect()); other.set_rect(my_rect);
 		}
 
 		update_desired_rect() {
