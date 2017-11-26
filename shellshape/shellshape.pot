@@ -58,10 +58,6 @@ msgstr ""
 msgid "(make sure you have dconf-editor installed)"
 msgstr ""
 
-#: prefs.js:192
-msgid "Navigate to"
-msgstr ""
-
 #: prefs.js:204
 msgid "ERROR: Could not launch dconf-editor. Is it installed?"
 msgstr ""
