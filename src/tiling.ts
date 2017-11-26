@@ -553,37 +553,28 @@ module Tiling {
 			if (!this.is_visible) {
 				return 99999;
 			}
-			var window_midpoint = Tile.rect_center(item.desired_rect());
-			var vector = Tile.point_diff(screen_midpoint, window_midpoint);
-			var ratio = vector.y / vector.x;
-			var angle;
+			const window_midpoint = Tile.rect_center(item.desired_rect());
+			const vector = Tile.point_diff(screen_midpoint, window_midpoint);
 			const half_pi = Math.PI / 2;
-			if (ratio == Infinity) {
-				// directly up (x=0)
-				angle = half_pi;
-			} else if (ratio == -Infinity) {
-				// directly down (x=0)
+			const tao = Math.PI * 2;
+
+			var angle;
+			if (Tile.is_zero_point(vector)) {
 				angle = -half_pi;
 			} else {
-				// Left side of screen: angle goes from -pi/2 at screen base, through clockwise to pi/2 at screen top
-				// Right side of screen: -pi/2 at screen top through pi/2 at bottom
-				angle = Math.atan(ratio);
+				// atan2 gives angles in the range -PI (pointing due left) through to +PI, anti-clockwise
+				angle = Math.atan2(vector.y, vector.x);
 			}
 
-			if (vector.x > 0) {
-				// RHS
-				angle += Math.PI;
-			}
-			// bump up all angles to be positive
-			angle += Math.PI / 2;
 
-			// Now 0 is at base of screen, going clockwise.
-			// We want just slightly lower than mid-left to be the minimum in terms of sort order
-			var baseline = (3/8) * Math.PI;
-			if (angle < baseline) {
-				angle += Math.PI * 2;
+			// shift angles to all be negative, then negate them to make clockwise
+			angle = (angle + Math.PI);
+
+			// take a slice on the left, just below horizontal and shift it into negative
+			// so that it's ordered first
+			if (angle > ((31/32) * tao)) {
+				angle -= tao;
 			}
-			angle -= baseline;
 
 			// this.log.debug("sort order for window " + item + ":")
 			// this.log.debug("sort order window rect = " + j(item.desired_rect()) + ", midpoint = " + j(window_midpoint));
