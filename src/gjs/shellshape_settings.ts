@@ -14,6 +14,12 @@ module ShellshapeSettings {
 
 	var log = Logging.getLogger("shellshape.settings");
 
+	export function set_dconf_view() {
+		get_local_gsettings('ca.desrt.dconf-editor.Settings')
+			.set_string('saved-view',
+				'/'+KEYBINDINGS.replace(/\./g,'/')+'/');
+	}
+
 	export function envp_with_shellshape_xdg_data_dir() {
 		var xdg_data_base = Ext.dir.get_child('data');
 		if(!xdg_data_base.query_exists(null)) {
