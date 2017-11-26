@@ -234,8 +234,8 @@ function buildPrefsWidget() {
 
 		var label = new Gtk.Label({
 			label: _("Edit keyboard settings") +
-				"\n<small>"+_("(make sure you have dconf-editor installed)")+"\n" +
-				_("Navigate to")+" org/gnome/shell/extensions/net/gfxmonk/shellshape</small>",
+				"\n<small>" + _("(make sure you have dconf &amp; dconf-editor installed)") +
+				"</small>",
 			use_markup: true});
 		var button = new Gtk.Button({
 			label: 'dconf-editor'
@@ -245,6 +245,9 @@ function buildPrefsWidget() {
 			try {
 				// The magic sauce that lets dconf-editor see our local schema:
 				var envp = ShellshapeSettings.envp_with_shellshape_xdg_data_dir();
+				GLib.spawn_sync(null,["dconf", "write",  "/ca/desrt/dconf-editor/saved-view",
+					"'/org/gnome/shell/extensions/net/gfxmonk/shellshape/keybindings/'"],
+					envp, GLib.SpawnFlags.SEARCH_PATH, null);
 				GLib.spawn_async(null, ['dconf-editor'], envp, GLib.SpawnFlags.SEARCH_PATH, null);
 			} catch(e) {
 				error_msg.set_label(_("ERROR: Could not launch dconf-editor. Is it installed?"));
