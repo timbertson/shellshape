@@ -13,4 +13,4 @@ for path in buildInputs.split():
 os.environ['GIO_EXTRA_MODULES'] = ' '.join(extraModules)
 
 reload_script = os.path.dirname(__file__) + '/../reload.py'
-os.execv(sys.executable, ['python3', reload_script])
+os.execv(sys.executable, ['python3', reload_script] + sys.argv[1:])

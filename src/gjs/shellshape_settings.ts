@@ -84,10 +84,15 @@ module ShellshapeSettings {
 		return new Gio.Settings({ settings_schema: schemaObj });
 	};
 
-	export function Keybindings() {
-		var self = this;
-		var settings = this.settings = get_local_gsettings(KEYBINDINGS);
-		this.each = function(fn, ctx) {
+	export class Keybindings {
+		settings: any;
+
+		constructor() {
+			this.settings = get_local_gsettings(KEYBINDINGS);
+		}
+
+		each(fn, ctx) {
+			const settings = this.settings;
 			var keys = settings.list_children();
 			for (var i=0; i < keys.length; i++) {
 				var key = keys[i];
@@ -98,49 +103,52 @@ module ShellshapeSettings {
 				};
 				fn.call(ctx, setting);
 			}
-		};
+		}
 	};
 
-	export function Prefs() {
-		var self = this;
-		var settings = this.settings = get_local_gsettings(PREFS);
-		var get_boolean = function():boolean { return settings.get_boolean(this.key); };
-		var set_boolean = function(v:boolean) { settings.set_boolean(this.key, v); };
-		var get_int = function():number { return settings.get_int(this.key); };
-		var set_int = function(v:number) { settings.set_int(this.key, v); };
-		var get_string = function():String { return settings.get_string(this.key); };
-		var set_string = function(v:String) { settings.set_string(this.key, v); };
+	abstract class Pref<T> {
+		key: string;
+		gsettings: any;
 
-		this.SHOW_INDICATOR = {
-			key: 'show-indicator',
-			gsettings: settings,
-			get: get_boolean,
-			set: set_boolean,
-		};
-		this.MAX_AUTOTILE = {
-			key: 'max-autotiled-windows',
-			gsettings: settings,
-			get: get_int,
-			set: set_int,
-		};
-		this.DEFAULT_LAYOUT = {
-			key: 'default-layout',
-			gsettings: settings,
-			get: get_string,
-			set: set_string,
-		};
-		this.PADDING = {
-			key: 'tile-padding',
-			gsettings: settings,
-			get: get_int,
-			set: set_int,
-		};
-		this.SCREEN_PADDING = {
-			key: 'screen-padding',
-			gsettings: settings,
-			get: get_int,
-			set: set_int,
-		};
+		constructor(key: string, gsettings: any) {
+			this.key = key;
+			this.gsettings = gsettings;
+		}
+		abstract get():T;
+		abstract set(newval: T):void;
+	}
+
+	class BooleanPref extends Pref<boolean> {
+		get() { return this.gsettings.get_boolean(this.key); }
+		set(v: boolean) { return this.gsettings.set_boolean(this.key, v); }
+	}
+
+	class IntPref extends Pref<number> {
+		get() { return this.gsettings.get_int(this.key); }
+		set(v: number) { return this.gsettings.set_int(this.key, v); }
+	}
+
+	class StringPref extends Pref<string> {
+		get() { return this.gsettings.get_string(this.key); }
+		set(v: string) { return this.gsettings.set_string(this.key, v); }
+	}
+
+	export class Prefs {
+		SHOW_INDICATOR: Pref<boolean>;
+		MAX_AUTOTILE: Pref<number>;
+		DEFAULT_LAYOUT: Pref<string>;
+		PADDING: Pref<number>;
+		SCREEN_PADDING: Pref<number>;
+		settings: any;
+
+		constructor() {
+			var settings = this.settings = get_local_gsettings(PREFS);
+			this.SHOW_INDICATOR = new BooleanPref('show-indicator', settings);
+			this.MAX_AUTOTILE = new IntPref('max-autotiled-windows', settings);
+			this.DEFAULT_LAYOUT = new StringPref('default-layout', settings);
+			this.PADDING = new IntPref('tile-padding', settings);
+			this.SCREEN_PADDING = new IntPref('screen-padding', settings);
+		}
 	};
 
 	export function initTranslations(domain?:string) {

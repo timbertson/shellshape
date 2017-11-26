@@ -21,10 +21,10 @@ module Workspace {
 	}
 
 	function _duck_grab_op<T extends Function>(fn:T):T {
-		return <T>function() {
+		return <T>function(this:any) {
 			var _this = this;
 			var _args = arguments;
-			return this._duck_grab_op(function() {
+			return _this._duck_grab_op(function() {
 				return fn.apply(_this, _args);
 			});
 		};
@@ -119,8 +119,8 @@ module Workspace {
 
 		relayout() { this.layout.layout(); }
 
-		check_all_windows = _duck_grab_op(function(is_resuming?:boolean) {
-			var self:Workspace = this;
+		check_all_windows = _duck_grab_op(function(this: Workspace, is_resuming?:boolean) {
+			var self = this;
 			var win:MetaWindow;
 			var changed = false;
 			var expected_meta_windows:MetaWindow[] = self.meta_windows();
@@ -201,8 +201,9 @@ module Workspace {
 			// Unfortunately, there's no grab_op "end" signal. So on the first
 			// grab_op we set change.pending, and keep triggering checks
 			// (at the next available idle point) until the grab_op is over.
+			const self = this;
 			var _handler = function(idle) {
-				return Lang.bind(this, function() {
+				return function() {
 					var grab_op = global.screen.get_display().get_grab_op();
 					if(relevant_grabs.indexOf(grab_op) != -1) {
 						//wait for the operation to end...
@@ -217,21 +218,21 @@ module Workspace {
 						change.pending = false;
 						if(grab_op == Meta.GrabOp.NONE) {
 							if (change_happened) {
-								this.log.debug("change event completed");
-								responder.after_grab.call(this);
+								self.log.debug("change event completed");
+								responder.after_grab.call(self);
 							} else {
 								if(responder.unexpected) {
-									responder.unexpected.call(this);
+									responder.unexpected.call(self);
 								}
 							}
 						}
 					}
 					return false;
-				})
+				}
 			};
 
-			var op_handler = _handler.call(this, false);
-			var idle_handler = _handler.call(this, true);
+			var op_handler = _handler(false);
+			var idle_handler = _handler(true);
 			return op_handler;
 		}
 
