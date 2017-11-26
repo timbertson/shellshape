@@ -26,7 +26,6 @@ module Extension {
 	var Window = MutterWindow.Window;
 	var GLib = imports.gi.GLib;
 	var Gio = imports.gi.Gio;
-	var KEYBINDING_BASE = 'org.gnome.shell.extensions.net.gfxmonk.shellshape.keybindings';
 
 	var LAYOUTS = {
 		'floating': Layout.FloatingLayout,
@@ -603,30 +602,40 @@ module Extension {
 				}
 			};
 
-			var Screen = function() {
-				this.bounds = new Bounds();
-				this.update();
-			};
+			class Screen {
+				bounds: Bounds;
+				count: number;
+				idx: number;
 
-			Screen.prototype.update = function() {
-				this.count = global.screen.get_n_monitors();
-				this.idx = global.screen.get_primary_monitor();
-				this.bounds.update(global.screen.get_monitor_geometry(this.idx));
-			};
+				constructor() {
+					this.bounds = new Bounds();
+					this.update();
+				}
 
-			var Bounds = function() { };
-			Bounds.prototype.update = function(newMonitor)
-			{
-				if (newMonitor) this.monitor = newMonitor;
-				if (!this.monitor) throw new Error("monitor not yet set");
-				var panel_height = Main.panel.actor.height;
-				this.pos = {
-					x: this.monitor.x + self.screen_padding,
-					y: this.monitor.y + panel_height + self.screen_padding
+				update() {
+					this.count = global.screen.get_n_monitors();
+					this.idx = global.screen.get_primary_monitor();
+					this.bounds.update(global.screen.get_monitor_geometry(this.idx));
 				};
-				this.size = {
-					x: this.monitor.width - (2 * self.screen_padding),
-					y: this.monitor.height - panel_height - (2 * self.screen_padding)
+			};
+
+			class Bounds implements Tiling.Rect {
+				monitor: any;
+				pos: Tiling.Point2d;
+				size: Tiling.Point2d;
+
+				update(newMonitor) {
+					if (newMonitor) this.monitor = newMonitor;
+					if (!this.monitor) throw new Error("monitor not yet set");
+					var panel_height = Main.panel.actor.height;
+					this.pos = {
+						x: this.monitor.x + self.screen_padding,
+						y: this.monitor.y + panel_height + self.screen_padding
+					};
+					this.size = {
+						x: this.monitor.width - (2 * self.screen_padding),
+						y: this.monitor.height - panel_height - (2 * self.screen_padding)
+					};
 				};
 			};
 

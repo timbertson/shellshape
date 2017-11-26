@@ -5,12 +5,11 @@ gup -u "$COMPILE_MODE/.sources" ../tools/tsc
 sources="$(cat "$COMPILE_MODE/.sources")"
 gup -u $sources
 base="$(basename "$2" .js)"
-"$GUPDIR/check-anonymous-functions.py" $sources
 ../tools/tsc "../src/$COMPILE_MODE/$base".ts \
 		--alwaysStrict \
+		--noImplicitThis \
 		--out "$1"
 
 		# --noImplicitAny \
 		# --noImplicitReturns \
-# --noImplicitThis \
 

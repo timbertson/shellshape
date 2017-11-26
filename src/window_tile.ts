@@ -133,7 +133,7 @@ module WindowTile {
 
 		ensure_within(screen_rect) {
 			var change_required = Tile.move_rect_within(this.desired_rect(), screen_rect);
-			if (!Tile.is_zero(change_required)) {
+			if (!Tile.is_zero_rect(change_required)) {
 				this.log.debug("moving tile " + (j(change_required)) + " to keep it onscreen");
 				this.add_diff_to_desired_rect(change_required);
 				this.layout();

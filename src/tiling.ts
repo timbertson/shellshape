@@ -121,8 +121,12 @@ module Tiling {
 			return rect;
 		}
 
-		static is_zero(rect:Rect):boolean {
-			return rect.pos.x === 0 && rect.pos.y === 0 && rect.size.x === 0 && rect.size.y === 0;
+		static is_zero_rect(rect:Rect):boolean {
+			return Tile.is_zero_point(rect.pos) && Tile.is_zero_point(rect.size);
+		}
+
+		static is_zero_point(point:Point2d):boolean {
+			return point.x === 0 && point.y === 0;
 		}
 
 		static zero_rect(): Rect {
@@ -316,7 +320,7 @@ module Tiling {
 		private sorted_with_indexes():IndexedTiledWindow[] {
 			var self = this;
 			var items_and_indexes:IndexedTiledWindow[] = [];
-			var ts = function() {
+			var ts = function(this:any) {
 				return "" + this.item + "@" + this.index;
 			};
 
@@ -404,7 +408,7 @@ module Tiling {
 			return true;
 		}
 
-		most_recently_minimized = function(f:VoidFunc1<WindowTile.BaseTiledWindow>) {
+		most_recently_minimized(f:VoidFunc1<WindowTile.BaseTiledWindow>) {
 			var filtered, sorted;
 			filtered = this.filter(this.is_minimized, this.items);
 			if (filtered.length > 0) {
