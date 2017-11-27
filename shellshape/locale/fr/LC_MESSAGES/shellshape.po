@@ -61,10 +61,6 @@ msgstr "Modifier les paramètres du clavier"
 msgid "(make sure you have dconf-editor installed)"
 msgstr "(assurez-vous que dconf-editor soit installé)"
 
-#: prefs.js:192
-msgid "Navigate to"
-msgstr "Naviguer vers"
-
 #: prefs.js:204
 msgid "ERROR: Could not launch dconf-editor. Is it installed?"
 msgstr "ERREUR : Impossible de lancer dconf-editor. Est-il installé ?"

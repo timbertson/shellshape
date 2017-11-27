@@ -61,10 +61,6 @@ msgstr "Tastatureinstellungen bearbeiten"
 msgid "(make sure you have dconf-editor installed)"
 msgstr "(dconf-editor muss installiert sein)"
 
-#: prefs.js:192
-msgid "Navigate to"
-msgstr "Änderungen unter"
-
 #: prefs.js:204
 msgid "ERROR: Could not launch dconf-editor. Is it installed?"
 msgstr "FEHLER: dconf-editor konnte nicht geöffnet werden. Ist er installiert?"
