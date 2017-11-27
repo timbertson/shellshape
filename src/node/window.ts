@@ -1,10 +1,10 @@
 /// <reference path="common.ts" />
 /// <reference path="tiling.ts" />
 
-var log = Logging.getLogger("window");
-var fail = function(m) { throw new Error("not implemented: " + m); };
-var _idc = 0;
 module MockWindow {
+	var log = Logging.getLogger("window");
+	var fail = function(m) { throw new Error("not implemented: " + m); };
+	var _idc = 0;
 	var active = null;
 
 	export class Window implements Tiling.Window {
