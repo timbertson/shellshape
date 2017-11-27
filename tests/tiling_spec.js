@@ -4,6 +4,8 @@ var eq = assert.deepEqual;
 
 var shellshape = require('../build/node/shellshape');
 var tiling = shellshape.Tiling;
+var Layout = shellshape.Layout;
+var WindowTile = shellshape.WindowTile;
 var MockWindow = shellshape.MockWindow;
 var Tile = tiling.Tile;
 
@@ -60,7 +62,7 @@ describe('tile collection', function() {
   beforeEach(function() {
     var win = function(name) {
       var w = new MockWindow(name);
-      return new tiling.TiledWindow(w, layout_state);
+      return new WindowTile.TiledWindow(w, layout_state);
     };
 
     var tiled = function(name) {
@@ -79,7 +81,7 @@ describe('tile collection', function() {
       return rv;
     };
 
-    collection = new tiling.TileCollection();
+    collection = new tiling.TileCollection(bounds);
     bounds = {
       pos: {
         x: 0,
@@ -91,7 +93,7 @@ describe('tile collection', function() {
       },
       update: noop,
     };
-    layout_state = new tiling.LayoutState(bounds);
+    layout_state = new Layout.LayoutState(bounds);
 
     tiles = {
       tiled:[tiled("0"), tiled("1"), tiled("2")],
@@ -603,8 +605,8 @@ describe('VerticalTiledLayout', function() {
       },
       update: noop
     };
-    state = new tiling.LayoutState(bounds);
-    return layout = new tiling.VerticalTiledLayout(state);
+    state = new Layout.LayoutState(bounds);
+    return layout = new Layout.VerticalTiledLayout(state);
   };
   with_active = function(win, f) {
     win.activate();
@@ -803,11 +805,11 @@ describe('VerticalTiledLayout', function() {
   describe('padded layout scenario', function() {
     var layout, num_tiles, tile, tiled_windows, window1, window2, window3, window4;
     afterEach(function() {
-      tiling.LayoutState.padding = 0;
+      Layout.LayoutState.padding = 0;
     });
     beforeEach(function() {
       layout = _new_layout(800, 600);
-      tiling.LayoutState.padding = 10;
+      Layout.LayoutState.padding = 10;
       num_tiles = function() {
         return _num_tiles(layout);
       };
