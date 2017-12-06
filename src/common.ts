@@ -10,22 +10,23 @@ interface GObject {
 	disconnect(signal:GObjectSignal):void
 }
 
-interface MetaWorkspace extends GObject {
-	list_windows():MetaWindow[]
-	activate_with_focus(win:MetaWindow, time:number):void
-	activate(time:number):void
-
-	// NOTE: *only* use this method if you know the workspace
-	// is currently in the active workspace list.
-	// Otherwise, it'll crash gnome-shell.
-	index():number
-}
-
 interface MetaRect {
 	x: number
 	y: number
 	width: number
 	height: number
+}
+
+interface MetaWorkspace extends GObject {
+	list_windows():MetaWindow[]
+	activate_with_focus(win:MetaWindow, time:number):void
+	activate(time:number):void
+	get_work_area_for_monitor(idx: number): MetaRect
+
+	// NOTE: *only* use this method if you know the workspace
+	// is currently in the active workspace list.
+	// Otherwise, it'll crash gnome-shell.
+	index():number
 }
 
 interface MetaWindow extends GObject {

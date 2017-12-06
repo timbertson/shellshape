@@ -615,26 +615,24 @@ module Extension {
 				update() {
 					this.count = global.screen.get_n_monitors();
 					this.idx = global.screen.get_primary_monitor();
-					this.bounds.update(global.screen.get_monitor_geometry(this.idx));
+					this.bounds.update(global.screen.get_workspace_by_index(0).get_work_area_for_monitor(this.idx));
 				};
 			};
 
 			class Bounds implements Tiling.Rect {
-				monitor: any;
+				workArea: any;
 				pos: Tiling.Point2d;
 				size: Tiling.Point2d;
 
-				update(newMonitor) {
-					if (newMonitor) this.monitor = newMonitor;
-					if (!this.monitor) throw new Error("monitor not yet set");
-					var panel_height = Main.panel.actor.height;
+				update(newArea) {
+					if (newArea) this.workArea = newArea;
+					if (!this.workArea) throw new Error("workArea not yet set");
 					this.pos = {
-						x: this.monitor.x + self.screen_padding,
-						y: this.monitor.y + panel_height + self.screen_padding
+						x: this.workArea.x + self.screen_padding,
+						y: this.workArea.y + self.screen_padding
 					};
-					this.size = {
-						x: this.monitor.width - (2 * self.screen_padding),
-						y: this.monitor.height - panel_height - (2 * self.screen_padding)
+					this.size = { x: this.workArea.width - (2 * self.screen_padding),
+						y: this.workArea.height - (2 * self.screen_padding)
 					};
 				};
 			};
