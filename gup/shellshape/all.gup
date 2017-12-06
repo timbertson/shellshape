@@ -1,5 +1,5 @@
 #!bash -eu
-sources="../build/gjs/extension.js ../build/gjs/extension_impl.js ../build/gjs/auto-import.js ../build/gjs/prefs.js"
+sources="../build/gjs/extension.js ../build/gjs/extension_impl.js ../build/gjs/prefs.js"
 gup -u $sources
 for f in $sources; do
 	ln -sfn $f ./

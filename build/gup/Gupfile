@@ -1,3 +1,6 @@
+copy-autoimport-shim:
+	gjs/extension.js
+
 make-js:
 	*/*.js
 

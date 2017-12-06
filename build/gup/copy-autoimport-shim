@@ -1,0 +1,12 @@
+#!/bin/bash
+set -eu
+base="$(basename "$2")"
+AUTOIMPORT=../autoimport-shim
+if [ -e "$AUTOIMPORT" ]; then
+	gup -u "$AUTOIMPORT/$base"
+	cp "$AUTOIMPORT/$base" "$1"
+else
+	echo "Note: $AUTOIMPORT not present; using commited version"
+	gup --always
+	gup --leave
+fi
