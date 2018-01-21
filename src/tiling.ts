@@ -337,13 +337,13 @@ module Tiling {
 				ordera = self.sort_order(a.item, screen_midpoint);
 				orderb = self.sort_order(b.item, screen_midpoint);
 				if (ordera === orderb) {
+					// ensure a stable sort by using index position for equivalent windows
 					return a.index - b.index;
 				} else {
-					// ensure a stable sort by using index position for equivalent windows
 					return ordera - orderb;
 				}
 			});
-			// this.log.debug("sorted: #{items_and_indexes}\n    to: #{sorted}")
+			this.log.debug("sorted: " + items_and_indexes + " \n    to: " + sorted)
 			return sorted;
 		}
 
@@ -576,10 +576,10 @@ module Tiling {
 				angle -= tao;
 			}
 
-			// this.log.debug("sort order for window " + item + ":")
-			// this.log.debug("sort order window rect = " + j(item.desired_rect()) + ", midpoint = " + j(window_midpoint));
-			// this.log.debug("sort order angle = " + angle + ", vector = " + j(vector));
-			// this.log.debug("sort order ...");
+			this.log.debug("sort order for window " + item + ":")
+			this.log.debug("sort order window rect = " + j(item.desired_rect()) + ", midpoint = " + j(window_midpoint));
+			this.log.debug("sort order angle = " + angle + ", vector = " + j(vector));
+			this.log.debug("sort order ...");
 
 			return angle;
 		}

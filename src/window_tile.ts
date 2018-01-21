@@ -229,6 +229,7 @@ module WindowTile {
 		}
 
 		update_desired_rect() {
+			this.log.debug("updating desired rect for " + this);
 			this.rect = this.window.rect();
 		}
 	}

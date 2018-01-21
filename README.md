@@ -1,9 +1,13 @@
 <img src="http://gfxmonk.net/dist/status/project/shellshape.png">
 
+### Note: no longer in active development
+
+I am no longer using or actively developing shellshape. I have focused my efforts on [slinger](https://github.com/timbertson/slinger), which I created as a simpler window management utility with many of the same benefits as shellshape, but with a fraction of the code, complexity and bugs. If anyone wishes to maintain shellshape (and fix said bugs ;)), please get in touch.
+
 # shellshape
+
 A tiling window manager extension for gnome-shell. Many tiling window managers are an all-or-nothing affair, shellshape allows you to tile your windows when it makes sense, and still provides powerful direct manipulation when you need it. You don't have to give up any of the gnome features you like, so it makes for a very smooth learning curve.
 
-This software is in-development. I use it daily, but it might break stuff. Use at your own risk. Multiple monitor support is not really present, and doing fancy things like "always on top" windows may or may not break it.
 
 I must thank [bluetile][bluetile], for it was the inspiration for this extension and many features are lifted directly from it (although not code, JS and haskell are vastly different beasts).
 
